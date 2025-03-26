@@ -382,11 +382,13 @@ function openProductModal(product) {
   
   // Show modal
   modal.style.display = 'block';
+  document.body.style.overflow = 'hidden'; // Prevent scrolling of the background
 }
 
 // Close product modal
 function closeProductModal() {
   modal.style.display = 'none';
+  document.body.style.overflow = 'auto'; // Enable scrolling on body again
 }
 
 // Setup event listeners
@@ -420,6 +422,11 @@ function setupEventListeners() {
     if (event.target === modal) {
       closeProductModal();
     }
+  });
+  
+  // Prevent modal content clicks from closing the modal
+  document.querySelector('.modal-content').addEventListener('click', function(event) {
+    event.stopPropagation();
   });
   
   // Close modal with Escape key

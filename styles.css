@@ -244,6 +244,8 @@ select:focus, input:focus {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(3px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-content {
@@ -255,16 +257,19 @@ select:focus, input:focus {
   max-width: 1000px;
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
   position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .close {
-  position: absolute;
+  position: fixed;
   top: 20px;
-  right: 25px;
+  right: 20px;
   font-size: 28px;
   font-weight: 600;
   cursor: pointer;
-  color: var(--dark-gray);
+  color: white;
+  background-color: rgba(0, 0, 0, 0.5);
   transition: var(--transition);
   height: 40px;
   width: 40px;
@@ -272,11 +277,12 @@ select:focus, input:focus {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
+  z-index: 1100;
 }
 
 .close:hover {
-  color: var(--danger-color);
-  background-color: rgba(231, 76, 60, 0.1);
+  color: white;
+  background-color: var(--danger-color);
 }
 
 .modal-header {
@@ -402,13 +408,24 @@ select:focus, input:focus {
     width: 95%;
     margin: 5% auto;
     padding: 20px;
+    max-height: 85vh;
   }
   
   .modal-image, .modal-details {
     min-width: 100%;
   }
   
+  .close {
+    top: 15px;
+    right: 15px;
+  }
+  
   h1 {
     font-size: 1.5rem;
+  }
+  
+  .modal-body {
+    max-height: calc(85vh - 150px);
+    overflow-y: auto;
   }
 }
