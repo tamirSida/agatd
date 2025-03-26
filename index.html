@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>קטלוג מוצרים - אגת</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="images/logo.png" alt="Logo" class="company-logo">
+    </div>
+    <h1>קטלוג מוצרים</h1>
+    <div class="filters">
+      <select id="country-filter">
+        <option value="">כל הארצות</option>
+      </select>
+      <select id="category-filter">
+        <option value="">כל הקטגוריות</option>
+      </select>
+      <input type="text" id="search-input" placeholder="חיפוש...">
+    </div>
+  </header>
+
+  <main>
+    <div id="products-container"></div>
+  </main>
+
+  <!-- Product Modal -->
+  <div id="product-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div class="modal-header">
+        <h2 id="modal-product-title">שם מוצר</h2>
+        <div id="modal-product-company">שם חברה</div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-image">
+          <img id="modal-product-image" src="placeholder.jpg" alt="Product Image">
+          <div class="modal-image-not-found">image not found</div>
+        </div>
+        <div class="modal-details">
+          <p id="modal-product-description">תיאור המוצר...</p>
+          <div id="modal-product-specs"></div>
+          <div id="modal-product-variants"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
