@@ -215,7 +215,7 @@ function createProductCard(product) {
   const imageUrl = product['ברקוד'] ? `media/${product['ברקוד']}.jpg` : 'placeholder.jpg';
   
   // Determine kosher status and class
-  const isKosher = product['כשר'] && product['כשר'].toLowerCase() === 'כן';
+  const isKosher = product['כשרות'] && product['כשרות'].toLowerCase() === 'כשר';
   const kosherStatusClass = isKosher ? 'kosher-yes' : 'kosher-no';
   const kosherText = isKosher ? 'כשר' : 'לא כשר';
   
@@ -253,7 +253,7 @@ function createProductCard(product) {
         ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
         <span class="country-name">${product['מדינה']}</span>
       </div>` : ''}
-      <div class="kosher-status ${kosherStatusClass}">${kosherText}</div>
+      <div><span class="kosher-status ${kosherStatusClass}">${kosherText}</span></div>
       ${product['תאור'] ? `<div class="product-description">${product['תאור']}</div>` : ''}
       ${product['נפח'] ? `<div class="product-volume">${product['נפח']}</div>` : ''}
       <div class="product-details">
@@ -296,8 +296,8 @@ function openProductModal(product) {
   modalVariants.innerHTML = '';
   
   // Add kosher status to specs
-  if (product['כשר'] !== undefined) {
-    const isKosher = product['כשר'] && product['כשר'].toLowerCase() === 'כן';
+  if (product['כשרות'] !== undefined) {
+    const isKosher = product['כשרות'] && product['כשרות'].toLowerCase() === 'כשר';
     const kosherStatusClass = isKosher ? 'kosher-yes' : 'kosher-no';
     const kosherText = isKosher ? 'כשר' : 'לא כשר';
     
