@@ -47,10 +47,41 @@ header {
 }
 
 h1 {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   color: var(--primary-color);
   font-weight: 600;
   font-size: 2rem;
+}
+
+/* Catalog Tabs */
+.catalog-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  padding: 10px 20px;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--dark-gray);
+}
+
+.tab-button:hover {
+  background-color: var(--medium-gray);
+}
+
+.tab-button.active {
+  background-color: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
 }
 
 .filters {

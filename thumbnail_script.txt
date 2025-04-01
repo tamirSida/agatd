@@ -1,0 +1,1 @@
+python thumbnail_generator.py /Users/tamirsida/desktop/websites/agat/media /Users/tamirsida/desktop/websites/agat/thumbnail --width 300 --height 300 --quality 90 --recursive

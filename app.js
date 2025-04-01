@@ -1,10 +1,14 @@
 // Global variables
+let alcoholProducts = [];
+let wineProducts = [];
+let foodProducts = [];
 let allProducts = [];
 let groupedProducts = {};
 let currentFilters = {
   country: '',
   category: '',
-  search: ''
+  search: '',
+  tab: 'all'
 };
 
 // DOM elements
@@ -20,19 +24,74 @@ const modalImage = document.getElementById('modal-product-image');
 const modalDescription = document.getElementById('modal-product-description');
 const modalSpecs = document.getElementById('modal-product-specs');
 const modalVariants = document.getElementById('modal-product-variants');
+const tabButtons = document.querySelectorAll('.tab-button');
 
-// CSV URL (Google Sheets published as CSV)
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSIwiMX0romQUhhGq9r_jSeXnbJfwjRdglTdAUK4rmeYUcw2vbLyCVb0rUGkydljl6dFqri9u4VuAtk/pub?output=csv';
+// CSV URLs for each product category
+const ALCOHOL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTlI9O1WgV9Dz79JHp91sRZIwQYZdv27z2UIXqyKjv3NFBJM3uhxI7C9594X5I-JWELSmE9dAvgHkaq/pub?output=csv';
+const BEVERAGES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSIwiMX0romQUhhGq9r_jSeXnbJfwjRdglTdAUK4rmeYUcw2vbLyCVb0rUGkydljl6dFqri9u4VuAtk/pub?output=csv';
+const FOOD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0ql7J4DFk4nx-GcznXAMKgkrlGsbjlJ6M9y6m63Y3d7AKQ_10e3dqMeoVSX4L0SXl2QE3iG1-ni0O/pub?output=csv';
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
   try {
-    // Fetch and parse CSV data
-    const response = await fetch(CSV_URL);
-    const csvText = await response.text();
-    allProducts = parseCSV(csvText);
+    // Show loading indication
+    productsContainer.innerHTML = '<p style="text-align: center;">Loading products...</p>';
+    
+    // Try to fetch from the online sources first, fall back to local files if needed
+    try {
+      // Fetch data from all CSV files concurrently
+      const [alcoholResponse, beveragesResponse, foodResponse] = await Promise.all([
+        fetch(ALCOHOL_CSV_URL),
+        fetch(BEVERAGES_CSV_URL),
+        fetch(FOOD_CSV_URL)
+      ]);
+      
+      // Check if all responses are OK
+      if (alcoholResponse.ok && beveragesResponse.ok && foodResponse.ok) {
+        // Parse the CSV data
+        const alcoholData = parseCSV(await alcoholResponse.text());
+        const beveragesData = parseCSV(await beveragesResponse.text());
+        const foodData = parseCSV(await foodResponse.text());
+        
+        // Set the product arrays
+        alcoholProducts = alcoholData;
+        wineProducts = beveragesData;
+        foodProducts = foodData;
+      } else {
+        throw new Error('One or more CSV files failed to load from Google Sheets');
+      }
+    } catch (fetchError) {
+      console.warn('Failed to fetch from Google Sheets, using local CSV files:', fetchError);
+      
+      // Fetch from local CSV files
+      const [alcoholResponse, beveragesResponse, foodResponse] = await Promise.all([
+        fetch('AGAT - Alcohol.csv'),
+        fetch('AGAT - Beverages.csv'),
+        fetch('AGAT - Food.csv')
+      ]);
+      
+      // Parse the CSV data
+      const alcoholData = parseCSV(await alcoholResponse.text());
+      const beveragesData = parseCSV(await beveragesResponse.text());
+      const foodData = parseCSV(await foodResponse.text());
+      
+      // Set the product arrays
+      alcoholProducts = alcoholData;
+      wineProducts = beveragesData;
+      foodProducts = foodData;
+    }
+    
+    // Combine all products
+    allProducts = [...alcoholProducts, ...wineProducts, ...foodProducts];
+    
+    console.log('Loaded products:', {
+      all: allProducts.length,
+      alcohol: alcoholProducts.length,
+      wine: wineProducts.length,
+      food: foodProducts.length
+    });
     
     // Group products with same name but different variants
     groupProductsByName();
@@ -50,6 +109,8 @@ async function init() {
     productsContainer.innerHTML = '<p style="text-align: center; color: red;">Error loading products. Please try again later.</p>';
   }
 }
+
+// No longer needed - we fetch the CSV directly in init()
 
 // Parse CSV text to array of objects
 function parseCSV(csvText) {
@@ -96,9 +157,7 @@ function groupProductsByName() {
     if (!product['שם פריט אוטומטי']) return;
     
     // Create key using name and company
-    const key = product.company 
-      ? `${product['שם פריט אוטומטי'].trim().toLowerCase()}_${product.company.trim().toLowerCase()}`
-      : product['שם פריט אוטומטי'].trim().toLowerCase();
+    const key = getProductGroupKey(product);
     
     if (!groupedProducts[key]) {
       groupedProducts[key] = {
@@ -113,9 +172,16 @@ function groupProductsByName() {
 
 // Populate filter dropdowns
 function populateFilters() {
+  // Clear existing options except the default ones
+  countryFilter.innerHTML = '<option value="">כל הארצות</option>';
+  categoryFilter.innerHTML = '<option value="">כל הקטגוריות</option>';
+  
+  // Get products based on current tab
+  const products = getProductsByTab();
+  
   // Get unique countries and categories
-  const countries = [...new Set(allProducts.filter(p => p['מדינה']).map(p => p['מדינה']))];
-  const categories = [...new Set(allProducts.filter(p => p['קטגוריה']).map(p => p['קטגוריה']))];
+  const countries = [...new Set(products.filter(p => p['מדינה']).map(p => p['מדינה']))];
+  const categories = [...new Set(products.filter(p => p['קטגוריה אוטומטי'] || p['קטגוריה']).map(p => p['קטגוריה אוטומטי'] || p['קטגוריה']))];
   
   // Sort alphabetically
   countries.sort();
@@ -138,16 +204,33 @@ function populateFilters() {
   });
 }
 
+// Get products based on the current tab
+function getProductsByTab() {
+  switch (currentFilters.tab) {
+    case 'alcohol':
+      return alcoholProducts && alcoholProducts.length > 0 ? alcoholProducts : allProducts;
+    case 'wine':
+      return wineProducts && wineProducts.length > 0 ? wineProducts : allProducts;
+    case 'food':
+      return foodProducts && foodProducts.length > 0 ? foodProducts : allProducts;
+    default:
+      return allProducts;
+  }
+}
+
 // Filter products based on current filters
 function getFilteredProducts() {
-  return allProducts.filter(product => {
+  const products = getProductsByTab();
+  
+  return products.filter(product => {
     // Country filter
     if (currentFilters.country && product['מדינה'] !== currentFilters.country) {
       return false;
     }
     
     // Category filter
-    if (currentFilters.category && product['קטגוריה'] !== currentFilters.category) {
+    const productCategory = product['קטגוריה אוטומטי'] || product['קטגוריה'];
+    if (currentFilters.category && productCategory !== currentFilters.category) {
       return false;
     }
     
@@ -156,7 +239,8 @@ function getFilteredProducts() {
       const searchLower = currentFilters.search.toLowerCase();
       const nameMatch = product['שם פריט אוטומטי'] && product['שם פריט אוטומטי'].toLowerCase().includes(searchLower);
       const descMatch = product['תאור'] && product['תאור'].toLowerCase().includes(searchLower);
-      const companyMatch = product.company && product.company.toLowerCase().includes(searchLower);
+      const companyMatch = (product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי']) && 
+                          (product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי']).toLowerCase().includes(searchLower);
       const barcodeMatch = product['ברקוד'] && product['ברקוד'].toLowerCase().includes(searchLower);
       
       if (!(nameMatch || descMatch || companyMatch || barcodeMatch)) {
@@ -176,7 +260,7 @@ function displayProducts() {
   productsContainer.innerHTML = '';
   
   if (filteredProducts.length === 0) {
-    productsContainer.innerHTML = '<p style="text-align: center;">No products found matching your criteria.</p>';
+    productsContainer.innerHTML = '<p style="text-align: center;">לא נמצאו מוצרים התואמים את החיפוש שלך.</p>';
     return;
   }
   
@@ -201,8 +285,10 @@ function displayProducts() {
 function getProductGroupKey(product) {
   if (!product['שם פריט אוטומטי']) return null;
   
-  return product.company
-    ? `${product['שם פריט אוטומטי'].trim().toLowerCase()}_${product.company.trim().toLowerCase()}`
+  const company = product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || '';
+  
+  return company
+    ? `${product['שם פריט אוטומטי'].trim().toLowerCase()}_${company.trim().toLowerCase()}`
     : product['שם פריט אוטומטי'].trim().toLowerCase();
 }
 
@@ -212,12 +298,19 @@ function createProductCard(product) {
   card.className = 'product-card';
   
   // Get image URL based on barcode
-  const imageUrl = product['ברקוד'] ? `media/${product['ברקוד']}.jpg` : 'placeholder.jpg';
+  const barcode = product['ברקוד'];
+  const imageUrl = barcode ? `tl/${barcode}.jpg` : 'placeholder.jpg';
   
   // Determine kosher status and class
   const isKosher = product['כשרות'] && product['כשרות'].toLowerCase() === 'כשר';
   const kosherStatusClass = isKosher ? 'kosher-yes' : 'kosher-no';
   const kosherText = isKosher ? 'כשר' : 'לא כשר';
+  
+  // Get company/brand name
+  const company = product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || '';
+  
+  // Get volume/weight
+  const volumeWeight = product['נפח'] || product['משקל'] || '';
   
   // Get country code for flag (simple mapping for common countries)
   const countryToCode = {
@@ -238,24 +331,39 @@ function createProductCard(product) {
     'טורקיה': 'tr',
     'מולדובה': 'md',
     'גאורגיה': 'ge',
+    'איחוד האמירויות': 'ae',
+    'אוקראינה': 'ua',
+    'פולין': 'pl',
+    'בולגריה': 'bg',
+    'גואטמאלה': 'gt',
+    'מקסיקו': 'mx',
+    'סנט לוסיה': 'lc',
+    'קולומביה': 'co',
+    'קאריבים': 'bs', // Using Bahamas as generic Caribbean flag
+    'יוון': 'gr',
+    'סקוטלנד': 'gb', // Using UK flag for Scotland
+    'מלטה': 'mt',
+    'קניה': 'ke',
+    'סלובניה': 'si'
   };
   
   const countryCode = product['מדינה'] && countryToCode[product['מדינה']] ? countryToCode[product['מדינה']] : '';
   
   card.innerHTML = `
     <div class="product-image">
-      <img src="${imageUrl}" alt="${product['שם פריט אוטומטי'] || 'Product'}" onerror="this.src='placeholder.jpg'; this.nextElementSibling.style.display='block';">
+      <img src="${imageUrl}" alt="${product['שם פריט אוטומטי'] || 'Product'}" onerror="if(this.src.includes('tl')){ this.src='media/${barcode || ''}.jpg'; } else { this.src='placeholder.jpg'; this.nextElementSibling.style.display='block'; }">
       <div class="image-not-found">image not found</div>
     </div>
     <div class="product-info">
       <h3>${product['שם פריט אוטומטי'] || 'Unnamed Product'}</h3>
+      ${company ? `<div class="product-company">${company}</div>` : ''}
       ${product['מדינה'] ? `<div class="product-country">
         ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
         <span class="country-name">${product['מדינה']}</span>
       </div>` : ''}
       <div><span class="kosher-status ${kosherStatusClass}">${kosherText}</span></div>
       ${product['תאור'] ? `<div class="product-description">${product['תאור']}</div>` : ''}
-      ${product['נפח'] ? `<div class="product-volume">${product['נפח']}</div>` : ''}
+      ${volumeWeight ? `<div class="product-volume">${volumeWeight}</div>` : ''}
       <div class="product-details">
         <span class="barcode">${product['ברקוד'] || ''}</span>
         ${product['מחיר'] ? `<span class="price">${product['מחיר']} ₪</span>` : ''}
@@ -274,13 +382,17 @@ function openProductModal(product) {
   const groupKey = getProductGroupKey(product);
   const group = groupedProducts[groupKey];
   
+  // Get company/brand name
+  const company = product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || '';
+  
   // Set modal content
   modalTitle.textContent = product['שם פריט אוטומטי'] || 'Unnamed Product';
-  modalCompany.textContent = product.company || '';
+  modalCompany.textContent = company;
   modalDescription.textContent = product['תאור'] || '';
   
-  // Set image
-  const imageUrl = product['ברקוד'] ? `media/${product['ברקוד']}.jpg` : 'placeholder.jpg';
+  // Set image - use media folder for modal (full size image)
+  const barcode = product['ברקוד'];
+  const imageUrl = barcode ? `media/${barcode}.jpg` : 'placeholder.jpg';
   modalImage.src = imageUrl;
   modalImage.alt = product['שם פריט אוטומטי'] || 'Product';
   modalImage.onerror = () => { 
@@ -330,6 +442,20 @@ function openProductModal(product) {
       'טורקיה': 'tr',
       'מולדובה': 'md',
       'גאורגיה': 'ge',
+      'איחוד האמירויות': 'ae',
+      'אוקראינה': 'ua',
+      'פולין': 'pl',
+      'בולגריה': 'bg',
+      'גואטמאלה': 'gt',
+      'מקסיקו': 'mx',
+      'סנט לוסיה': 'lc',
+      'קולומביה': 'co',
+      'קאריבים': 'bs', // Using Bahamas as generic Caribbean flag
+      'יוון': 'gr',
+      'סקוטלנד': 'gb', // Using UK flag for Scotland
+      'מלטה': 'mt',
+      'קניה': 'ke',
+      'סלובניה': 'si'
     };
     
     const countryCode = countryToCode[product['מדינה']] || '';
@@ -348,13 +474,14 @@ function openProductModal(product) {
   // Add product specs
   for (const [key, value] of Object.entries(product)) {
     // Skip empty values and fields displayed elsewhere
-    if (!value || key === 'name' || key === 'description' || key === 'company') continue;
+    if (!value || key === 'שם פריט אוטומטי' || key === 'תאור' || key === 'כשרות' || key === 'מדינה' || 
+        key === 'company' || key === 'קבוצה / מותג' || key === 'קבוצה / מותג אוטומטי') continue;
     
     const specItem = document.createElement('div');
     specItem.className = 'spec-item';
     
     specItem.innerHTML = `
-      <div class="spec-label">${key.charAt(0).toUpperCase() + key.slice(1)}:</div>
+      <div class="spec-label">${key}:</div>
       <div class="spec-value">${value}</div>
     `;
     
@@ -370,7 +497,9 @@ function openProductModal(product) {
       variantOption.className = 'variant-option';
       if (variant === product) variantOption.classList.add('active');
       
-      variantOption.textContent = variant.volume || 'Standard';
+      const variantLabel = variant['נפח'] || variant['משקל'] || 'Standard';
+      
+      variantOption.textContent = variantLabel;
       
       variantOption.addEventListener('click', () => {
         openProductModal(variant);
@@ -391,8 +520,44 @@ function closeProductModal() {
   document.body.style.overflow = 'auto'; // Enable scrolling on body again
 }
 
+// Switch tab
+function switchTab(tabName) {
+  // Update active tab button
+  tabButtons.forEach(btn => {
+    if (btn.dataset.tab === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  
+  // Update current tab
+  currentFilters.tab = tabName;
+  
+  // Reset other filters
+  currentFilters.country = '';
+  currentFilters.category = '';
+  countryFilter.value = '';
+  categoryFilter.value = '';
+  
+  // Update filter options based on the new tab
+  populateFilters();
+  
+  // Display filtered products
+  displayProducts();
+}
+
+
 // Setup event listeners
 function setupEventListeners() {
+  // Tab buttons
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.dataset.tab;
+      switchTab(tabName);
+    });
+  });
+  
   // Filter change events
   countryFilter.addEventListener('change', function() {
     currentFilters.country = this.value;
