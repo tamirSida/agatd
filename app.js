@@ -41,6 +41,7 @@ const WINE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRkUmKUxQG
 const BEER_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGFPOHiYkWGPDASiBePqXkbxoikcLYiFAz1RobyVTlX2-dj71jMSCCFLgrNXOjFpOZYwS7MHCD6IrU/pub?output=csv';
 const FOOD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5zrZyn-cmKHuk3H-nI4QG9NDJFvB-q3MjjdIUuQfk_lhtQPzTeovn_kAz46o2PnuH_aZ8Mq1zteFD/pub?output=csv';
 const WHISKEY_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSnSgqeW3W-2vKiqPwsBLpOE9vamrHELbgZCNHDYv6bGGYPnkhp44KzYvbly7qCLq3E_Rgu2VyYKMGY/pub?output=csv';
+const BRANDS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbLyJcDTPOjBtcGOSKUXYuKn5U8_sRF_KOSgFwiyPoeO3YazAxOhXXVCSK7M94-yxyO7j1fr5J3ou_/pub?output=csv';
 
 // We're only using remote data now, no local fallbacks
 
@@ -303,10 +304,10 @@ async function init() {
   }
 }
 
-// Load brands from CSV file and populate the dropdown
+// Load brands from Google Sheets CSV and populate the dropdown
 async function loadBrands() {
   try {
-    console.log('Loading brands from CSV...');
+    console.log('Loading brands from Google Sheets...');
     
     // Add default option first
     const defaultOption = document.createElement('option');
@@ -315,12 +316,13 @@ async function loadBrands() {
     brandFilter.appendChild(defaultOption);
     
     try {
-      // Try to fetch brands from current directory
-      const response = await fetch('brands.csv');
+      // First try using direct fetch
+      console.log('Trying direct fetch for brands from:', BRANDS_CSV_URL);
+      const response = await fetch(BRANDS_CSV_URL);
       
       if (response.ok) {
         const text = await response.text();
-        console.log('Successfully loaded brands.csv');
+        console.log('Successfully loaded brands from Google Sheets');
         
         // Parse the CSV to extract brand names
         const lines = text.split('\n').filter(line => line.trim());
@@ -342,44 +344,79 @@ async function loadBrands() {
       } else {
         throw new Error(`HTTP status: ${response.status} ${response.statusText}`);
       }
-    } catch (fetchError) {
-      console.warn('Error loading brands from CSV, using hardcoded brands from the alcohol CSV:', fetchError);
+    } catch (directError) {
+      console.warn('Direct fetch for brands failed:', directError);
       
-      // If we can't load the brands file, extract them from the column headers in the alcohol CSV
-      // We'll use this as a fallback
+      // Second try: use XMLHttpRequest (works around some CORS issues)
       try {
-        const alcoholResponse = await fetch(LOCAL_ALCOHOL_CSV);
-        if (alcoholResponse.ok) {
-          const csvText = await alcoholResponse.text();
-          const firstLine = csvText.split('\n')[0];
-          const headers = firstLine.split(',');
+        console.log('Trying XMLHttpRequest for brands...');
+        const xhrResult = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', BRANDS_CSV_URL, true);
+          xhr.responseType = 'text';
           
-          // Extract client names (from column 4 onward, just before 'שם פריט אוטומטי')
-          const clientNames = [];
-          for (let i = 3; i < headers.length; i++) {
-            const header = headers[i].trim();
-            if (header === 'שם פריט אוטומטי') break;
-            if (header) clientNames.push(header);
+          xhr.onload = function() {
+            if (xhr.status === 200) {
+              resolve(xhr.responseText);
+            } else {
+              reject(new Error(`HTTP error: ${xhr.status}`));
+            }
+          };
+          
+          xhr.onerror = () => reject(new Error('Network error'));
+          xhr.ontimeout = () => reject(new Error('Timeout'));
+          xhr.timeout = 10000;
+          xhr.send();
+        });
+        
+        const lines = xhrResult.split('\n').filter(line => line.trim());
+        brands = lines.map(line => line.trim());
+        console.log('Loaded brands via XHR:', brands.length);
+        
+        // Sort and add to dropdown
+        const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
+        
+        sortedBrands.forEach(brand => {
+          const option = document.createElement('option');
+          option.value = brand;
+          option.textContent = brand;
+          brandFilter.appendChild(option);
+        });
+        
+        console.log('Brand dropdown populated with', sortedBrands.length, 'options');
+      } catch (xhrError) {
+        console.warn('XMLHttpRequest for brands failed:', xhrError);
+        
+        // Third try: use a PHP proxy if it exists
+        try {
+          console.log('Trying PHP proxy for brands...');
+          const proxyUrl = `proxy.php?url=${encodeURIComponent(BRANDS_CSV_URL)}`;
+          const proxyResponse = await fetch(proxyUrl);
+          
+          if (proxyResponse.ok) {
+            const text = await proxyResponse.text();
+            const lines = text.split('\n').filter(line => line.trim());
+            brands = lines.map(line => line.trim());
+            console.log('Loaded brands via proxy:', brands.length);
+            
+            // Sort and add to dropdown
+            const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
+            
+            sortedBrands.forEach(brand => {
+              const option = document.createElement('option');
+              option.value = brand;
+              option.textContent = brand;
+              brandFilter.appendChild(option);
+            });
+            
+            console.log('Brand dropdown populated with', sortedBrands.length, 'options via proxy');
+          } else {
+            throw new Error('Proxy request failed');
           }
-          
-          // Sort and add to dropdown
-          const sortedClients = [...clientNames].sort((a, b) => a.localeCompare(b, 'he'));
-          brands = sortedClients;
-          
-          sortedClients.forEach(brand => {
-            const option = document.createElement('option');
-            option.value = brand;
-            option.textContent = brand;
-            brandFilter.appendChild(option);
-          });
-          
-          console.log('Brand dropdown populated with', sortedClients.length, 'options from alcohol CSV');
-        } else {
-          throw new Error('Failed to load fallback file');
+        } catch (proxyError) {
+          console.warn('Proxy fetch for brands failed:', proxyError);
+          throw proxyError; // Let the outer catch handle it
         }
-      } catch (fallbackError) {
-        console.error('Both brand sources failed:', fallbackError);
-        throw fallbackError;
       }
     }
   } catch (error) {
