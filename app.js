@@ -662,31 +662,61 @@ function createProductCard(product) {
   // Get category-specific fields for wine
   let wineFieldsHtml = '';
   if (tabCategory === 'wine') {
-    const grapeType = product['זן ענב'] ? `<div class="product-spec">זן ענב: ${product['זן ענב']}</div>` : '';
-    const sweetness = product['רמת מתיקות'] ? `<div class="product-spec">רמת מתיקות: ${product['רמת מתיקות']}</div>` : '';
-    wineFieldsHtml = grapeType + sweetness;
+    const grapeType = product['זן ענב'] ? `<div class="product-spec"><strong>זן ענב</strong>: ${product['זן ענב']}</div>` : '';
+    const sweetness = product['רמת מתיקות'] ? `<div class="product-spec"><strong>רמת מתיקות</strong>: ${product['רמת מתיקות']}</div>` : '';
+    const vintage = product['בציר'] ? `<div class="product-spec"><strong>בציר</strong>: ${product['בציר']}</div>` : '';
+    const region = product['אזור'] ? `<div class="product-spec"><strong>אזור</strong>: ${product['אזור']}</div>` : '';
+    wineFieldsHtml = grapeType + sweetness + vintage + region;
   }
   
   // Get category-specific fields for whiskey
   let whiskeyFieldsHtml = '';
   if (tabCategory === 'whiskey') {
-    const barrelType = product['סוג חבית/סיום'] ? `<div class="product-spec">סוג חבית/סיום: ${product['סוג חבית/סיום']}</div>` : '';
-    const whiskyType = product['סוג'] ? `<div class="product-spec">סוג: ${product['סוג']}</div>` : '';
-    const age = product['גיל'] ? `<div class="product-spec">גיל: ${product['גיל']}</div>` : '';
-    whiskeyFieldsHtml = barrelType + whiskyType + age;
+    const barrelType = product['סוג חבית/סיום'] ? `<div class="product-spec"><strong>סוג חבית/סיום</strong>: ${product['סוג חבית/סיום']}</div>` : '';
+    const whiskyType = product['סוג'] ? `<div class="product-spec"><strong>סוג</strong>: ${product['סוג']}</div>` : '';
+    const age = product['גיל'] ? `<div class="product-spec"><strong>גיל</strong>: ${product['גיל']}</div>` : '';
+    const abv = product['אחוז אלכוהול'] ? `<div class="product-spec"><strong>אחוז אלכוהול</strong>: ${product['אחוז אלכוהול']}</div>` : '';
+    whiskeyFieldsHtml = barrelType + whiskyType + age + abv;
+  }
+  
+  // Get category-specific fields for beer
+  let beerFieldsHtml = '';
+  if (tabCategory === 'beer') {
+    const beerType = product['סוג בירה'] ? `<div class="product-spec"><strong>סוג בירה</strong>: ${product['סוג בירה']}</div>` : '';
+    const abv = product['אחוז אלכוהול'] ? `<div class="product-spec"><strong>אחוז אלכוהול</strong>: ${product['אחוז אלכוהול']}</div>` : '';
+    const ibu = product['IBU'] ? `<div class="product-spec"><strong>IBU</strong>: ${product['IBU']}</div>` : '';
+    beerFieldsHtml = beerType + abv + ibu;
+  }
+  
+  // Get category-specific fields for food
+  let foodFieldsHtml = '';
+  if (tabCategory === 'food') {
+    const ingredients = product['מרכיבים'] ? `<div class="product-spec"><strong>מרכיבים</strong>: ${product['מרכיבים']}</div>` : '';
+    const nutritionalInfo = product['ערכים תזונתיים'] ? `<div class="product-spec"><strong>ערכים תזונתיים</strong>: ${product['ערכים תזונתיים']}</div>` : '';
+    const shelfLife = product['חיי מדף'] ? `<div class="product-spec"><strong>חיי מדף</strong>: ${product['חיי מדף']}</div>` : '';
+    foodFieldsHtml = ingredients + nutritionalInfo + shelfLife;
+  }
+  
+  // Get category-specific fields for alcohol
+  let alcoholFieldsHtml = '';
+  if (tabCategory === 'alcohol') {
+    const alcoholType = product['סוג אלכוהול'] ? `<div class="product-spec"><strong>סוג אלכוהול</strong>: ${product['סוג אלכוהול']}</div>` : '';
+    const abv = product['אחוז אלכוהול'] ? `<div class="product-spec"><strong>אחוז אלכוהול</strong>: ${product['אחוז אלכוהול']}</div>` : '';
+    const flavor = product['טעם'] ? `<div class="product-spec"><strong>טעם</strong>: ${product['טעם']}</div>` : '';
+    alcoholFieldsHtml = alcoholType + abv + flavor;
   }
 
   // Get volume for beverages
   let volumeHtml = '';
   if (product['נפח'] || product['נפח (ליטר)']) {
     const volume = product['נפח'] || product['נפח (ליטר)'] || '';
-    volumeHtml = `<div class="product-volume">${volume}</div>`;
+    volumeHtml = `<div class="product-volume"><strong>נפח</strong>: ${volume}</div>`;
   }
   
   // Get weight for food
   let weightHtml = '';
   if (tabCategory === 'food' && product['משקל']) {
-    weightHtml = `<div class="product-weight">משקל: <span>${product['משקל']} גרם</span></div>`;
+    weightHtml = `<div class="product-weight"><strong>משקל</strong>: ${product['משקל']} גרם</div>`;
   }
   
   // Get description
@@ -758,6 +788,9 @@ function createProductCard(product) {
       ${kosherHtml}
       ${wineFieldsHtml}
       ${whiskeyFieldsHtml}
+      ${beerFieldsHtml}
+      ${foodFieldsHtml}
+      ${alcoholFieldsHtml}
       ${volumeHtml}
       ${descriptionHtml}
       ${weightHtml}
@@ -821,7 +854,7 @@ function openProductModal(product) {
     const kosherSpec = document.createElement('div');
     kosherSpec.className = 'spec-item kosher-spec';
     kosherSpec.innerHTML = `
-      <div class="spec-label">כשרות:</div>
+      <div class="spec-label"><strong>כשרות</strong>:</div>
       <div class="spec-value"><span class="kosher-status ${kosherStatusClass}">${kosherText}</span></div>
     `;
     modalSpecs.appendChild(kosherSpec);
@@ -867,7 +900,7 @@ function openProductModal(product) {
     const countrySpec = document.createElement('div');
     countrySpec.className = 'spec-item country-spec';
     countrySpec.innerHTML = `
-      <div class="spec-label">מדינת ייצור:</div>
+      <div class="spec-label"><strong>מדינת ייצור</strong>:</div>
       <div class="spec-value">
         ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
         <span class="country-name">${product['מדינה']}</span>
@@ -888,7 +921,7 @@ function openProductModal(product) {
     const brandsSpec = document.createElement('div');
     brandsSpec.className = 'spec-item brands-spec';
     brandsSpec.innerHTML = `
-      <div class="spec-label">נמצא אצל:</div>
+      <div class="spec-label"><strong>נמצא אצל</strong>:</div>
       <div class="spec-value">${productBrands.join(', ')}</div>
     `;
     modalSpecs.appendChild(brandsSpec);
@@ -911,7 +944,7 @@ function openProductModal(product) {
     specItem.className = 'spec-item';
 
     specItem.innerHTML = `
-      <div class="spec-label">${key}:</div>
+      <div class="spec-label"><strong>${key}</strong>:</div>
       <div class="spec-value">${value}</div>
     `;
 

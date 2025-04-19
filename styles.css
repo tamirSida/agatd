@@ -404,6 +404,9 @@ select.has-value ~ .clear-filter {
   font-size: 14px;
   color: var(--dark-gray);
   margin-bottom: 12px;
+}
+
+.product-spec strong, .product-volume strong, .product-weight strong {
   font-weight: 600;
 }
 
@@ -573,9 +576,12 @@ select.has-value ~ .clear-filter {
 }
 
 .spec-label {
-  font-weight: 600;
   width: 140px;
   color: var(--primary-color);
+}
+
+.spec-label strong {
+  font-weight: 600;
 }
 
 #modal-product-variants {
@@ -721,7 +727,7 @@ select.has-value ~ .clear-filter {
     margin-bottom: 6px;
   }
   
-  .product-volume, .product-weight {
+  .product-volume, .product-weight, .product-spec {
     font-size: 12px;
     margin-bottom: 6px;
   }
