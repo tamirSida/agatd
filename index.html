@@ -28,6 +28,7 @@
       <select id="category-filter">
         <option value="">כל הקטגוריות</option>
       </select>
+      <button id="brand-filter-btn" class="filter-button">לקוח</button>
       <input type="text" id="search-input" placeholder="חיפוש...">
     </div>
   </header>
@@ -53,6 +54,22 @@
           <p id="modal-product-description">תיאור המוצר...</p>
           <div id="modal-product-specs"></div>
           <div id="modal-product-variants"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Brand Filter Modal -->
+  <div id="brand-filter-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-brand-modal">&times;</span>
+      <div class="modal-header">
+        <h2>סינון לפי לקוח</h2>
+      </div>
+      <div class="modal-body">
+        <div id="brand-list" class="brand-list"></div>
+        <div class="filter-actions">
+          <button id="clear-brand-filter" class="clear-filter">נקה סינון</button>
         </div>
       </div>
     </div>

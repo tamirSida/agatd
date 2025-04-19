@@ -4,11 +4,13 @@ let wineProducts = [];
 let foodProducts = [];
 let allProducts = [];
 let groupedProducts = {};
+let brands = []; // Array to hold all brands
 let currentFilters = {
   country: '',
   category: '',
   search: '',
-  tab: 'all'
+  tab: 'all',
+  brand: '' // New filter for brands
 };
 
 // DOM elements
@@ -25,9 +27,14 @@ const modalDescription = document.getElementById('modal-product-description');
 const modalSpecs = document.getElementById('modal-product-specs');
 const modalVariants = document.getElementById('modal-product-variants');
 const tabButtons = document.querySelectorAll('.tab-button');
+const brandFilterBtn = document.getElementById('brand-filter-btn');
+const brandFilterModal = document.getElementById('brand-filter-modal');
+const closeBrandModalBtn = document.querySelector('.close-brand-modal');
+const brandList = document.getElementById('brand-list');
+const clearBrandFilterBtn = document.getElementById('clear-brand-filter');
 
 // CSV URLs for each product category
-const ALCOHOL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTlI9O1WgV9Dz79JHp91sRZIwQYZdv27z2UIXqyKjv3NFBJM3uhxI7C9594X5I-JWELSmE9dAvgHkaq/pub?output=csv';
+const ALCOHOL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv';
 const BEVERAGES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSIwiMX0romQUhhGq9r_jSeXnbJfwjRdglTdAUK4rmeYUcw2vbLyCVb0rUGkydljl6dFqri9u4VuAtk/pub?output=csv';
 const FOOD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0ql7J4DFk4nx-GcznXAMKgkrlGsbjlJ6M9y6m63Y3d7AKQ_10e3dqMeoVSX4L0SXl2QE3iG1-ni0O/pub?output=csv';
 
@@ -38,6 +45,9 @@ async function init() {
   try {
     // Show loading indication
     productsContainer.innerHTML = '<p style="text-align: center;">Loading products...</p>';
+
+    // Load brands from CSV file
+    await loadBrands();
 
     // Try to fetch from the online sources first, fall back to local files if needed
     try {
@@ -67,7 +77,7 @@ async function init() {
 
       // Fetch from local CSV files
       const [alcoholResponse, beveragesResponse, foodResponse] = await Promise.all([
-        fetch('AGAT - Alcohol.csv'),
+        fetch('AGAT- ALC - Sheet1.csv'),
         fetch('AGAT - Beverages.csv'),
         fetch('AGAT - Food.csv')
       ]);
@@ -110,7 +120,23 @@ async function init() {
   }
 }
 
-// No longer needed - we fetch the CSV directly in init()
+// Load brands from CSV file
+async function loadBrands() {
+  try {
+    const response = await fetch('brands.csv');
+    if (response.ok) {
+      const text = await response.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      brands = lines.map(line => line.trim());
+      console.log('Loaded brands:', brands.length);
+    } else {
+      throw new Error('Failed to load brands.csv');
+    }
+  } catch (error) {
+    console.error('Error loading brands:', error);
+    brands = [];
+  }
+}
 
 // Parse CSV text to array of objects
 function parseCSV(csvText) {
@@ -202,6 +228,74 @@ function populateFilters() {
     option.textContent = category;
     categoryFilter.appendChild(option);
   });
+
+  // Update brand filter button status
+  updateBrandFilterButtonStatus();
+}
+
+// Populate the brand list in the modal
+function populateBrandList() {
+  // Clear existing brands
+  brandList.innerHTML = '';
+
+  // Sort brands alphabetically
+  const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
+
+  // Add each brand as a clickable item
+  sortedBrands.forEach(brand => {
+    const brandItem = document.createElement('div');
+    brandItem.className = 'brand-item';
+    if (brand === currentFilters.brand) {
+      brandItem.classList.add('active');
+    }
+    brandItem.textContent = brand;
+    brandItem.dataset.brand = brand;
+
+    brandItem.addEventListener('click', () => {
+      selectBrand(brand);
+    });
+
+    brandList.appendChild(brandItem);
+  });
+}
+
+// Select a brand from the modal
+function selectBrand(brand) {
+  // If clicking the same brand, toggle it off
+  if (currentFilters.brand === brand) {
+    currentFilters.brand = '';
+  } else {
+    currentFilters.brand = brand;
+  }
+
+  // Update active class
+  document.querySelectorAll('.brand-item').forEach(item => {
+    if (item.dataset.brand === currentFilters.brand) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+
+  // Update brand filter button status
+  updateBrandFilterButtonStatus();
+
+  // Close the modal
+  closeBrandFilterModal();
+
+  // Display filtered products
+  displayProducts();
+}
+
+// Update brand filter button to show active/inactive state
+function updateBrandFilterButtonStatus() {
+  if (currentFilters.brand) {
+    brandFilterBtn.classList.add('active');
+    brandFilterBtn.textContent = `לקוח: ${currentFilters.brand}`;
+  } else {
+    brandFilterBtn.classList.remove('active');
+    brandFilterBtn.textContent = 'לקוח';
+  }
 }
 
 // Get products based on the current tab
@@ -231,6 +325,11 @@ function getFilteredProducts() {
     // Category filter
     const productCategory = product['קטגוריה אוטומטי'] || product['קטגוריה'];
     if (currentFilters.category && productCategory !== currentFilters.category) {
+      return false;
+    }
+
+    // Brand filter
+    if (currentFilters.brand && !product[currentFilters.brand]) {
       return false;
     }
 
@@ -479,11 +578,36 @@ function openProductModal(product) {
     modalSpecs.appendChild(countrySpec);
   }
 
+  // Add stocked in brands section
+  const productBrands = [];
+  for (const brand of brands) {
+    if (product[brand] && product[brand].toLowerCase() === 'true') {
+      productBrands.push(brand);
+    }
+  }
+
+  if (productBrands.length > 0) {
+    const brandsSpec = document.createElement('div');
+    brandsSpec.className = 'spec-item brands-spec';
+    brandsSpec.innerHTML = `
+      <div class="spec-label">נמצא אצל:</div>
+      <div class="spec-value">${productBrands.join(', ')}</div>
+    `;
+    modalSpecs.appendChild(brandsSpec);
+  }
+
   // Add product specs
   for (const [key, value] of Object.entries(product)) {
-    // Skip empty values and fields displayed elsewhere
-    if (!value || key === 'שם פריט אוטומטי' || key === 'תאור' || key === 'כשרות' || key === 'מדינה' ||
-        key === 'company' || key === 'קבוצה / מותג' || key === 'קבוצה / מותג אוטומטי') continue;
+    // Skip empty values, brands, and fields displayed elsewhere
+    if (!value || 
+        key === 'שם פריט אוטומטי' || 
+        key === 'תאור' || 
+        key === 'כשרות' || 
+        key === 'מדינה' ||
+        key === 'company' || 
+        key === 'קבוצה / מותג' || 
+        key === 'קבוצה / מותג אוטומטי' ||
+        brands.includes(key)) continue;
 
     const specItem = document.createElement('div');
     specItem.className = 'spec-item';
@@ -528,6 +652,19 @@ function closeProductModal() {
   document.body.style.overflow = 'auto'; // Enable scrolling on body again
 }
 
+// Open brand filter modal
+function openBrandFilterModal() {
+  populateBrandList();
+  brandFilterModal.style.display = 'block';
+  document.body.style.overflow = 'hidden'; // Prevent scrolling of the background
+}
+
+// Close brand filter modal
+function closeBrandFilterModal() {
+  brandFilterModal.style.display = 'none';
+  document.body.style.overflow = 'auto'; // Enable scrolling on body again
+}
+
 // Switch tab
 function switchTab(tabName) {
   // Update active tab button
@@ -545,14 +682,24 @@ function switchTab(tabName) {
   // Reset other filters
   currentFilters.country = '';
   currentFilters.category = '';
+  currentFilters.brand = '';
   countryFilter.value = '';
   categoryFilter.value = '';
+  updateBrandFilterButtonStatus();
 
   // Update filter options based on the new tab
   populateFilters();
 
   // Display filtered products
   displayProducts();
+}
+
+// Clear brand filter
+function clearBrandFilter() {
+  currentFilters.brand = '';
+  updateBrandFilterButtonStatus();
+  displayProducts();
+  closeBrandFilterModal();
 }
 
 // Setup event listeners
@@ -574,6 +721,22 @@ function setupEventListeners() {
   categoryFilter.addEventListener('change', function() {
     currentFilters.category = this.value;
     displayProducts();
+  });
+
+  // Brand filter button
+  brandFilterBtn.addEventListener('click', openBrandFilterModal);
+  
+  // Close brand modal
+  closeBrandModalBtn.addEventListener('click', closeBrandFilterModal);
+  
+  // Clear brand filter button
+  clearBrandFilterBtn.addEventListener('click', clearBrandFilter);
+  
+  // Close brand modal when clicking outside content
+  brandFilterModal.addEventListener('click', function(event) {
+    if (event.target === brandFilterModal) {
+      closeBrandFilterModal();
+    }
   });
 
   // Search input with debounce
@@ -600,11 +763,20 @@ function setupEventListeners() {
   document.querySelector('.modal-content').addEventListener('click', function(event) {
     event.stopPropagation();
   });
+  
+  document.querySelector('#brand-filter-modal .modal-content').addEventListener('click', function(event) {
+    event.stopPropagation();
+  });
 
   // Close modal with Escape key
   document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape' && modal.style.display === 'block') {
-      closeProductModal();
+    if (event.key === 'Escape') {
+      if (modal.style.display === 'block') {
+        closeProductModal();
+      }
+      if (brandFilterModal.style.display === 'block') {
+        closeBrandFilterModal();
+      }
     }
   });
 }

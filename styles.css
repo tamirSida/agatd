@@ -91,7 +91,7 @@ h1 {
   margin-bottom: 30px;
 }
 
-select, input {
+select, input, .filter-button {
   padding: 10px 15px;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
@@ -101,10 +101,25 @@ select, input {
   background-color: white;
 }
 
-select:focus, input:focus {
+select:focus, input:focus, .filter-button:focus {
   outline: none;
   border-color: var(--accent-color);
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.filter-button {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.filter-button:hover {
+  background-color: var(--medium-gray);
+}
+
+.filter-button.active {
+  background-color: var(--accent-color);
+  color: white;
+  border-color: var(--accent-color);
 }
 
 #products-container {
@@ -292,6 +307,10 @@ select:focus, input:focus {
   overflow-y: auto;
 }
 
+#brand-filter-modal .modal-content {
+  max-width: 500px;
+}
+
 .close {
   position: fixed;
   top: 20px;
@@ -424,13 +443,103 @@ select:focus, input:focus {
   border-color: var(--accent-color);
 }
 
+/* Brand Filter Modal */
+.brand-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 5px;
+}
+
+.brand-item {
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: white;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: right;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-item:last-child {
+  border-bottom: none;
+}
+
+.brand-item:hover {
+  background-color: var(--medium-gray);
+}
+
+.brand-item.active {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+.brand-item.active::after {
+  content: "✓";
+  font-weight: bold;
+  font-size: 18px;
+  margin-right: 5px;
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 10px;
+}
+
+.clear-filter {
+  background-color: var(--light-gray);
+  color: var(--dark-gray);
+  border: 1px solid var(--border-color);
+  padding: 8px 15px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+}
+
+.clear-filter:hover {
+  background-color: var(--medium-gray);
+}
+
+.close-brand-modal {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  font-size: 28px;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.5);
+  transition: var(--transition);
+  height: 40px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  z-index: 1100;
+}
+
+.close-brand-modal:hover {
+  color: white;
+  background-color: var(--danger-color);
+}
+
 @media (max-width: 768px) {
   .filters {
     flex-direction: column;
     align-items: center;
   }
   
-  select, input {
+  select, input, .filter-button {
     width: 100%;
     max-width: 300px;
   }
