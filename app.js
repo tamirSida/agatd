@@ -13,14 +13,14 @@ let currentFilters = {
   search: '',
   tab: 'all',
   brand: '', // New filter for brands
-  kosher: '' // New filter for kosher status
+  // kosher filter removed
 };
 
 // DOM elements
 const countryFilter = document.getElementById('country-filter');
 const categoryFilter = document.getElementById('category-filter');
 const brandFilter = document.getElementById('brand-filter');
-const kosherFilter = document.getElementById('kosher-filter');
+// Kosher filter removed
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
 const productsContainer = document.getElementById('products-container');
@@ -36,7 +36,7 @@ const tabButtons = document.querySelectorAll('.tab-button');
 const clearCountryFilterBtn = document.getElementById('clear-country-filter');
 const clearCategoryFilterBtn = document.getElementById('clear-category-filter');
 const clearBrandFilterBtn = document.getElementById('clear-brand-filter');
-const clearKosherFilterBtn = document.getElementById('clear-kosher-filter');
+// Kosher filter button removed
 
 // CSV URLs for each product category
 const ALCOHOL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv';
@@ -221,6 +221,19 @@ async function init() {
         food: foodProducts.length,
         whiskey: whiskeyProducts.length
       });
+      
+      // Debug: check for products without essential fields
+      const debugWhiskey = whiskeyProducts.filter(p => !p['שם פריט אוטומטי'] && !p['תיאור פריט']);
+      if (debugWhiskey.length > 0) {
+        console.warn(`Found ${debugWhiskey.length} whiskey products without a name or description`);
+        console.log('Sample invalid whiskey product:', debugWhiskey[0]);
+      }
+      
+      const debugAlcohol = alcoholProducts.filter(p => !p['שם פריט אוטומטי'] && !p['תיאור פריט']);
+      if (debugAlcohol.length > 0) {
+        console.warn(`Found ${debugAlcohol.length} alcohol products without a name or description`);
+        console.log('Sample invalid alcohol product:', debugAlcohol[0]);
+      }
       
       // Check if we got at least some data
       const totalProducts = alcoholProducts.length + wineProducts.length + 
@@ -449,36 +462,44 @@ function parseCSV(csvText) {
   const lines = csvText.split('\n');
   const headers = lines[0].split(',').map(header => header.trim().toLowerCase());
 
-  return lines.slice(1).filter(line => line.trim()).map(line => {
-    // Handle quoted fields with commas
-    const values = [];
-    let currentValue = '';
-    let insideQuotes = false;
+  return lines.slice(1)
+    .filter(line => line.trim())
+    .map(line => {
+      // Handle quoted fields with commas
+      const values = [];
+      let currentValue = '';
+      let insideQuotes = false;
 
-    for (let char of line) {
-      if (char === '"') {
-        insideQuotes = !insideQuotes;
-      } else if (char === ',' && !insideQuotes) {
-        values.push(currentValue.trim());
-        currentValue = '';
-      } else {
-        currentValue += char;
+      for (let char of line) {
+        if (char === '"') {
+          insideQuotes = !insideQuotes;
+        } else if (char === ',' && !insideQuotes) {
+          values.push(currentValue.trim());
+          currentValue = '';
+        } else {
+          currentValue += char;
+        }
       }
-    }
-    values.push(currentValue.trim()); // Add the last value
+      values.push(currentValue.trim()); // Add the last value
 
-    // Create object with header keys
-    const product = {};
-    headers.forEach((header, index) => {
-      product[header] = values[index] || '';
-      // Clean quotes
-      if (typeof product[header] === 'string') {
-        product[header] = product[header].replace(/"/g, '');
-      }
+      // Create object with header keys
+      const product = {};
+      headers.forEach((header, index) => {
+        product[header] = values[index] || '';
+        // Clean quotes
+        if (typeof product[header] === 'string') {
+          product[header] = product[header].replace(/"/g, '');
+        }
+      });
+
+      return product;
+    })
+    .filter(product => {
+      // Filter out invalid products that don't have essential data
+      // A product must have at least a name (from either field) to be valid
+      return (product['שם פריט אוטומטי'] && product['שם פריט אוטומטי'].trim() !== '') || 
+             (product['תיאור פריט'] && product['תיאור פריט'].trim() !== '');
     });
-
-    return product;
-  });
 }
 
 // Group products with the same name
@@ -486,10 +507,13 @@ function groupProductsByName() {
   groupedProducts = {};
 
   allProducts.forEach(product => {
-    if (!product['שם פריט אוטומטי']) return;
+    // Allow products without 'שם פריט אוטומטי' if they have 'תיאור פריט' (especially for whiskey)
+    if (!product['שם פריט אוטומטי'] && !product['תיאור פריט']) return;
 
     // Create key using name and company
     const key = getProductGroupKey(product);
+    
+    if (!key) return; // Skip if no valid key could be created
 
     if (!groupedProducts[key]) {
       groupedProducts[key] = {
@@ -527,10 +551,7 @@ function populateFilters() {
     brandFilterOptions[0].textContent = brandPlaceholder;
   }
   
-  // Setup kosher filter
-  kosherFilter.innerHTML = '<option value="">כשר / לא כשר</option>';
-  kosherFilter.innerHTML += '<option value="כשר">כשר</option>';
-  kosherFilter.innerHTML += '<option value="לא כשר">לא כשר</option>';
+  // Kosher filter removed
 
   // Get products based on current tab
   const products = getProductsByTab();
@@ -589,7 +610,7 @@ function populateFilters() {
 
   // Update select styling
   updateSelectStyling(brandFilter);
-  updateSelectStyling(kosherFilter);
+  // Kosher filter removed
 }
 
 // Update select styling based on selection
@@ -651,16 +672,7 @@ function getFilteredProducts() {
       }
     }
     
-    // Kosher filter
-    if (currentFilters.kosher && product['כשרות']) {
-      const isKosher = product['כשרות'].toLowerCase() === 'כשר';
-      if (currentFilters.kosher === 'כשר' && !isKosher) {
-        return false;
-      }
-      if (currentFilters.kosher === 'לא כשר' && isKosher) {
-        return false;
-      }
-    }
+    // Kosher filter removed
 
     // Search filter
     if (currentFilters.search) {
@@ -683,11 +695,31 @@ function getFilteredProducts() {
 // Display products based on current filters
 function displayProducts() {
   const filteredProducts = getFilteredProducts();
+  
+  // Further filter to remove products with insufficient data
+  const validProducts = filteredProducts.filter(product => {
+    // Skip products without essential data
+    if (!product) return false;
+    
+    // Determine which tab/category this product is from
+    const tabCategory = getCurrentProductCategory(product);
+    
+    // Get product name from appropriate field based on product type
+    let productName = '';
+    if (tabCategory === 'whiskey') {
+      productName = product['תיאור פריט'] || product['שם פריט אוטומטי'] || '';
+    } else {
+      productName = product['שם פריט אוטומטי'] || product['תיאור פריט'] || '';
+    }
+    
+    // Product must have a name/title to be valid
+    return productName && productName.trim() !== '';
+  });
 
   // Clear container
   productsContainer.innerHTML = '';
 
-  if (filteredProducts.length === 0) {
+  if (validProducts.length === 0) {
     productsContainer.innerHTML = '<p style="text-align: center;">לא נמצאו מוצרים התואמים את החיפוש שלך.</p>';
     return;
   }
@@ -695,7 +727,7 @@ function displayProducts() {
   // Track displayed groups to avoid duplicates
   const displayedGroups = new Set();
 
-  filteredProducts.forEach(product => {
+  validProducts.forEach(product => {
     // Skip if we've already shown this product group
     const groupKey = getProductGroupKey(product);
     if (groupKey && displayedGroups.has(groupKey)) return;
@@ -711,13 +743,16 @@ function displayProducts() {
 
 // Get product group key
 function getProductGroupKey(product) {
-  if (!product['שם פריט אוטומטי']) return null;
+  // Get product name based on available fields
+  const productName = product['שם פריט אוטומטי'] || product['תיאור פריט'] || '';
+  
+  if (!productName) return null;
 
-  const company = product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || '';
+  const company = product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג'] || '';
 
   return company
-      ? `${product['שם פריט אוטומטי'].trim().toLowerCase()}_${company.trim().toLowerCase()}`
-      : product['שם פריט אוטומטי'].trim().toLowerCase();
+      ? `${productName.trim().toLowerCase()}_${company.trim().toLowerCase()}`
+      : productName.trim().toLowerCase();
 }
 
 // Determine which product category/tab a product belongs to
@@ -754,6 +789,29 @@ function getCurrentProductCategory(product) {
 
 // Create product card element
 function createProductCard(product) {
+  // Validate the product has essential data
+  if (!product) {
+    console.warn('Attempted to create a card with a null or undefined product');
+    return document.createElement('div'); // Return empty div if product is invalid
+  }
+
+  // Determine which tab/category this product is from
+  const tabCategory = getCurrentProductCategory(product);
+  
+  // Get product name from appropriate field based on product type
+  let productName = '';
+  if (tabCategory === 'whiskey') {
+    productName = product['תיאור פריט'] || product['שם פריט אוטומטי'] || '';
+  } else {
+    productName = product['שם פריט אוטומטי'] || product['תיאור פריט'] || '';
+  }
+  
+  // If the product doesn't have a name, it's not valid - return empty div
+  if (!productName || productName.trim() === '') {
+    console.warn('Attempted to create a card with a product missing a name');
+    return document.createElement('div');
+  }
+
   const card = document.createElement('div');
   card.className = 'product-card';
 
@@ -761,26 +819,10 @@ function createProductCard(product) {
   const barcode = product['ברקוד'];
   const imageUrl = barcode ? `tl/${barcode}.jpg` : 'placeholder.jpg';
 
-  // Get product name/title based on product type
-  let productName = 'Unnamed Product';
-  
-  // Determine which tab/category this product is from
-  const tabCategory = getCurrentProductCategory(product);
-  
-  // Use שם פריט אוטומטי for all categories as requested
-  productName = product['שם פריט אוטומטי'] || '';
-
   // Get company/brand name from appropriate field
   const company = product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג'] || '';
 
-  // Determine kosher status and class (only for beer/alcohol)
-  let kosherHtml = '';
-  if (product['כשרות'] !== undefined) {
-    const isKosher = product['כשרות'] && product['כשרות'].toLowerCase() === 'כשר';
-    const kosherStatusClass = isKosher ? 'kosher-yes' : 'kosher-no';
-    const kosherText = isKosher ? 'כשר' : 'לא כשר';
-    kosherHtml = `<div><span class="kosher-status ${kosherStatusClass}">${kosherText}</span></div>`;
-  }
+  // Kosher status display removed
   
   // Get category-specific fields for wine
   let wineFieldsHtml = '';
@@ -908,7 +950,7 @@ function createProductCard(product) {
         ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
         <span class="country-name">${product['מדינה']}</span>
       </div>` : ''}
-      ${kosherHtml}
+      <!-- Kosher status removed -->
       ${wineFieldsHtml}
       ${whiskeyFieldsHtml}
       ${beerFieldsHtml}
@@ -938,8 +980,13 @@ function openProductModal(product) {
   // Get company/brand name
   const company = product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || '';
 
-  // Set modal content
-  modalTitle.textContent = product['שם פריט אוטומטי'] || 'Unnamed Product';
+  // Set modal content based on product type
+  const productType = getCurrentProductCategory(product);
+  if (productType === 'whiskey') {
+    modalTitle.textContent = product['תיאור פריט'] || product['שם פריט אוטומטי'] || 'Unnamed Product';
+  } else {
+    modalTitle.textContent = product['שם פריט אוטומטי'] || product['תיאור פריט'] || 'Unnamed Product';
+  }
   modalCompany.textContent = company;
   modalDescription.textContent = product['תאור'] || '';
 
@@ -968,20 +1015,7 @@ function openProductModal(product) {
   modalSpecs.innerHTML = '';
   modalVariants.innerHTML = '';
 
-  // Add kosher status to specs
-  if (product['כשרות'] !== undefined) {
-    const isKosher = product['כשרות'] && product['כשרות'].toLowerCase() === 'כשר';
-    const kosherStatusClass = isKosher ? 'kosher-yes' : 'kosher-no';
-    const kosherText = isKosher ? 'כשר' : 'לא כשר';
-
-    const kosherSpec = document.createElement('div');
-    kosherSpec.className = 'spec-item kosher-spec';
-    kosherSpec.innerHTML = `
-      <div class="spec-label"><strong>כשרות</strong>:</div>
-      <div class="spec-value"><span class="kosher-status ${kosherStatusClass}">${kosherText}</span></div>
-    `;
-    modalSpecs.appendChild(kosherSpec);
-  }
+  // Kosher status in modal removed
 
   // Add country with flag to specs
   if (product['מדינה']) {
@@ -1056,6 +1090,7 @@ function openProductModal(product) {
     if (!value || 
         key === 'שם פריט אוטומטי' || 
         key === 'תאור' || 
+        // 'כשרות' field is excluded but still kept in the data
         key === 'כשרות' || 
         key === 'מדינה' ||
         key === 'company' || 
@@ -1202,11 +1237,7 @@ function setupEventListeners() {
     displayProducts();
   });
   
-  kosherFilter.addEventListener('change', function() {
-    currentFilters.kosher = this.value;
-    updateSelectStyling(this);
-    displayProducts();
-  });
+  // Kosher filter event listener removed
 
   // Search button click
   searchBtn.addEventListener('click', performSearch);
@@ -1277,10 +1308,5 @@ function setupEventListeners() {
     displayProducts();
   });
 
-  clearKosherFilterBtn.addEventListener('click', function() {
-    kosherFilter.value = '';
-    currentFilters.kosher = '';
-    updateSelectStyling(kosherFilter);
-    displayProducts();
-  });
+  // Kosher filter clear button removed
 }
