@@ -31,6 +31,9 @@ const modalDescription = document.getElementById('modal-product-description');
 const modalSpecs = document.getElementById('modal-product-specs');
 const modalVariants = document.getElementById('modal-product-variants');
 const tabButtons = document.querySelectorAll('.tab-button');
+const clearCountryFilterBtn = document.getElementById('clear-country-filter');
+const clearCategoryFilterBtn = document.getElementById('clear-category-filter');
+const clearBrandFilterBtn = document.getElementById('clear-brand-filter');
 
 // CSV URLs for each product category
 const ALCOHOL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv';
@@ -1057,5 +1060,27 @@ function setupEventListeners() {
       }
       // Brand filter modal was replaced with dropdown, so we don't need to close it
     }
+  });
+
+  // Clear filter buttons
+  clearCountryFilterBtn.addEventListener('click', function() {
+    countryFilter.value = '';
+    currentFilters.country = '';
+    updateSelectStyling(countryFilter);
+    displayProducts();
+  });
+
+  clearCategoryFilterBtn.addEventListener('click', function() {
+    categoryFilter.value = '';
+    currentFilters.category = '';
+    updateSelectStyling(categoryFilter);
+    displayProducts();
+  });
+
+  clearBrandFilterBtn.addEventListener('click', function() {
+    brandFilter.value = '';
+    currentFilters.brand = '';
+    updateSelectStyling(brandFilter);
+    displayProducts();
   });
 }

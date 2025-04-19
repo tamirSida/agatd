@@ -189,7 +189,7 @@ select:focus, input:focus {
   border: none;
   background-color: var(--accent-color);
   color: white;
-  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
   cursor: pointer;
   padding: 0 15px;
   transition: var(--transition);
@@ -204,8 +204,8 @@ select:focus, input:focus {
 }
 
 #search-input {
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-  border-right: none;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  border-left: none;
 }
 
 /* Styling for select when an option is selected */
@@ -213,6 +213,55 @@ select.has-value {
   background-color: rgba(52, 152, 219, 0.1);
   border-color: var(--accent-color);
   font-weight: 500;
+}
+
+/* Clear filter button style */
+.clear-filter {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--danger-color);
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: var(--transition);
+  z-index: 10;
+}
+
+.clear-filter::before, .clear-filter::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 2px;
+  background-color: var(--danger-color);
+}
+
+.clear-filter::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.clear-filter::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.filter-group:hover .clear-filter,
+select.has-value ~ .clear-filter {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.clear-filter:hover {
+  color: #c0392b;
+  transform: translateY(-50%) scale(1.2);
 }
 
 #products-container {

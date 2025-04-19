@@ -80,3 +80,6 @@ Product images are fetched using the barcode as the filename:
 - Replaced the modal-related code with the appropriate `updateSelectStyling(brandFilter)` function
 - Removed unused event listener for the brand filter modal that no longer exists
 - Removed the "כל הקטגוריות פעילות כעת!" notification message
+- Fixed search button positioning to match RTL layout (search icon on right side)
+- Added 'x' clear buttons to all filter dropdowns for easily removing filters
+- Improved filter usability with visual feedback when filters are active
