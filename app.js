@@ -39,12 +39,7 @@ const BEER_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGFPOHiYk
 const FOOD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5zrZyn-cmKHuk3H-nI4QG9NDJFvB-q3MjjdIUuQfk_lhtQPzTeovn_kAz46o2PnuH_aZ8Mq1zteFD/pub?output=csv';
 const WHISKEY_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSnSgqeW3W-2vKiqPwsBLpOE9vamrHELbgZCNHDYv6bGGYPnkhp44KzYvbly7qCLq3E_Rgu2VyYKMGY/pub?output=csv';
 
-// Local fallback CSV data (to use if remote fails due to CORS)
-const LOCAL_ALCOHOL_CSV = 'AGAT- ALC - Sheet1.csv';
-const LOCAL_WINE_CSV = 'AGAT - Wine.csv';
-const LOCAL_BEER_CSV = 'AGAT - Beer.csv';
-const LOCAL_FOOD_CSV = 'AGAT - Food.csv';
-const LOCAL_WHISKEY_CSV = 'AGAT - Whiskey.csv';
+// We're only using remote data now, no local fallbacks
 
 // Fetch with timeout helper function
 async function fetchWithTimeout(url, timeout = 8000) {
@@ -103,72 +98,105 @@ async function init() {
         whiskey: []
       };
       
-      // Helper function to fetch a specific category
-      async function fetchCategory(name, remoteUrl, localPath) {
+      // Simplified helper function to fetch a specific category with multiple fallback options
+      async function fetchCategory(name, remoteUrl) {
         console.log(`Fetching ${name} data from ${remoteUrl}`);
         
         try {
-          // Try remote first
-          let response;
-          
-          // Make up to 2 attempts to fetch the data
-          for (let attempt = 1; attempt <= 2; attempt++) {
-            try {
-              console.log(`${name} fetch attempt ${attempt}...`);
-              response = await fetchWithTimeout(remoteUrl, 15000);
-              if (response.ok) break;
-              console.warn(`${name} attempt ${attempt} failed with status: ${response.status}`);
-            } catch (attemptError) {
-              console.warn(`${name} attempt ${attempt} failed with error:`, attemptError);
-              if (attempt === 2) throw attemptError;
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-          }
-          
-          if (response && response.ok) {
-            const text = await response.text();
-            console.log(`Successfully fetched ${name} data from Google Sheets`);
-            
-            const data = parseCSV(text);
-            console.log(`Successfully parsed ${name} data, rows:`, data.length);
-            return data;
-          }
-          throw new Error(`HTTP error: ${response ? response.status + ' ' + response.statusText : 'No response'}`);
-        } catch (remoteError) {
-          // Try local file
-          console.warn(`Failed to fetch ${name} from Google Sheets, trying local file:`, remoteError);
-          
-          if (!localPath) {
-            console.error(`No local path for ${name}, giving up`);
-            return []; // Return empty array if no local path
-          }
-          
+          // First try using the direct URL with fetch
           try {
-            const localResponse = await fetch(localPath);
+            console.log(`Trying direct fetch for ${name}...`);
+            const response = await fetch(remoteUrl);
             
-            if (localResponse.ok) {
-              const localText = await localResponse.text();
-              console.log(`Successfully loaded local ${name} CSV file`);
-              
-              const data = parseCSV(localText);
-              console.log(`Successfully parsed local ${name} data, rows:`, data.length);
+            if (response.ok) {
+              const text = await response.text();
+              const data = parseCSV(text);
+              console.log(`Successfully fetched ${name} directly, rows:`, data.length);
               return data;
             }
-            throw new Error(`Local file HTTP error: ${localResponse.status}`);
-          } catch (localError) {
-            console.error(`Failed to load ${name} from local file:`, localError);
-            return []; // Return empty array if both remote and local fail
+          } catch (directError) {
+            console.warn(`Direct fetch for ${name} failed:`, directError);
           }
+          
+          // Second try: use XMLHttpRequest (works around some CORS issues)
+          try {
+            console.log(`Trying XMLHttpRequest for ${name}...`);
+            const xhrResult = await new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              xhr.open('GET', remoteUrl, true);
+              xhr.responseType = 'text';
+              
+              xhr.onload = function() {
+                if (xhr.status === 200) {
+                  try {
+                    const data = parseCSV(xhr.responseText);
+                    console.log(`Successfully fetched ${name} via XHR, rows:`, data.length);
+                    resolve(data);
+                  } catch (parseError) {
+                    reject(parseError);
+                  }
+                } else {
+                  reject(new Error(`HTTP error: ${xhr.status}`));
+                }
+              };
+              
+              xhr.onerror = () => reject(new Error('Network error'));
+              xhr.ontimeout = () => reject(new Error('Timeout'));
+              xhr.timeout = 10000;
+              xhr.send();
+            });
+            
+            return xhrResult;
+          } catch (xhrError) {
+            console.warn(`XMLHttpRequest for ${name} failed:`, xhrError);
+          }
+          
+          // Third try: use a PHP proxy if it exists
+          try {
+            console.log(`Trying PHP proxy for ${name}...`);
+            const proxyUrl = `proxy.php?url=${encodeURIComponent(remoteUrl)}`;
+            const proxyResponse = await fetch(proxyUrl);
+            
+            if (proxyResponse.ok) {
+              const text = await proxyResponse.text();
+              const data = parseCSV(text);
+              console.log(`Successfully fetched ${name} via proxy, rows:`, data.length);
+              return data;
+            }
+          } catch (proxyError) {
+            console.warn(`Proxy fetch for ${name} failed:`, proxyError);
+          }
+          
+          // Fourth try: use fallback data from fallback-data.js
+          if (typeof fallbackData !== 'undefined' && fallbackData[name] && fallbackData[name].length > 0) {
+            console.log(`Using fallback data for ${name}`);
+            return fallbackData[name];
+          }
+          
+          // If all else fails, return empty array
+          console.error(`All fetch methods failed for ${name}`);
+          return [];
+        } catch (error) {
+          console.error(`Failed to fetch ${name} data:`, error);
+          
+          // Try using fallback data as last resort
+          if (typeof fallbackData !== 'undefined' && fallbackData[name] && fallbackData[name].length > 0) {
+            console.log(`Using fallback data for ${name} after error`);
+            return fallbackData[name];
+          }
+          
+          // Return empty array on complete failure
+          return [];
         }
       }
       
-      // Fetch all categories in parallel
+      // Fetch all categories in parallel - remote only
       const results = await Promise.allSettled([
-        fetchCategory('alcohol', ALCOHOL_CSV_URL, LOCAL_ALCOHOL_CSV),
-        fetchCategory('wine', WINE_CSV_URL, LOCAL_WINE_CSV),
-        fetchCategory('beer', BEER_CSV_URL, LOCAL_BEER_CSV),
-        fetchCategory('food', FOOD_CSV_URL, LOCAL_FOOD_CSV),
-        fetchCategory('whiskey', WHISKEY_CSV_URL, LOCAL_WHISKEY_CSV)
+        fetchCategory('alcohol', ALCOHOL_CSV_URL),
+        fetchCategory('wine', WINE_CSV_URL),
+        fetchCategory('beer', BEER_CSV_URL),
+        fetchCategory('food', FOOD_CSV_URL),
+        fetchCategory('whiskey', WHISKEY_CSV_URL)
       ]);
       
       // Process results
@@ -192,7 +220,38 @@ async function init() {
                             beerProducts.length + foodProducts.length + whiskeyProducts.length;
       
       if (totalProducts === 0) {
-        throw new Error("Couldn't load any product data from any source");
+        console.error("Failed to load any product data, trying hardcoded fallback data");
+        
+        // Use the fallback data from the external file
+        try {
+          console.log("Using fallback data from external file as last resort");
+          
+          // Check if we have fallback data available
+          if (typeof fallbackData !== 'undefined') {
+            alcoholProducts = fallbackData.alcohol || [];
+            whiskeyProducts = fallbackData.whiskey || [];
+            wineProducts = fallbackData.wine || [];
+            beerProducts = fallbackData.beer || [];
+            foodProducts = fallbackData.food || [];
+          }
+          
+          // Make sure the brand filters work with the fallback data
+          if (brands && brands.length > 0) {
+            // Apply brands to all product categories
+            [alcoholProducts, whiskeyProducts, wineProducts, beerProducts, foodProducts].forEach(productArray => {
+              productArray.forEach(item => {
+                brands.forEach(brand => {
+                  item[brand] = 'TRUE'; // Make visible in all brand filters
+                });
+              });
+            });
+          }
+          
+          console.log("Using fallback data as last resort");
+        } catch (fallbackError) {
+          console.error("Even fallback data failed:", fallbackError);
+          throw new Error("Couldn't load any product data from any source");
+        }
       }
       
     } catch (fetchError) {
@@ -425,8 +484,8 @@ function populateFilters() {
     categoryFilter.appendChild(option);
   });
 
-  // Update brand filter button status
-  updateBrandFilterButtonStatus();
+  // Update brand filter styling if needed
+  updateSelectStyling(brandFilter);
 }
 
 // Update select styling based on selection
@@ -535,6 +594,38 @@ function getProductGroupKey(product) {
       : product['שם פריט אוטומטי'].trim().toLowerCase();
 }
 
+// Determine which product category/tab a product belongs to
+function getCurrentProductCategory(product) {
+  // Check if it's in the specific product arrays
+  if (alcoholProducts.includes(product)) {
+    return 'alcohol';
+  } else if (whiskeyProducts.includes(product)) {
+    return 'whiskey';
+  } else if (wineProducts.includes(product)) {
+    return 'wine';
+  } else if (beerProducts.includes(product)) {
+    return 'beer';
+  } else if (foodProducts.includes(product)) {
+    return 'food';
+  }
+  
+  // If not found in arrays (unlikely), check by product properties
+  if (product['קטגוריה אוטומטי'] === 'קוניאק' || 
+      product['קטגוריה אוטומטי'] === 'וודקה' || 
+      product['קטגוריה אוטומטי'] === 'ג\'ין') {
+    return 'alcohol';
+  } else if (product['קטגוריה אוטומטי'] === 'וויסקי') {
+    return 'whiskey';
+  } else if (product['קטגוריה אוטומטי'] === 'יין') {
+    return 'wine';
+  } else if (product['קטגוריה אוטומטי'] === 'בירה') {
+    return 'beer';
+  }
+  
+  // Default to the current tab
+  return currentFilters.tab === 'all' ? 'alcohol' : currentFilters.tab;
+}
+
 // Create product card element
 function createProductCard(product) {
   const card = document.createElement('div');
@@ -544,18 +635,56 @@ function createProductCard(product) {
   const barcode = product['ברקוד'];
   const imageUrl = barcode ? `tl/${barcode}.jpg` : 'placeholder.jpg';
 
-  // Determine kosher status and class
-  const isKosher = product['כשרות'] && product['כשרות'].toLowerCase() === 'כשר';
-  const kosherStatusClass = isKosher ? 'kosher-yes' : 'kosher-no';
-  const kosherText = isKosher ? 'כשר' : 'לא כשר';
+  // Get product name/title based on product type
+  let productName = 'Unnamed Product';
+  
+  // Determine which tab/category this product is from
+  const tabCategory = getCurrentProductCategory(product);
+  
+  // Get the right title field based on product category
+  if (tabCategory === 'alcohol') {
+    productName = product['מקט'] || product['שם פריט אוטומטי'] || '';
+  } else if (tabCategory === 'whiskey') {
+    productName = product['תיאור פריט'] || product['שם פריט אוטומטי'] || '';
+  } else if (tabCategory === 'wine') {
+    productName = product['תאור'] || product['שם פריט אוטומטי'] || '';
+  } else if (tabCategory === 'beer' || tabCategory === 'food') {
+    productName = product['שם פריט אוטומטי'] || '';
+  }
 
-  // Get company/brand name
-  const company = product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || '';
+  // Get company/brand name from appropriate field
+  const company = product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג'] || '';
 
-  // Get volume/weight
-  const volumeWeight = product['נפח'] || product['משקל'] || '';
+  // Determine kosher status and class (only for beer/alcohol)
+  let kosherHtml = '';
+  if (product['כשרות'] !== undefined) {
+    const isKosher = product['כשרות'] && product['כשרות'].toLowerCase() === 'כשר';
+    const kosherStatusClass = isKosher ? 'kosher-yes' : 'kosher-no';
+    const kosherText = isKosher ? 'כשר' : 'לא כשר';
+    kosherHtml = `<div><span class="kosher-status ${kosherStatusClass}">${kosherText}</span></div>`;
+  }
 
-  // Get country code for flag (simple mapping for common countries)
+  // Get volume for beverages
+  let volumeHtml = '';
+  if (product['נפח'] || product['נפח (ליטר)']) {
+    const volume = product['נפח'] || product['נפח (ליטר)'] || '';
+    volumeHtml = `<div class="product-volume">${volume}</div>`;
+  }
+  
+  // Get weight for food
+  let weightHtml = '';
+  if (tabCategory === 'food' && product['משקל']) {
+    weightHtml = `<div class="product-weight">משקל: <span>${product['משקל']} גרם</span></div>`;
+  }
+  
+  // Get description
+  let descriptionHtml = '';
+  if (product['תאור'] || product['תיאור פריט']) {
+    const description = product['תאור'] || product['תיאור פריט'] || '';
+    descriptionHtml = `<div class="product-description">${description}</div>`;
+  }
+
+  // Get country code for flag
   const countryToCode = {
     'ישראל': 'il',
     'איטליה': 'it',
@@ -591,25 +720,36 @@ function createProductCard(product) {
   };
 
   const countryCode = product['מדינה'] && countryToCode[product['מדינה']] ? countryToCode[product['מדינה']] : '';
+  
+  // Get price if available
+  let priceHtml = '';
+  if (product['מחיר']) {
+    priceHtml = `<span class="price">${product['מחיר']} ₪</span>`;
+  } else if (currentFilters.brand && product[currentFilters.brand] === 'TRUE') {
+    // If a brand is selected and this product is TRUE for that brand, we could show specific pricing
+    // This is a placeholder for future pricing logic
+    priceHtml = `<span class="price available">זמין</span>`;
+  }
 
   card.innerHTML = `
     <div class="product-image">
-      <img src="${imageUrl}" alt="${product['שם פריט אוטומטי'] || 'Product'}" onerror="if(this.src.includes('tl/')){ this.src='media/${barcode || ''}.jpg'; } else if(this.src.includes('media/')){ this.src='placeholder.jpg'; this.nextElementSibling.style.display='block'; }">
+      <img src="${imageUrl}" alt="${productName}" onerror="if(this.src.includes('tl/')){ this.src='media/${barcode || ''}.jpg'; } else if(this.src.includes('media/')){ this.src='placeholder.jpg'; this.nextElementSibling.style.display='block'; }">
       <div class="image-not-found">image not found</div>
     </div>
     <div class="product-info">
-      <h3>${product['שם פריט אוטומטי'] || 'Unnamed Product'}</h3>
+      <h3>${productName}</h3>
       ${company ? `<div class="product-company">${company}</div>` : ''}
       ${product['מדינה'] ? `<div class="product-country">
         ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
         <span class="country-name">${product['מדינה']}</span>
       </div>` : ''}
-      <div><span class="kosher-status ${kosherStatusClass}">${kosherText}</span></div>
-      ${product['תאור'] ? `<div class="product-description">${product['תאור']}</div>` : ''}
-      ${volumeWeight ? `<div class="product-volume">${volumeWeight}</div>` : ''}
+      ${kosherHtml}
+      ${descriptionHtml}
+      ${volumeHtml}
+      ${weightHtml}
       <div class="product-details">
-        <span class="barcode">${product['ברקוד'] || ''}</span>
-        ${product['מחיר'] ? `<span class="price">${product['מחיר']} ₪</span>` : ''}
+        ${barcode ? `<span class="barcode">${barcode}</span>` : ''}
+        ${priceHtml}
       </div>
     </div>
   `;
@@ -917,9 +1057,7 @@ function setupEventListeners() {
       if (modal.style.display === 'block') {
         closeProductModal();
       }
-      if (brandFilterModal.style.display === 'block') {
-        closeBrandFilterModal();
-      }
+      // Brand filter modal was replaced with dropdown, so we don't need to close it
     }
   });
 }

@@ -1,16 +1,20 @@
-# AGAT Catalog Project Information
+# AGAT Catalog Project Documentation
 
 ## Project Overview
-This is a product catalog web application for AGAT that displays products from different categories. The application allows filtering by category, country, and brand/client with an improved, modern UI.
+A product catalog web application for AGAT that displays products from different categories (Alcohol, Whiskey, Wine, Beer, Food). The application allows filtering by category, country, and brand/client.
 
 ## Data Sources
-1. **Brands**: `brands.csv` - Contains a list of all client/store brands
-2. **Alcohol Products**: Loaded from Google Sheets at `https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv`
-3. **Wine Products**: Loaded from Google Sheets
-4. **Food Products**: Loaded from Google Sheets
+All data is loaded directly from Google Sheets:
+
+1. **Alcohol**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv`
+2. **Wine**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vRkUmKUxQGkMSoLEhfkgdXBU6KGDDea6Z8crHPVeFEsYajhCUmSQevyTL_9WucAyhw2UnDfoFQXURCB/pub?output=csv`
+3. **Beer**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vQGFPOHiYkWGPDASiBePqXkbxoikcLYiFAz1RobyVTlX2-dj71jMSCCFLgrNXOjFpOZYwS7MHCD6IrU/pub?output=csv` 
+4. **Food**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vS5zrZyn-cmKHuk3H-nI4QG9NDJFvB-q3MjjdIUuQfk_lhtQPzTeovn_kAz46o2PnuH_aZ8Mq1zteFD/pub?output=csv`
+5. **Whiskey**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vSnSgqeW3W-2vKiqPwsBLpOE9vamrHELbgZCNHDYv6bGGYPnkhp44KzYvbly7qCLq3E_Rgu2VyYKMGY/pub?output=csv`
+6. **Brands**: `brands.csv` (local file with list of all client/store brands)
 
 ## File Structure
-- `index.html` - Main HTML file
+- `index.html` - Main HTML file 
 - `app.js` - JavaScript application logic
 - `styles.css` - CSS styles
 - `brands.csv` - List of all brands/clients
@@ -18,31 +22,43 @@ This is a product catalog web application for AGAT that displays products from d
 - `media/` - Fallback directory for product images
 
 ## Key Features
-1. **Tab Navigation**: Modern tab system to switch between all products, alcohol, wine, and food
+1. **Tab Navigation**: Switch between all products, alcohol, whiskey, wine, beer, and food
 2. **Filtering**:
    - By country (dropdown)
    - By category (dropdown)
    - By brand/client (לקוח) (dropdown)
    - Text search with search button
-3. **Product Cards**: Stylish product cards with hover animations
-4. **Product Modal**: Detailed view of product with all specifications
+3. **Product Cards**: Display product information with images
+4. **Product Modals**: Detailed view of product with all specifications
 5. **Responsive Design**: Works well on mobile and desktop devices
 
-## Implementation Details
+## Product Display Fields 
+Each product card displays the following information, with different field mappings based on the product category:
+
+1. **Image**: From the barcode
+2. **Name/Title**:
+   - **Alcohol**: `מקט` or `שם פריט אוטומטי`
+   - **Whiskey**: `תיאור פריט` or `שם פריט אוטומטי`
+   - **Wine**: `תאור` or `שם פריט אוטומטי`
+   - **Beer/Food**: `שם פריט אוטומטי`
+3. **Brand/Company**: From `קבוצה / מותג` or `קבוצה / מותג אוטומטי` or `מותג`
+4. **Country**: With flag icon
+5. **Kosher Status**: For beer/alcohol products
+6. **Volume**: For beverages
+7. **Weight**: For food products
+8. **Description**: From `תאור` or `תיאור פריט`
+9. **Availability**: If a brand is selected, shows availability status
+
+## Technical Implementation Notes
+
+### Data Loading
+- Uses direct Google Sheets URLs with CSV output format 
+- Fetches all data in parallel
+- Handles error cases gracefully
+- Adds a retry button if data loading fails
 
 ### Brand Filter
-The brand filter is implemented as a dropdown that loads all brands from `brands.csv`. When a brand is selected, the application filters products to only show those where that brand column has a value of "TRUE". 
-
-The brands are sorted alphabetically in Hebrew for easy navigation.
-
-### Improved UI Elements
-1. **Selects**: Custom styled select dropdowns with visual feedback when a value is selected
-2. **Search Field**: Search input with a dedicated search button
-3. **Product Cards**: Enhanced with subtle animations and hover effects
-4. **Tab Navigation**: Modern design with subtle indicators for the active tab
-
-### CSV Parsing
-The application parses CSV data from external sources (Google Sheets) or local files as fallback. The CSV structure includes columns for each brand (TRUE/FALSE value indicates if a product is available in that brand's store).
+The brand filter loads from brands.csv and populates a dropdown that filters products to only show those where the selected brand column has a value of "TRUE".
 
 ### Image Handling
 Product images are fetched using the barcode as the filename:
@@ -50,8 +66,8 @@ Product images are fetched using the barcode as the filename:
 2. If not found, falls back to `media/[barcode].jpg`
 3. If still not found, shows a placeholder image
 
-## Future Enhancements
-1. Apply same brand filter functionality to Wine and Food tabs
-2. Optimize image loading for better performance
-3. Add multi-brand selection capability
-4. Add export functionality for filtered product lists
+## Development Timeline
+- Initial implementation focused on alcohol products
+- Added support for wine, beer, food, and whiskey categories
+- Enhanced product card display with category-specific field mapping
+- Improved visual design with animated tab navigation, product cards with hover effects, and consistent styling
