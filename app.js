@@ -1047,9 +1047,7 @@ function setupEventListeners() {
     event.stopPropagation();
   });
   
-  document.querySelector('#brand-filter-modal .modal-content').addEventListener('click', function(event) {
-    event.stopPropagation();
-  });
+  // Brand filter modal has been replaced with dropdown
 
   // Close modal with Escape key
   document.addEventListener('keydown', function(event) {

@@ -71,3 +71,12 @@ Product images are fetched using the barcode as the filename:
 - Added support for wine, beer, food, and whiskey categories
 - Enhanced product card display with category-specific field mapping
 - Improved visual design with animated tab navigation, product cards with hover effects, and consistent styling
+- Converted brand filter from modal to dropdown for better user experience and consistent design
+- Fixed ReferenceError related to updateBrandFilterButtonStatus function
+- Removed unnecessary code related to the old brand filter modal implementation
+
+## Recent Fixes
+- Fixed a ReferenceError where `updateBrandFilterButtonStatus()` was called in the populateFilters function but no longer existed after converting from brand modal to dropdown
+- Replaced the modal-related code with the appropriate `updateSelectStyling(brandFilter)` function
+- Removed unused event listener for the brand filter modal that no longer exists
+- Removed the "כל הקטגוריות פעילות כעת!" notification message
