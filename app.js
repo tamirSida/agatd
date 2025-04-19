@@ -1,7 +1,9 @@
 // Global variables
 let alcoholProducts = [];
 let wineProducts = [];
+let beerProducts = [];
 let foodProducts = [];
+let whiskeyProducts = [];
 let allProducts = [];
 let groupedProducts = {};
 let brands = []; // Array to hold all brands
@@ -16,7 +18,9 @@ let currentFilters = {
 // DOM elements
 const countryFilter = document.getElementById('country-filter');
 const categoryFilter = document.getElementById('category-filter');
+const brandFilter = document.getElementById('brand-filter');
 const searchInput = document.getElementById('search-input');
+const searchBtn = document.getElementById('search-btn');
 const productsContainer = document.getElementById('products-container');
 const modal = document.getElementById('product-modal');
 const closeModalBtn = document.querySelector('.close');
@@ -27,16 +31,53 @@ const modalDescription = document.getElementById('modal-product-description');
 const modalSpecs = document.getElementById('modal-product-specs');
 const modalVariants = document.getElementById('modal-product-variants');
 const tabButtons = document.querySelectorAll('.tab-button');
-const brandFilterBtn = document.getElementById('brand-filter-btn');
-const brandFilterModal = document.getElementById('brand-filter-modal');
-const closeBrandModalBtn = document.querySelector('.close-brand-modal');
-const brandList = document.getElementById('brand-list');
-const clearBrandFilterBtn = document.getElementById('clear-brand-filter');
 
 // CSV URLs for each product category
 const ALCOHOL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv';
-const BEVERAGES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSIwiMX0romQUhhGq9r_jSeXnbJfwjRdglTdAUK4rmeYUcw2vbLyCVb0rUGkydljl6dFqri9u4VuAtk/pub?output=csv';
-const FOOD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0ql7J4DFk4nx-GcznXAMKgkrlGsbjlJ6M9y6m63Y3d7AKQ_10e3dqMeoVSX4L0SXl2QE3iG1-ni0O/pub?output=csv';
+const WINE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRkUmKUxQGkMSoLEhfkgdXBU6KGDDea6Z8crHPVeFEsYajhCUmSQevyTL_9WucAyhw2UnDfoFQXURCB/pub?output=csv';
+const BEER_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGFPOHiYkWGPDASiBePqXkbxoikcLYiFAz1RobyVTlX2-dj71jMSCCFLgrNXOjFpOZYwS7MHCD6IrU/pub?output=csv';
+const FOOD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5zrZyn-cmKHuk3H-nI4QG9NDJFvB-q3MjjdIUuQfk_lhtQPzTeovn_kAz46o2PnuH_aZ8Mq1zteFD/pub?output=csv';
+const WHISKEY_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSnSgqeW3W-2vKiqPwsBLpOE9vamrHELbgZCNHDYv6bGGYPnkhp44KzYvbly7qCLq3E_Rgu2VyYKMGY/pub?output=csv';
+
+// Local fallback CSV data (to use if remote fails due to CORS)
+const LOCAL_ALCOHOL_CSV = 'AGAT- ALC - Sheet1.csv';
+const LOCAL_WINE_CSV = 'AGAT - Wine.csv';
+const LOCAL_BEER_CSV = 'AGAT - Beer.csv';
+const LOCAL_FOOD_CSV = 'AGAT - Food.csv';
+const LOCAL_WHISKEY_CSV = 'AGAT - Whiskey.csv';
+
+// Fetch with timeout helper function
+async function fetchWithTimeout(url, timeout = 8000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    // Add timestamp to avoid caching issues
+    const urlWithCache = url.includes('?') 
+      ? `${url}&_t=${Date.now()}` 
+      : `${url}?_t=${Date.now()}`;
+      
+    const response = await fetch(urlWithCache, {
+      signal: controller.signal,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      // Set longer timeout for big responses
+      timeout: timeout
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request to ${url} timed out after ${timeout}ms`);
+    }
+    console.warn(`Fetch error for ${url}:`, error);
+    throw new Error(`Failed to fetch from ${url}. This might be due to CORS restrictions or network issues.`);
+  }
+}
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', init);
@@ -49,52 +90,132 @@ async function init() {
     // Load brands from CSV file
     await loadBrands();
 
-    // Try to fetch from the online sources first, fall back to local files if needed
+    // Fetch data for all product categories
     try {
-      // Fetch data from all CSV files concurrently
-      const [alcoholResponse, beveragesResponse, foodResponse] = await Promise.all([
-        fetch(ALCOHOL_CSV_URL),
-        fetch(BEVERAGES_CSV_URL),
-        fetch(FOOD_CSV_URL)
-      ]);
-
-      // Check if all responses are OK
-      if (alcoholResponse.ok && beveragesResponse.ok && foodResponse.ok) {
-        // Parse the CSV data
-        const alcoholData = parseCSV(await alcoholResponse.text());
-        const beveragesData = parseCSV(await beveragesResponse.text());
-        const foodData = parseCSV(await foodResponse.text());
-
-        // Set the product arrays
-        alcoholProducts = alcoholData;
-        wineProducts = beveragesData;
-        foodProducts = foodData;
-      } else {
-        throw new Error('One or more CSV files failed to load from Google Sheets');
+      console.log('Trying to fetch all product data:');
+      
+      // We'll use this to track loaded data
+      const productData = {
+        alcohol: [],
+        wine: [],
+        beer: [],
+        food: [],
+        whiskey: []
+      };
+      
+      // Helper function to fetch a specific category
+      async function fetchCategory(name, remoteUrl, localPath) {
+        console.log(`Fetching ${name} data from ${remoteUrl}`);
+        
+        try {
+          // Try remote first
+          let response;
+          
+          // Make up to 2 attempts to fetch the data
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              console.log(`${name} fetch attempt ${attempt}...`);
+              response = await fetchWithTimeout(remoteUrl, 15000);
+              if (response.ok) break;
+              console.warn(`${name} attempt ${attempt} failed with status: ${response.status}`);
+            } catch (attemptError) {
+              console.warn(`${name} attempt ${attempt} failed with error:`, attemptError);
+              if (attempt === 2) throw attemptError;
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+          
+          if (response && response.ok) {
+            const text = await response.text();
+            console.log(`Successfully fetched ${name} data from Google Sheets`);
+            
+            const data = parseCSV(text);
+            console.log(`Successfully parsed ${name} data, rows:`, data.length);
+            return data;
+          }
+          throw new Error(`HTTP error: ${response ? response.status + ' ' + response.statusText : 'No response'}`);
+        } catch (remoteError) {
+          // Try local file
+          console.warn(`Failed to fetch ${name} from Google Sheets, trying local file:`, remoteError);
+          
+          if (!localPath) {
+            console.error(`No local path for ${name}, giving up`);
+            return []; // Return empty array if no local path
+          }
+          
+          try {
+            const localResponse = await fetch(localPath);
+            
+            if (localResponse.ok) {
+              const localText = await localResponse.text();
+              console.log(`Successfully loaded local ${name} CSV file`);
+              
+              const data = parseCSV(localText);
+              console.log(`Successfully parsed local ${name} data, rows:`, data.length);
+              return data;
+            }
+            throw new Error(`Local file HTTP error: ${localResponse.status}`);
+          } catch (localError) {
+            console.error(`Failed to load ${name} from local file:`, localError);
+            return []; // Return empty array if both remote and local fail
+          }
+        }
       }
-    } catch (fetchError) {
-      console.warn('Failed to fetch from Google Sheets, using local CSV files:', fetchError);
-
-      // Fetch from local CSV files
-      const [alcoholResponse, beveragesResponse, foodResponse] = await Promise.all([
-        fetch('AGAT- ALC - Sheet1.csv'),
-        fetch('AGAT - Beverages.csv'),
-        fetch('AGAT - Food.csv')
+      
+      // Fetch all categories in parallel
+      const results = await Promise.allSettled([
+        fetchCategory('alcohol', ALCOHOL_CSV_URL, LOCAL_ALCOHOL_CSV),
+        fetchCategory('wine', WINE_CSV_URL, LOCAL_WINE_CSV),
+        fetchCategory('beer', BEER_CSV_URL, LOCAL_BEER_CSV),
+        fetchCategory('food', FOOD_CSV_URL, LOCAL_FOOD_CSV),
+        fetchCategory('whiskey', WHISKEY_CSV_URL, LOCAL_WHISKEY_CSV)
       ]);
-
-      // Parse the CSV data
-      const alcoholData = parseCSV(await alcoholResponse.text());
-      const beveragesData = parseCSV(await beveragesResponse.text());
-      const foodData = parseCSV(await foodResponse.text());
-
-      // Set the product arrays
-      alcoholProducts = alcoholData;
-      wineProducts = beveragesData;
-      foodProducts = foodData;
+      
+      // Process results
+      alcoholProducts = results[0].status === 'fulfilled' ? results[0].value : [];
+      wineProducts = results[1].status === 'fulfilled' ? results[1].value : [];
+      beerProducts = results[2].status === 'fulfilled' ? results[2].value : [];
+      foodProducts = results[3].status === 'fulfilled' ? results[3].value : [];
+      whiskeyProducts = results[4].status === 'fulfilled' ? results[4].value : [];
+      
+      // Log results
+      console.log('Parsed product counts:', {
+        alcohol: alcoholProducts.length,
+        wine: wineProducts.length,
+        beer: beerProducts.length,
+        food: foodProducts.length,
+        whiskey: whiskeyProducts.length
+      });
+      
+      // Check if we got at least some data
+      const totalProducts = alcoholProducts.length + wineProducts.length + 
+                            beerProducts.length + foodProducts.length + whiskeyProducts.length;
+      
+      if (totalProducts === 0) {
+        throw new Error("Couldn't load any product data from any source");
+      }
+      
+    } catch (fetchError) {
+      console.error('Error fetching product data:', fetchError);
+      productsContainer.innerHTML = `
+        <div style="text-align: center; color: red; padding: 20px;">
+          <p>שגיאה בטעינת המוצרים</p>
+          <p>פרטים: ${fetchError.message}</p>
+          <p>אנא נסה לרענן את הדף או צור קשר עם התמיכה.</p>
+          <button id="retry-button" style="padding: 8px 15px; margin-top: 10px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">נסה שוב</button>
+        </div>
+      `;
+      
+      // Add retry button functionality
+      document.getElementById('retry-button')?.addEventListener('click', () => {
+        window.location.reload();
+      });
+      
+      return; // Stop execution but don't throw error to allow partial UI to work
     }
 
     // Combine all products
-    allProducts = [...alcoholProducts, ...wineProducts, ...foodProducts];
+    allProducts = [...alcoholProducts, ...whiskeyProducts, ...wineProducts, ...beerProducts, ...foodProducts];
 
     console.log('Loaded products:', {
       all: allProducts.length,
@@ -120,20 +241,95 @@ async function init() {
   }
 }
 
-// Load brands from CSV file
+// Load brands from CSV file and populate the dropdown
 async function loadBrands() {
   try {
-    const response = await fetch('brands.csv');
-    if (response.ok) {
-      const text = await response.text();
-      const lines = text.split('\n').filter(line => line.trim());
-      brands = lines.map(line => line.trim());
-      console.log('Loaded brands:', brands.length);
-    } else {
-      throw new Error('Failed to load brands.csv');
+    console.log('Loading brands from CSV...');
+    
+    // Add default option first
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'כל הלקוחות';
+    brandFilter.appendChild(defaultOption);
+    
+    try {
+      // Try to fetch brands from current directory
+      const response = await fetch('brands.csv');
+      
+      if (response.ok) {
+        const text = await response.text();
+        console.log('Successfully loaded brands.csv');
+        
+        // Parse the CSV to extract brand names
+        const lines = text.split('\n').filter(line => line.trim());
+        brands = lines.map(line => line.trim());
+        console.log('Loaded brands:', brands.length);
+        
+        // Sort brands alphabetically
+        const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
+        
+        // Add all brand options
+        sortedBrands.forEach(brand => {
+          const option = document.createElement('option');
+          option.value = brand;
+          option.textContent = brand;
+          brandFilter.appendChild(option);
+        });
+        
+        console.log('Brand dropdown populated with', sortedBrands.length, 'options');
+      } else {
+        throw new Error(`HTTP status: ${response.status} ${response.statusText}`);
+      }
+    } catch (fetchError) {
+      console.warn('Error loading brands from CSV, using hardcoded brands from the alcohol CSV:', fetchError);
+      
+      // If we can't load the brands file, extract them from the column headers in the alcohol CSV
+      // We'll use this as a fallback
+      try {
+        const alcoholResponse = await fetch(LOCAL_ALCOHOL_CSV);
+        if (alcoholResponse.ok) {
+          const csvText = await alcoholResponse.text();
+          const firstLine = csvText.split('\n')[0];
+          const headers = firstLine.split(',');
+          
+          // Extract client names (from column 4 onward, just before 'שם פריט אוטומטי')
+          const clientNames = [];
+          for (let i = 3; i < headers.length; i++) {
+            const header = headers[i].trim();
+            if (header === 'שם פריט אוטומטי') break;
+            if (header) clientNames.push(header);
+          }
+          
+          // Sort and add to dropdown
+          const sortedClients = [...clientNames].sort((a, b) => a.localeCompare(b, 'he'));
+          brands = sortedClients;
+          
+          sortedClients.forEach(brand => {
+            const option = document.createElement('option');
+            option.value = brand;
+            option.textContent = brand;
+            brandFilter.appendChild(option);
+          });
+          
+          console.log('Brand dropdown populated with', sortedClients.length, 'options from alcohol CSV');
+        } else {
+          throw new Error('Failed to load fallback file');
+        }
+      } catch (fallbackError) {
+        console.error('Both brand sources failed:', fallbackError);
+        throw fallbackError;
+      }
     }
   } catch (error) {
     console.error('Error loading brands:', error);
+    // Populate dropdown with empty message
+    const errorOption = document.createElement('option');
+    errorOption.value = '';
+    errorOption.textContent = 'שגיאה בטעינת לקוחות';
+    errorOption.disabled = true;
+    brandFilter.appendChild(errorOption);
+    
+    // Set empty brands array
     brands = [];
   }
 }
@@ -233,68 +429,12 @@ function populateFilters() {
   updateBrandFilterButtonStatus();
 }
 
-// Populate the brand list in the modal
-function populateBrandList() {
-  // Clear existing brands
-  brandList.innerHTML = '';
-
-  // Sort brands alphabetically
-  const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
-
-  // Add each brand as a clickable item
-  sortedBrands.forEach(brand => {
-    const brandItem = document.createElement('div');
-    brandItem.className = 'brand-item';
-    if (brand === currentFilters.brand) {
-      brandItem.classList.add('active');
-    }
-    brandItem.textContent = brand;
-    brandItem.dataset.brand = brand;
-
-    brandItem.addEventListener('click', () => {
-      selectBrand(brand);
-    });
-
-    brandList.appendChild(brandItem);
-  });
-}
-
-// Select a brand from the modal
-function selectBrand(brand) {
-  // If clicking the same brand, toggle it off
-  if (currentFilters.brand === brand) {
-    currentFilters.brand = '';
+// Update select styling based on selection
+function updateSelectStyling(selectElement) {
+  if (selectElement.value) {
+    selectElement.classList.add('has-value');
   } else {
-    currentFilters.brand = brand;
-  }
-
-  // Update active class
-  document.querySelectorAll('.brand-item').forEach(item => {
-    if (item.dataset.brand === currentFilters.brand) {
-      item.classList.add('active');
-    } else {
-      item.classList.remove('active');
-    }
-  });
-
-  // Update brand filter button status
-  updateBrandFilterButtonStatus();
-
-  // Close the modal
-  closeBrandFilterModal();
-
-  // Display filtered products
-  displayProducts();
-}
-
-// Update brand filter button to show active/inactive state
-function updateBrandFilterButtonStatus() {
-  if (currentFilters.brand) {
-    brandFilterBtn.classList.add('active');
-    brandFilterBtn.textContent = `לקוח: ${currentFilters.brand}`;
-  } else {
-    brandFilterBtn.classList.remove('active');
-    brandFilterBtn.textContent = 'לקוח';
+    selectElement.classList.remove('has-value');
   }
 }
 
@@ -303,8 +443,12 @@ function getProductsByTab() {
   switch (currentFilters.tab) {
     case 'alcohol':
       return alcoholProducts && alcoholProducts.length > 0 ? alcoholProducts : allProducts;
+    case 'whiskey':
+      return whiskeyProducts && whiskeyProducts.length > 0 ? whiskeyProducts : allProducts;
     case 'wine':
       return wineProducts && wineProducts.length > 0 ? wineProducts : allProducts;
+    case 'beer':
+      return beerProducts && beerProducts.length > 0 ? beerProducts : allProducts;
     case 'food':
       return foodProducts && foodProducts.length > 0 ? foodProducts : allProducts;
     default:
@@ -652,18 +796,7 @@ function closeProductModal() {
   document.body.style.overflow = 'auto'; // Enable scrolling on body again
 }
 
-// Open brand filter modal
-function openBrandFilterModal() {
-  populateBrandList();
-  brandFilterModal.style.display = 'block';
-  document.body.style.overflow = 'hidden'; // Prevent scrolling of the background
-}
-
-// Close brand filter modal
-function closeBrandFilterModal() {
-  brandFilterModal.style.display = 'none';
-  document.body.style.overflow = 'auto'; // Enable scrolling on body again
-}
+// These functions are no longer needed since we're using a dropdown instead of a modal
 
 // Switch tab
 function switchTab(tabName) {
@@ -685,7 +818,12 @@ function switchTab(tabName) {
   currentFilters.brand = '';
   countryFilter.value = '';
   categoryFilter.value = '';
-  updateBrandFilterButtonStatus();
+  brandFilter.value = '';
+  
+  // Reset styling
+  updateSelectStyling(countryFilter);
+  updateSelectStyling(categoryFilter);
+  updateSelectStyling(brandFilter);
 
   // Update filter options based on the new tab
   populateFilters();
@@ -694,12 +832,10 @@ function switchTab(tabName) {
   displayProducts();
 }
 
-// Clear brand filter
-function clearBrandFilter() {
-  currentFilters.brand = '';
-  updateBrandFilterButtonStatus();
+// Perform search (triggered by button click)
+function performSearch() {
+  currentFilters.search = searchInput.value;
   displayProducts();
-  closeBrandFilterModal();
 }
 
 // Setup event listeners
@@ -707,6 +843,11 @@ function setupEventListeners() {
   // Tab buttons
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
+      // Skip if this tab is disabled
+      if (btn.classList.contains('disabled')) {
+        return;
+      }
+      
       const tabName = btn.dataset.tab;
       switchTab(tabName);
     });
@@ -715,27 +856,29 @@ function setupEventListeners() {
   // Filter change events
   countryFilter.addEventListener('change', function() {
     currentFilters.country = this.value;
+    updateSelectStyling(this);
     displayProducts();
   });
 
   categoryFilter.addEventListener('change', function() {
     currentFilters.category = this.value;
+    updateSelectStyling(this);
+    displayProducts();
+  });
+  
+  brandFilter.addEventListener('change', function() {
+    currentFilters.brand = this.value;
+    updateSelectStyling(this);
     displayProducts();
   });
 
-  // Brand filter button
-  brandFilterBtn.addEventListener('click', openBrandFilterModal);
+  // Search button click
+  searchBtn.addEventListener('click', performSearch);
   
-  // Close brand modal
-  closeBrandModalBtn.addEventListener('click', closeBrandFilterModal);
-  
-  // Clear brand filter button
-  clearBrandFilterBtn.addEventListener('click', clearBrandFilter);
-  
-  // Close brand modal when clicking outside content
-  brandFilterModal.addEventListener('click', function(event) {
-    if (event.target === brandFilterModal) {
-      closeBrandFilterModal();
+  // Search input enter key
+  searchInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      performSearch();
     }
   });
 

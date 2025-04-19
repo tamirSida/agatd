@@ -12,24 +12,39 @@
       <img src="images/logo.png" alt="Logo" class="company-logo">
     </div>
     <h1>קטלוג מוצרים</h1>
+    <div class="note-message">כל הקטגוריות פעילות כעת!</div>
     
     <!-- Catalog Tabs -->
     <div class="catalog-tabs">
       <button class="tab-button active" data-tab="all">כל המוצרים</button>
       <button class="tab-button" data-tab="alcohol">אלכוהול</button>
+      <button class="tab-button" data-tab="whiskey">וויסקי</button>
       <button class="tab-button" data-tab="wine">יין</button>
+      <button class="tab-button" data-tab="beer">בירה</button>
       <button class="tab-button" data-tab="food">מזון</button>
     </div>
     
     <div class="filters">
-      <select id="country-filter">
-        <option value="">כל הארצות</option>
-      </select>
-      <select id="category-filter">
-        <option value="">כל הקטגוריות</option>
-      </select>
-      <button id="brand-filter-btn" class="filter-button">לקוח</button>
-      <input type="text" id="search-input" placeholder="חיפוש...">
+      <div class="filter-group">
+        <select id="country-filter">
+          <option value="">כל הארצות</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <select id="category-filter">
+          <option value="">כל הקטגוריות</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <select id="brand-filter">
+          <option value="">כל הלקוחות</option>
+          <!-- Brand options will be populated via JavaScript -->
+        </select>
+      </div>
+      <div class="filter-group search-group">
+        <input type="text" id="search-input" placeholder="חיפוש...">
+        <button id="search-btn"><i class="search-icon">🔍</i></button>
+      </div>
     </div>
   </header>
 
@@ -59,21 +74,7 @@
     </div>
   </div>
 
-  <!-- Brand Filter Modal -->
-  <div id="brand-filter-modal" class="modal">
-    <div class="modal-content">
-      <span class="close-brand-modal">&times;</span>
-      <div class="modal-header">
-        <h2>סינון לפי לקוח</h2>
-      </div>
-      <div class="modal-body">
-        <div id="brand-list" class="brand-list"></div>
-        <div class="filter-actions">
-          <button id="clear-brand-filter" class="clear-filter">נקה סינון</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- We no longer need the brand filter modal since we're using a dropdown -->
 
   <script src="app.js"></script>
 </body>

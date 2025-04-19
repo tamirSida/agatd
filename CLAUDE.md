@@ -1,7 +1,7 @@
 # AGAT Catalog Project Information
 
 ## Project Overview
-This is a product catalog web application for AGAT that displays products from different categories. The application allows filtering by category, country, and brand.
+This is a product catalog web application for AGAT that displays products from different categories. The application allows filtering by category, country, and brand/client with an improved, modern UI.
 
 ## Data Sources
 1. **Brands**: `brands.csv` - Contains a list of all client/store brands
@@ -18,22 +18,28 @@ This is a product catalog web application for AGAT that displays products from d
 - `media/` - Fallback directory for product images
 
 ## Key Features
-1. **Tab Navigation**: Switch between all products, alcohol, wine, and food
+1. **Tab Navigation**: Modern tab system to switch between all products, alcohol, wine, and food
 2. **Filtering**:
-   - By country
-   - By category
-   - By brand/client (מלקוח)
-   - Text search
-3. **Product Cards**: Display product information with images
+   - By country (dropdown)
+   - By category (dropdown)
+   - By brand/client (לקוח) (dropdown)
+   - Text search with search button
+3. **Product Cards**: Stylish product cards with hover animations
 4. **Product Modal**: Detailed view of product with all specifications
-5. **Brand Filter Modal**: List of all brands for filtering
+5. **Responsive Design**: Works well on mobile and desktop devices
 
 ## Implementation Details
 
 ### Brand Filter
-The brand filter button opens a modal with a list of all brands from `brands.csv`. When a brand is selected, the application filters products to only show those where that brand column has a value of "TRUE". 
+The brand filter is implemented as a dropdown that loads all brands from `brands.csv`. When a brand is selected, the application filters products to only show those where that brand column has a value of "TRUE". 
 
 The brands are sorted alphabetically in Hebrew for easy navigation.
+
+### Improved UI Elements
+1. **Selects**: Custom styled select dropdowns with visual feedback when a value is selected
+2. **Search Field**: Search input with a dedicated search button
+3. **Product Cards**: Enhanced with subtle animations and hover effects
+4. **Tab Navigation**: Modern design with subtle indicators for the active tab
 
 ### CSV Parsing
 The application parses CSV data from external sources (Google Sheets) or local files as fallback. The CSV structure includes columns for each brand (TRUE/FALSE value indicates if a product is available in that brand's store).
