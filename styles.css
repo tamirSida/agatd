@@ -185,11 +185,16 @@ select:focus, input:focus {
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
 }
 
+.search-group {
+  display: flex;
+  flex-direction: row-reverse; /* Reverse for RTL layout */
+}
+
 #search-btn {
   border: none;
   background-color: var(--accent-color);
   color: white;
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
   cursor: pointer;
   padding: 0 15px;
   transition: var(--transition);
@@ -204,8 +209,8 @@ select:focus, input:focus {
 }
 
 #search-input {
-  border-radius: 0 var(--border-radius) var(--border-radius) 0;
-  border-left: none;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
+  border-right: none;
 }
 
 /* Styling for select when an option is selected */
@@ -218,14 +223,14 @@ select.has-value {
 /* Clear filter button style */
 .clear-filter {
   position: absolute;
-  right: 40px;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
-  color: var(--danger-color);
+  color: #000;
   cursor: pointer;
   width: 16px;
   height: 16px;
@@ -233,35 +238,24 @@ select.has-value {
   pointer-events: none;
   transition: var(--transition);
   z-index: 10;
-}
-
-.clear-filter::before, .clear-filter::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 10px;
-  height: 2px;
-  background-color: var(--danger-color);
-}
-
-.clear-filter::before {
-  transform: translate(-50%, -50%) rotate(45deg);
+  font-weight: bold;
 }
 
 .clear-filter::after {
-  transform: translate(-50%, -50%) rotate(-45deg);
+  content: '✕';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-.filter-group:hover .clear-filter,
 select.has-value ~ .clear-filter {
   opacity: 1;
   pointer-events: auto;
 }
 
 .clear-filter:hover {
-  color: #c0392b;
-  transform: translateY(-50%) scale(1.2);
+  color: var(--danger-color);
 }
 
 #products-container {
@@ -612,10 +606,70 @@ select.has-value ~ .clear-filter {
 
 /* We no longer need the brand filter modal styling as we're using a dropdown */
 
+/* Tablet Styles */
+@media (max-width: 1024px) {
+  body {
+    padding: 15px;
+  }
+  
+  .catalog-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 20px;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .tab-button {
+    white-space: nowrap;
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+  
+  #products-container {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  
+  .product-image {
+    height: 180px;
+  }
+}
+
+/* Mobile Styles */
 @media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+  
+  header {
+    margin-bottom: 20px;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+  }
+  
+  .company-logo {
+    max-width: 150px;
+  }
+  
+  .catalog-tabs {
+    margin-bottom: 20px;
+    gap: 2px;
+  }
+  
+  .tab-button {
+    padding: 8px 15px;
+    font-size: 13px;
+  }
+  
   .filters {
     flex-direction: column;
     align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
   }
   
   .filter-group {
@@ -628,28 +682,183 @@ select.has-value ~ .clear-filter {
     max-width: 100%;
   }
   
+  select, input, #search-btn {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  
+  #products-container {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 15px;
+  }
+  
+  .product-card {
+    border-radius: 6px;
+  }
+  
+  .product-image {
+    height: 140px;
+    padding: 10px;
+  }
+  
+  .product-info {
+    padding: 12px;
+  }
+  
+  .product-info h3 {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  
+  .product-company, .product-country, .product-description {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  
+  .kosher-status {
+    font-size: 11px;
+    padding: 3px 8px;
+    margin-bottom: 6px;
+  }
+  
+  .product-volume, .product-weight {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  
+  .product-details {
+    font-size: 11px;
+    padding-top: 8px;
+  }
+  
+  .price {
+    font-size: 14px;
+  }
+  
+  /* Modal adjustments */
   .modal-content {
     width: 95%;
     margin: 5% auto;
-    padding: 20px;
+    padding: 15px;
     max-height: 85vh;
+    border-radius: 8px;
+  }
+  
+  .modal-header {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+  }
+  
+  .modal-header h2 {
+    font-size: 18px;
+  }
+  
+  #modal-product-company {
+    font-size: 14px;
+  }
+  
+  .modal-body {
+    gap: 20px;
+    max-height: calc(85vh - 120px);
+    overflow-y: auto;
   }
   
   .modal-image, .modal-details {
     min-width: 100%;
   }
   
+  .modal-image {
+    padding: 10px;
+  }
+  
+  .modal-image img {
+    max-height: 250px;
+  }
+  
+  #modal-product-description {
+    font-size: 14px;
+    margin-bottom: 15px;
+    line-height: 1.5;
+  }
+  
+  #modal-product-specs {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .spec-item {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+  
+  .spec-label {
+    width: 110px;
+    font-size: 13px;
+  }
+  
   .close {
-    top: 15px;
-    right: 15px;
+    top: 10px;
+    right: 10px;
+    height: 35px;
+    width: 35px;
+    font-size: 24px;
+  }
+}
+
+/* iPhone-specific adjustments */
+@media (max-width: 480px) {
+  body {
+    padding: 8px;
+  }
+  
+  .company-logo {
+    max-width: 120px;
   }
   
   h1 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
   }
   
-  .modal-body {
-    max-height: calc(85vh - 150px);
-    overflow-y: auto;
+  .catalog-tabs::after {
+    width: 40px;
+  }
+  
+  .product-image {
+    height: 120px;
+  }
+  
+  #products-container {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  
+  .product-info {
+    padding: 10px;
+  }
+  
+  .product-info h3 {
+    font-size: 13px;
+  }
+  
+  .product-country, .product-company {
+    font-size: 11px;
+  }
+  
+  .kosher-status {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+  
+  .product-description {
+    -webkit-line-clamp: 2;
+  }
+  
+  /* Modal adjustments */
+  .modal-content {
+    padding: 12px;
+  }
+  
+  .modal-image img {
+    max-height: 200px;
   }
 }
