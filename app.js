@@ -12,13 +12,15 @@ let currentFilters = {
   category: '',
   search: '',
   tab: 'all',
-  brand: '' // New filter for brands
+  brand: '', // New filter for brands
+  kosher: '' // New filter for kosher status
 };
 
 // DOM elements
 const countryFilter = document.getElementById('country-filter');
 const categoryFilter = document.getElementById('category-filter');
 const brandFilter = document.getElementById('brand-filter');
+const kosherFilter = document.getElementById('kosher-filter');
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
 const productsContainer = document.getElementById('products-container');
@@ -34,6 +36,7 @@ const tabButtons = document.querySelectorAll('.tab-button');
 const clearCountryFilterBtn = document.getElementById('clear-country-filter');
 const clearCategoryFilterBtn = document.getElementById('clear-category-filter');
 const clearBrandFilterBtn = document.getElementById('clear-brand-filter');
+const clearKosherFilterBtn = document.getElementById('clear-kosher-filter');
 
 // CSV URLs for each product category
 const ALCOHOL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv';
@@ -293,6 +296,14 @@ async function init() {
     // Populate filter options
     populateFilters();
 
+    // If the initial tab is food, hide the brand filter
+    if (currentFilters.tab === 'food') {
+      const brandFilterContainer = brandFilter.closest('.filter-group');
+      if (brandFilterContainer) {
+        brandFilterContainer.style.display = 'none';
+      }
+    }
+
     // Display products
     displayProducts();
 
@@ -495,7 +506,31 @@ function groupProductsByName() {
 function populateFilters() {
   // Clear existing options except the default ones
   countryFilter.innerHTML = '<option value="">כל הארצות</option>';
-  categoryFilter.innerHTML = '<option value="">כל הקטגוריות</option>';
+  
+  // Set category placeholder text based on tab
+  let categoryPlaceholder = 'כל הקטגוריות';
+  if (currentFilters.tab === 'alcohol') {
+    categoryPlaceholder = 'כל הסוגים';
+  }
+  categoryFilter.innerHTML = `<option value="">${categoryPlaceholder}</option>`;
+  
+  // Set brand filter placeholder based on tab
+  let brandPlaceholder = 'כל הלקוחות';
+  if (currentFilters.tab === 'wine' || currentFilters.tab === 'beer' || 
+      currentFilters.tab === 'whiskey') {
+    brandPlaceholder = 'כל המותגים';
+  }
+  
+  // Update brand filter placeholder
+  const brandFilterOptions = brandFilter.querySelectorAll('option');
+  if (brandFilterOptions.length > 0) {
+    brandFilterOptions[0].textContent = brandPlaceholder;
+  }
+  
+  // Setup kosher filter
+  kosherFilter.innerHTML = '<option value="">כשר / לא כשר</option>';
+  kosherFilter.innerHTML += '<option value="כשר">כשר</option>';
+  kosherFilter.innerHTML += '<option value="לא כשר">לא כשר</option>';
 
   // Get products based on current tab
   const products = getProductsByTab();
@@ -504,9 +539,18 @@ function populateFilters() {
   const countries = [...new Set(products.filter(p => p['מדינה']).map(p => p['מדינה']))];
   const categories = [...new Set(products.filter(p => p['קטגוריה אוטומטי'] || p['קטגוריה']).map(p => p['קטגוריה אוטומטי'] || p['קטגוריה']))];
 
+  // Get unique brands for wine page
+  let tabBrands = [];
+  if (currentFilters.tab === 'wine') {
+    tabBrands = [...new Set(products.filter(p => p['קבוצה / מותג']).map(p => p['קבוצה / מותג']))];
+  } else if (currentFilters.tab === 'beer' || currentFilters.tab === 'whiskey') {
+    tabBrands = [...new Set(products.filter(p => p['מותג']).map(p => p['מותג']))];
+  }
+
   // Sort alphabetically
   countries.sort();
   categories.sort();
+  tabBrands.sort();
 
   // Add to country filter
   countries.forEach(country => {
@@ -523,9 +567,29 @@ function populateFilters() {
     option.textContent = category;
     categoryFilter.appendChild(option);
   });
+  
+  // If we're on a page that uses brand filter from products, update the brand filter
+  if (currentFilters.tab === 'wine' || currentFilters.tab === 'beer' || 
+      currentFilters.tab === 'whiskey') {
+    // Clear existing options except first one
+    while (brandFilter.options.length > 1) {
+      brandFilter.remove(1);
+    }
+    
+    // Add brands from this tab's products
+    tabBrands.forEach(brand => {
+      if (brand && brand.trim()) {
+        const option = document.createElement('option');
+        option.value = brand;
+        option.textContent = brand;
+        brandFilter.appendChild(option);
+      }
+    });
+  }
 
-  // Update brand filter styling if needed
+  // Update select styling
   updateSelectStyling(brandFilter);
+  updateSelectStyling(kosherFilter);
 }
 
 // Update select styling based on selection
@@ -571,9 +635,31 @@ function getFilteredProducts() {
       return false;
     }
 
-    // Brand filter
-    if (currentFilters.brand && !product[currentFilters.brand]) {
-      return false;
+    // Brand filter - handle different fields based on tab
+    if (currentFilters.brand) {
+      if (currentFilters.tab === 'wine' && product['קבוצה / מותג'] !== currentFilters.brand) {
+        return false;
+      } else if ((currentFilters.tab === 'beer' || currentFilters.tab === 'whiskey') 
+        && product['מותג'] !== currentFilters.brand) {
+        return false;
+      } else if (currentFilters.tab === 'all' || currentFilters.tab === 'alcohol') {
+        // For the all tab, check any brand field
+        const brandValue = product['קבוצה / מותג'] || product['מותג'] || product['קבוצה / מותג אוטומטי'];
+        if (brandValue !== currentFilters.brand) {
+          return false;
+        }
+      }
+    }
+    
+    // Kosher filter
+    if (currentFilters.kosher && product['כשרות']) {
+      const isKosher = product['כשרות'].toLowerCase() === 'כשר';
+      if (currentFilters.kosher === 'כשר' && !isKosher) {
+        return false;
+      }
+      if (currentFilters.kosher === 'לא כשר' && isKosher) {
+        return false;
+      }
     }
 
     // Search filter
@@ -581,8 +667,8 @@ function getFilteredProducts() {
       const searchLower = currentFilters.search.toLowerCase();
       const nameMatch = product['שם פריט אוטומטי'] && product['שם פריט אוטומטי'].toLowerCase().includes(searchLower);
       const descMatch = product['תאור'] && product['תאור'].toLowerCase().includes(searchLower);
-      const companyMatch = (product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי']) &&
-          (product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי']).toLowerCase().includes(searchLower);
+      const companyMatch = (product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג']) &&
+          (product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג']).toLowerCase().includes(searchLower);
       const barcodeMatch = product['ברקוד'] && product['ברקוד'].toLowerCase().includes(searchLower);
 
       if (!(nameMatch || descMatch || companyMatch || barcodeMatch)) {
@@ -1020,8 +1106,6 @@ function closeProductModal() {
   document.body.style.overflow = 'auto'; // Enable scrolling on body again
 }
 
-// These functions are no longer needed since we're using a dropdown instead of a modal
-
 // Switch tab
 function switchTab(tabName) {
   // Update active tab button
@@ -1049,6 +1133,20 @@ function switchTab(tabName) {
   updateSelectStyling(categoryFilter);
   updateSelectStyling(brandFilter);
 
+  // Toggle brand filter visibility based on tab
+  const brandFilterContainer = brandFilter.closest('.filter-group');
+  if (tabName === 'food') {
+    // Hide brand filter for food tab
+    if (brandFilterContainer) {
+      brandFilterContainer.style.display = 'none';
+    }
+  } else {
+    // Show brand filter for other tabs
+    if (brandFilterContainer) {
+      brandFilterContainer.style.display = '';
+    }
+  }
+
   // Update filter options based on the new tab
   populateFilters();
 
@@ -1073,6 +1171,14 @@ function setupEventListeners() {
       }
       
       const tabName = btn.dataset.tab;
+      
+      // If switching to food tab, clear the brand filter
+      if (tabName === 'food') {
+        currentFilters.brand = '';
+        brandFilter.value = '';
+        updateSelectStyling(brandFilter);
+      }
+      
       switchTab(tabName);
     });
   });
@@ -1092,6 +1198,12 @@ function setupEventListeners() {
   
   brandFilter.addEventListener('change', function() {
     currentFilters.brand = this.value;
+    updateSelectStyling(this);
+    displayProducts();
+  });
+  
+  kosherFilter.addEventListener('change', function() {
+    currentFilters.kosher = this.value;
     updateSelectStyling(this);
     displayProducts();
   });
@@ -1162,6 +1274,13 @@ function setupEventListeners() {
     brandFilter.value = '';
     currentFilters.brand = '';
     updateSelectStyling(brandFilter);
+    displayProducts();
+  });
+
+  clearKosherFilterBtn.addEventListener('click', function() {
+    kosherFilter.value = '';
+    currentFilters.kosher = '';
+    updateSelectStyling(kosherFilter);
     displayProducts();
   });
 }
