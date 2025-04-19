@@ -223,7 +223,7 @@ select.has-value {
 /* Clear filter button style */
 .clear-filter {
   position: absolute;
-  left: 10px;
+  left: 40px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -400,7 +400,7 @@ select.has-value ~ .clear-filter {
   color: white;
 }
 
-.product-volume, .product-weight {
+.product-volume, .product-weight, .product-spec {
   font-size: 14px;
   color: var(--dark-gray);
   margin-bottom: 12px;

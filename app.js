@@ -644,16 +644,8 @@ function createProductCard(product) {
   // Determine which tab/category this product is from
   const tabCategory = getCurrentProductCategory(product);
   
-  // Get the right title field based on product category
-  if (tabCategory === 'alcohol') {
-    productName = product['מקט'] || product['שם פריט אוטומטי'] || '';
-  } else if (tabCategory === 'whiskey') {
-    productName = product['תיאור פריט'] || product['שם פריט אוטומטי'] || '';
-  } else if (tabCategory === 'wine') {
-    productName = product['תאור'] || product['שם פריט אוטומטי'] || '';
-  } else if (tabCategory === 'beer' || tabCategory === 'food') {
-    productName = product['שם פריט אוטומטי'] || '';
-  }
+  // Use שם פריט אוטומטי for all categories as requested
+  productName = product['שם פריט אוטומטי'] || '';
 
   // Get company/brand name from appropriate field
   const company = product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג'] || '';
@@ -665,6 +657,23 @@ function createProductCard(product) {
     const kosherStatusClass = isKosher ? 'kosher-yes' : 'kosher-no';
     const kosherText = isKosher ? 'כשר' : 'לא כשר';
     kosherHtml = `<div><span class="kosher-status ${kosherStatusClass}">${kosherText}</span></div>`;
+  }
+  
+  // Get category-specific fields for wine
+  let wineFieldsHtml = '';
+  if (tabCategory === 'wine') {
+    const grapeType = product['זן ענב'] ? `<div class="product-spec">זן ענב: ${product['זן ענב']}</div>` : '';
+    const sweetness = product['רמת מתיקות'] ? `<div class="product-spec">רמת מתיקות: ${product['רמת מתיקות']}</div>` : '';
+    wineFieldsHtml = grapeType + sweetness;
+  }
+  
+  // Get category-specific fields for whiskey
+  let whiskeyFieldsHtml = '';
+  if (tabCategory === 'whiskey') {
+    const barrelType = product['סוג חבית/סיום'] ? `<div class="product-spec">סוג חבית/סיום: ${product['סוג חבית/סיום']}</div>` : '';
+    const whiskyType = product['סוג'] ? `<div class="product-spec">סוג: ${product['סוג']}</div>` : '';
+    const age = product['גיל'] ? `<div class="product-spec">גיל: ${product['גיל']}</div>` : '';
+    whiskeyFieldsHtml = barrelType + whiskyType + age;
   }
 
   // Get volume for beverages
@@ -747,8 +756,10 @@ function createProductCard(product) {
         <span class="country-name">${product['מדינה']}</span>
       </div>` : ''}
       ${kosherHtml}
-      ${descriptionHtml}
+      ${wineFieldsHtml}
+      ${whiskeyFieldsHtml}
       ${volumeHtml}
+      ${descriptionHtml}
       ${weightHtml}
       <div class="product-details">
         ${barcode ? `<span class="barcode">${barcode}</span>` : ''}
