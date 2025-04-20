@@ -381,13 +381,15 @@ select.has-value ~ .clear-filter {
 
 .kosher-status {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 4px 8px;
   font-size: 13px;
   font-weight: 600;
   border-radius: 30px;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
+  margin-left: 6px;
   text-align: center;
   width: auto;
+  max-width: 90px;
 }
 
 .kosher-yes {
@@ -398,6 +400,18 @@ select.has-value ~ .clear-filter {
 .kosher-no {
   background-color: var(--danger-color);
   color: white;
+}
+
+.kosher-passover {
+  background-color: #9b59b6;
+  color: white;
+}
+
+.kosher-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
 }
 
 .product-volume, .product-weight, .product-spec {

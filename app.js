@@ -495,6 +495,9 @@ function parseCSV(csvText) {
   const lines = csvText.split('\n');
   const headers = lines[0].split(',').map(header => header.trim().toLowerCase());
 
+  // Debug: Log all headers to see what columns we have
+  console.log('CSV Headers:', headers);
+  
   return lines.slice(1)
     .filter(line => line.trim())
     .map(line => {
@@ -855,11 +858,44 @@ function createProductCard(product) {
 
   // Kosher status display
   let kosherHtml = '';
+  let passoverHtml = '';
+  
+  // Regular kosher status
   if (product['כשרות']) {
-    if (product['כשרות'].toString().toLowerCase() === 'true' || product['כשרות'].toString().toLowerCase() === 'כן' || product['כשרות'].toString().toLowerCase() === 'כשר') {
+    const kosherValue = product['כשרות'].toString().trim().toLowerCase();
+    if (kosherValue === 'true' || kosherValue === 'כן' || kosherValue === 'כשר') {
       kosherHtml = '<div class="kosher-status kosher-yes">כשר</div>';
-    } else if (product['כשרות'].toString().toLowerCase() === 'false' || product['כשרות'].toString().toLowerCase() === 'לא' || product['כשרות'].toString().toLowerCase() === 'לא כשר') {
+    } else if (kosherValue === 'false' || kosherValue === 'לא' || kosherValue === 'לא כשר') {
       kosherHtml = '<div class="kosher-status kosher-no">לא כשר</div>';
+    }
+  }
+  
+  // Kosher for Passover status - check multiple possible column names
+  // Find passover field - might be named in different ways
+  let passoverField = null;
+  const possiblePassoverFields = ['כשר לפסח', 'כשרות לפסח', 'פסח'];
+  
+  for (const field of possiblePassoverFields) {
+    if (product[field] !== undefined) {
+      passoverField = field;
+      console.log('Found passover field:', field, 'with value:', product[field], 'for product:', product['שם פריט אוטומטי'] || product['תיאור פריט']);
+      break;
+    }
+  }
+  
+  // Debugging one product to see its fields
+  if (product['שם פריט אוטומטי'] === 'גוולאנזוניה בראדי' || product['תיאור פריט'] === 'גוולאנזוניה בראדי') {
+    console.log('Example product fields:', Object.keys(product).join(', '));
+  }
+  
+  if (passoverField && product[passoverField]) {
+    const passoverValue = product[passoverField].toString().trim().toLowerCase();
+    if (passoverValue === 'true' || 
+        passoverValue === 'כן' || 
+        passoverValue === 'כשר' ||
+        passoverValue === 'כשר לפסח' ||
+        (passoverValue.includes('כשר') && passoverValue.includes('פסח'))) {
+      passoverHtml = '<div class="kosher-status kosher-passover">כשר לפסח</div>';
     }
   }
   
@@ -989,7 +1025,10 @@ function createProductCard(product) {
         ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
         <span class="country-name">${product['מדינה']}</span>
       </div>` : ''}
-      ${kosherHtml}
+      <div class="kosher-tags">
+        ${kosherHtml}
+        ${passoverHtml}
+      </div>
       ${wineFieldsHtml}
       ${whiskeyFieldsHtml}
       ${beerFieldsHtml}
@@ -1060,12 +1099,41 @@ function openProductModal(product) {
     kosherSpec.className = 'spec-item';
     
     let kosherValue;
-    if (product['כשרות'].toString().toLowerCase() === 'true' || product['כשרות'].toString().toLowerCase() === 'כן' || product['כשרות'].toString().toLowerCase() === 'כשר') {
+    const kosherRawValue = product['כשרות'].toString().trim().toLowerCase();
+    
+    if (kosherRawValue === 'true' || kosherRawValue === 'כן' || kosherRawValue === 'כשר') {
       kosherValue = '<span class="kosher-status kosher-yes">כשר</span>';
-    } else if (product['כשרות'].toString().toLowerCase() === 'false' || product['כשרות'].toString().toLowerCase() === 'לא' || product['כשרות'].toString().toLowerCase() === 'לא כשר') {
+    } else if (kosherRawValue === 'false' || kosherRawValue === 'לא' || kosherRawValue === 'לא כשר') {
       kosherValue = '<span class="kosher-status kosher-no">לא כשר</span>';
     } else {
-      kosherValue = product['כשרות'];
+      // Don't display raw values like TRUE/FALSE, just show a neutral value
+      if (kosherRawValue === 'true' || kosherRawValue === 'false') {
+        kosherValue = '';
+      } else {
+        kosherValue = product['כשרות'];
+      }
+    }
+    
+    // Add Passover status if available - check multiple possible column names
+    let passoverField = null;
+    const possiblePassoverFields = ['כשר לפסח', 'כשרות לפסח', 'פסח'];
+    
+    for (const field of possiblePassoverFields) {
+      if (product[field] !== undefined) {
+        passoverField = field;
+        break;
+      }
+    }
+    
+    if (passoverField && product[passoverField]) {
+      const passoverValue = product[passoverField].toString().trim().toLowerCase();
+      if (passoverValue === 'true' || 
+          passoverValue === 'כן' || 
+          passoverValue === 'כשר' || 
+          passoverValue === 'כשר לפסח' ||
+          (passoverValue.includes('כשר') && passoverValue.includes('פסח'))) {
+        kosherValue += ' <span class="kosher-status kosher-passover">כשר לפסח</span>';
+      }
     }
     
     kosherSpec.innerHTML = `
@@ -1149,11 +1217,18 @@ function openProductModal(product) {
         key === 'שם פריט אוטומטי' || 
         key === 'תאור' || 
         key === 'כשרות' || // Already displayed in special section
+        key === 'כשר לפסח' || // Already included with kosher status
+        key === 'כשרות לפסח' || // Alternate passover field name
+        key === 'פסח' || // Another possible passover field name
         key === 'מדינה' ||
         key === 'company' || 
         key === 'קבוצה / מותג' || 
         key === 'קבוצה / מותג אוטומטי' ||
-        brands.includes(key)) continue;
+        brands.includes(key) ||
+        // Skip values that are just TRUE/FALSE strings
+        (typeof value === 'string' && 
+         (value.trim().toUpperCase() === 'TRUE' || 
+          value.trim().toUpperCase() === 'FALSE'))) continue;
 
     const specItem = document.createElement('div');
     specItem.className = 'spec-item';
