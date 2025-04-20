@@ -626,6 +626,74 @@ select.has-value ~ .clear-filter {
 
 /* We no longer need the brand filter modal styling as we're using a dropdown */
 
+/* Heart button styles */
+.heart-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+  z-index: 10;
+}
+
+.heart-button:hover {
+  transform: scale(1.1);
+}
+
+.heart-icon {
+  font-style: normal;
+  font-size: 22px;
+  color: #ccc;
+  transition: color 0.2s ease;
+}
+
+.heart-button:hover .heart-icon {
+  color: #e74c3c;
+}
+
+.heart-button.liked .heart-icon {
+  color: #e74c3c;
+}
+
+.modal-heart-button {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+  z-index: 10;
+}
+
+.modal-heart-button:hover {
+  transform: scale(1.1);
+}
+
+.modal-heart-button .heart-icon {
+  font-size: 25px;
+}
+
+.modal-heart-button.liked .heart-icon {
+  color: #e74c3c;
+}
+
 /* Tablet Styles */
 @media (max-width: 1024px) {
   body {
@@ -739,6 +807,28 @@ select.has-value ~ .clear-filter {
     font-size: 11px;
     padding: 3px 8px;
     margin-bottom: 6px;
+  }
+  
+  .heart-button {
+    width: 30px;
+    height: 30px;
+    top: 5px;
+    right: 5px;
+  }
+  
+  .heart-icon {
+    font-size: 18px;
+  }
+  
+  .modal-heart-button {
+    width: 35px;
+    height: 35px;
+    top: 10px;
+    left: 10px;
+  }
+  
+  .modal-heart-button .heart-icon {
+    font-size: 20px;
   }
   
   .product-volume, .product-weight, .product-spec {
@@ -871,6 +961,28 @@ select.has-value ~ .clear-filter {
   
   .product-description {
     -webkit-line-clamp: 2;
+  }
+  
+  .heart-button {
+    width: 25px;
+    height: 25px;
+    top: 5px;
+    right: 5px;
+  }
+  
+  .heart-icon {
+    font-size: 16px;
+  }
+  
+  .modal-heart-button {
+    width: 30px;
+    height: 30px;
+    top: 10px;
+    left: 10px;
+  }
+  
+  .modal-heart-button .heart-icon {
+    font-size: 18px;
   }
   
   /* Modal adjustments */
