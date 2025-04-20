@@ -348,7 +348,10 @@ async function loadBrands() {
         
         // Parse the CSV to extract brand names
         const lines = text.split('\n').filter(line => line.trim());
-        brands = lines.map(line => line.trim());
+        // Normalize brand names to handle encoding issues
+        brands = lines.map(line => {
+          return line.trim().normalize('NFKC').replace(/\s+/g, ' ');
+        });
         console.log('Loaded brands:', brands.length);
         
         // Sort brands alphabetically
@@ -492,8 +495,14 @@ async function loadBrands() {
 
 // Parse CSV text to array of objects
 function parseCSV(csvText) {
+  // Remove potential BOM character
+  if (csvText.charCodeAt(0) === 0xFEFF) {
+    csvText = csvText.slice(1);
+  }
+
   const lines = csvText.split('\n');
-  const headers = lines[0].split(',').map(header => header.trim().toLowerCase());
+  // Don't lowercase headers - preserve original case
+  const headers = lines[0].split(',').map(header => header.trim());
 
   // Debug: Log all headers to see what columns we have
   console.log('CSV Headers:', headers);
@@ -521,10 +530,12 @@ function parseCSV(csvText) {
       // Create object with header keys
       const product = {};
       headers.forEach((header, index) => {
-        product[header] = values[index] || '';
+        // Normalize the header to handle encoding issues
+        const normalizedHeader = header.normalize('NFKC').replace(/\s+/g, ' ');
+        product[normalizedHeader] = values[index] || '';
         // Clean quotes
-        if (typeof product[header] === 'string') {
-          product[header] = product[header].replace(/"/g, '');
+        if (typeof product[normalizedHeader] === 'string') {
+          product[normalizedHeader] = product[normalizedHeader].replace(/"/g, '');
         }
       });
 
@@ -674,17 +685,47 @@ function getFilteredProducts() {
 
     // Client/Brand filter
     if (currentFilters.brand) {
-      // Check if the product has a 'TRUE' value for this client
-      // The client name is used as a column in each product
-      if (!product[currentFilters.brand]) {
-        return false;
+      // Normalize the client name
+      const normalizedClientName = currentFilters.brand.normalize('NFKC');
+      
+      // Create aliases for common mixed-language client names
+      const clientAliases = {
+        'AM-PM': ['אלונית (AM-PM)', 'ampm', 'am-pm', 'אמפמ', 'אלונית'],
+        'אלונית': ['אלונית (AM-PM)', 'alonit', 'AM-PM', 'ampm'],
+        // Add other known aliases as needed
+      };
+      
+      const aliases = clientAliases[normalizedClientName] || [];
+      
+      // Check for the client name or any of its aliases
+      let clientMatch = false;
+      
+      // First check the exact client name
+      if (product[normalizedClientName] && 
+          product[normalizedClientName].toString().toUpperCase() === 'TRUE') {
+        clientMatch = true;
+      } else {
+        // Then check all possible aliases
+        for (const alias of aliases) {
+          if (product[alias] && product[alias].toString().toUpperCase() === 'TRUE') {
+            clientMatch = true;
+            break;
+          }
+        }
+        
+        // If still no match, check for partial matches (for cases like partial client names)
+        if (!clientMatch) {
+          for (const key of Object.keys(product)) {
+            if ((key.includes(normalizedClientName) || normalizedClientName.includes(key)) &&
+                product[key].toString().toUpperCase() === 'TRUE') {
+              clientMatch = true;
+              break;
+            }
+          }
+        }
       }
       
-      // Handle case sensitivity for TRUE values
-      const clientValue = product[currentFilters.brand].toString().toUpperCase();
-      if (clientValue !== 'TRUE') {
-        return false;
-      }
+      if (!clientMatch) return false;
     }
     
     // Kosher filter
