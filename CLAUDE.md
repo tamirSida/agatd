@@ -31,6 +31,7 @@ All data is loaded directly from Google Sheets:
 3. **Product Cards**: Display product information with images
 4. **Product Modals**: Detailed view of product with all specifications
 5. **Responsive Design**: Works well on mobile and desktop devices
+6. **Like Feature**: Heart icon to mark favorite products in both grid and modal views
 
 ## Product Display Fields 
 Each product card displays the following information, with different field mappings based on the product category:
@@ -64,7 +65,7 @@ The client filter loads from brands.csv and populates a dropdown that filters pr
 Product images are fetched using the barcode as the filename:
 1. First tries to load from `tl/[barcode].jpg`
 2. If not found, falls back to `media/[barcode].jpg`
-3. If still not found, shows a placeholder image
+3. If still not found, falls back to `images/logo.png` and shows an "image not found" message
 
 ## Development Timeline
 - Initial implementation focused on alcohol products
@@ -85,3 +86,5 @@ Product images are fetched using the barcode as the filename:
 - Removed code that replaced client filter with product brands on certain tabs
 - Standardized client filter label to consistently show "כל הלקוחות" across all tabs
 - Fixed filter behavior to correctly handle cases where client data may be missing
+- Added heart icon feature for liking products in both grid view and detail modal
+- Updated image fallback to use company logo when product images aren't found
