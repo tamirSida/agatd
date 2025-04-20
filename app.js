@@ -309,12 +309,10 @@ async function init() {
     // Populate filter options
     populateFilters();
 
-    // If the initial tab is food, hide the brand filter
-    if (currentFilters.tab === 'food') {
-      const brandFilterContainer = brandFilter.closest('.filter-group');
-      if (brandFilterContainer) {
-        brandFilterContainer.style.display = 'none';
-      }
+    // Always keep the brand filter visible for all tabs since it's now for clients
+    const brandFilterContainer = brandFilter.closest('.filter-group');
+    if (brandFilterContainer) {
+      brandFilterContainer.style.display = '';
     }
 
     // Display products
@@ -328,10 +326,10 @@ async function init() {
   }
 }
 
-// Load brands from Google Sheets CSV and populate the dropdown
+// Load brands from local CSV file and populate the dropdown
 async function loadBrands() {
   try {
-    console.log('Loading brands from Google Sheets...');
+    console.log('Loading brands from local file...');
     
     // Add default option first
     const defaultOption = document.createElement('option');
@@ -340,13 +338,13 @@ async function loadBrands() {
     brandFilter.appendChild(defaultOption);
     
     try {
-      // First try using direct fetch
-      console.log('Trying direct fetch for brands from:', BRANDS_CSV_URL);
-      const response = await fetch(BRANDS_CSV_URL);
+      // First try reading from local file
+      console.log('Trying to load brands from local file');
+      const response = await fetch('brands.csv');
       
       if (response.ok) {
         const text = await response.text();
-        console.log('Successfully loaded brands from Google Sheets');
+        console.log('Successfully loaded brands from local CSV');
         
         // Parse the CSV to extract brand names
         const lines = text.split('\n').filter(line => line.trim());
@@ -366,80 +364,115 @@ async function loadBrands() {
         
         console.log('Brand dropdown populated with', sortedBrands.length, 'options');
       } else {
-        throw new Error(`HTTP status: ${response.status} ${response.statusText}`);
+        // If local file fails, try the Google Sheets URL
+        throw new Error(`Local file not available. Status: ${response.status}`);
       }
-    } catch (directError) {
-      console.warn('Direct fetch for brands failed:', directError);
+    } catch (localError) {
+      console.warn('Local brands file fetch failed:', localError);
       
-      // Second try: use XMLHttpRequest (works around some CORS issues)
+      // Fallback to Google Sheets
       try {
-        console.log('Trying XMLHttpRequest for brands...');
-        const xhrResult = await new Promise((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('GET', BRANDS_CSV_URL, true);
-          xhr.responseType = 'text';
+        // Try using direct fetch from Google Sheets
+        console.log('Trying direct fetch for brands from:', BRANDS_CSV_URL);
+        const response = await fetch(BRANDS_CSV_URL);
+        
+        if (response.ok) {
+          const text = await response.text();
+          console.log('Successfully loaded brands from Google Sheets');
           
-          xhr.onload = function() {
-            if (xhr.status === 200) {
-              resolve(xhr.responseText);
-            } else {
-              reject(new Error(`HTTP error: ${xhr.status}`));
-            }
-          };
+          // Parse the CSV to extract brand names
+          const lines = text.split('\n').filter(line => line.trim());
+          brands = lines.map(line => line.trim());
+          console.log('Loaded brands:', brands.length);
           
-          xhr.onerror = () => reject(new Error('Network error'));
-          xhr.ontimeout = () => reject(new Error('Timeout'));
-          xhr.timeout = 10000;
-          xhr.send();
-        });
+          // Sort brands alphabetically
+          const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
+          
+          // Add all brand options
+          sortedBrands.forEach(brand => {
+            const option = document.createElement('option');
+            option.value = brand;
+            option.textContent = brand;
+            brandFilter.appendChild(option);
+          });
+          
+          console.log('Brand dropdown populated with', sortedBrands.length, 'options');
+        } else {
+          throw new Error(`HTTP status: ${response.status} ${response.statusText}`);
+        }
+      } catch (directError) {
+        console.warn('Direct fetch for brands failed:', directError);
         
-        const lines = xhrResult.split('\n').filter(line => line.trim());
-        brands = lines.map(line => line.trim());
-        console.log('Loaded brands via XHR:', brands.length);
-        
-        // Sort and add to dropdown
-        const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
-        
-        sortedBrands.forEach(brand => {
-          const option = document.createElement('option');
-          option.value = brand;
-          option.textContent = brand;
-          brandFilter.appendChild(option);
-        });
-        
-        console.log('Brand dropdown populated with', sortedBrands.length, 'options');
-      } catch (xhrError) {
-        console.warn('XMLHttpRequest for brands failed:', xhrError);
-        
-        // Third try: use a PHP proxy if it exists
+        // Second try: use XMLHttpRequest (works around some CORS issues)
         try {
-          console.log('Trying PHP proxy for brands...');
-          const proxyUrl = `proxy.php?url=${encodeURIComponent(BRANDS_CSV_URL)}`;
-          const proxyResponse = await fetch(proxyUrl);
+          console.log('Trying XMLHttpRequest for brands...');
+          const xhrResult = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', BRANDS_CSV_URL, true);
+            xhr.responseType = 'text';
+            
+            xhr.onload = function() {
+              if (xhr.status === 200) {
+                resolve(xhr.responseText);
+              } else {
+                reject(new Error(`HTTP error: ${xhr.status}`));
+              }
+            };
+            
+            xhr.onerror = () => reject(new Error('Network error'));
+            xhr.ontimeout = () => reject(new Error('Timeout'));
+            xhr.timeout = 10000;
+            xhr.send();
+          });
           
-          if (proxyResponse.ok) {
-            const text = await proxyResponse.text();
-            const lines = text.split('\n').filter(line => line.trim());
-            brands = lines.map(line => line.trim());
-            console.log('Loaded brands via proxy:', brands.length);
+          const lines = xhrResult.split('\n').filter(line => line.trim());
+          brands = lines.map(line => line.trim());
+          console.log('Loaded brands via XHR:', brands.length);
+          
+          // Sort and add to dropdown
+          const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
+          
+          sortedBrands.forEach(brand => {
+            const option = document.createElement('option');
+            option.value = brand;
+            option.textContent = brand;
+            brandFilter.appendChild(option);
+          });
+          
+          console.log('Brand dropdown populated with', sortedBrands.length, 'options');
+        } catch (xhrError) {
+          console.warn('XMLHttpRequest for brands failed:', xhrError);
+          
+          // Third try: use a PHP proxy if it exists
+          try {
+            console.log('Trying PHP proxy for brands...');
+            const proxyUrl = `proxy.php?url=${encodeURIComponent(BRANDS_CSV_URL)}`;
+            const proxyResponse = await fetch(proxyUrl);
             
-            // Sort and add to dropdown
-            const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
-            
-            sortedBrands.forEach(brand => {
-              const option = document.createElement('option');
-              option.value = brand;
-              option.textContent = brand;
-              brandFilter.appendChild(option);
-            });
-            
-            console.log('Brand dropdown populated with', sortedBrands.length, 'options via proxy');
-          } else {
-            throw new Error('Proxy request failed');
+            if (proxyResponse.ok) {
+              const text = await proxyResponse.text();
+              const lines = text.split('\n').filter(line => line.trim());
+              brands = lines.map(line => line.trim());
+              console.log('Loaded brands via proxy:', brands.length);
+              
+              // Sort and add to dropdown
+              const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
+              
+              sortedBrands.forEach(brand => {
+                const option = document.createElement('option');
+                option.value = brand;
+                option.textContent = brand;
+                brandFilter.appendChild(option);
+              });
+              
+              console.log('Brand dropdown populated with', sortedBrands.length, 'options via proxy');
+            } else {
+              throw new Error('Proxy request failed');
+            }
+          } catch (proxyError) {
+            console.warn('Proxy fetch for brands failed:', proxyError);
+            throw proxyError; // Let the outer catch handle it
           }
-        } catch (proxyError) {
-          console.warn('Proxy fetch for brands failed:', proxyError);
-          throw proxyError; // Let the outer catch handle it
         }
       }
     }
@@ -538,12 +571,8 @@ function populateFilters() {
   }
   categoryFilter.innerHTML = `<option value="">${categoryPlaceholder}</option>`;
   
-  // Set brand filter placeholder based on tab
-  let brandPlaceholder = 'כל הלקוחות';
-  if (currentFilters.tab === 'wine' || currentFilters.tab === 'beer' || 
-      currentFilters.tab === 'whiskey') {
-    brandPlaceholder = 'כל המותגים';
-  }
+  // Set brand filter placeholder to always show it's for clients
+  const brandPlaceholder = 'כל הלקוחות';
   
   // Update brand filter placeholder
   const brandFilterOptions = brandFilter.querySelectorAll('option');
@@ -589,24 +618,8 @@ function populateFilters() {
     categoryFilter.appendChild(option);
   });
   
-  // If we're on a page that uses brand filter from products, update the brand filter
-  if (currentFilters.tab === 'wine' || currentFilters.tab === 'beer' || 
-      currentFilters.tab === 'whiskey') {
-    // Clear existing options except first one
-    while (brandFilter.options.length > 1) {
-      brandFilter.remove(1);
-    }
-    
-    // Add brands from this tab's products
-    tabBrands.forEach(brand => {
-      if (brand && brand.trim()) {
-        const option = document.createElement('option');
-        option.value = brand;
-        option.textContent = brand;
-        brandFilter.appendChild(option);
-      }
-    });
-  }
+  // We no longer replace the brand filter options as it's now used for clients
+  // and should remain consistent across all tabs
 
   // Update select styling
   updateSelectStyling(brandFilter);
@@ -656,19 +669,18 @@ function getFilteredProducts() {
       return false;
     }
 
-    // Brand filter - handle different fields based on tab
+    // Client/Brand filter
     if (currentFilters.brand) {
-      if (currentFilters.tab === 'wine' && product['קבוצה / מותג'] !== currentFilters.brand) {
+      // Check if the product has a 'TRUE' value for this client
+      // The client name is used as a column in each product
+      if (!product[currentFilters.brand]) {
         return false;
-      } else if ((currentFilters.tab === 'beer' || currentFilters.tab === 'whiskey') 
-        && product['מותג'] !== currentFilters.brand) {
+      }
+      
+      // Handle case sensitivity for TRUE values
+      const clientValue = product[currentFilters.brand].toString().toUpperCase();
+      if (clientValue !== 'TRUE') {
         return false;
-      } else if (currentFilters.tab === 'all' || currentFilters.tab === 'alcohol') {
-        // For the all tab, check any brand field
-        const brandValue = product['קבוצה / מותג'] || product['מותג'] || product['קבוצה / מותג אוטומטי'];
-        if (brandValue !== currentFilters.brand) {
-          return false;
-        }
       }
     }
     
@@ -1168,18 +1180,10 @@ function switchTab(tabName) {
   updateSelectStyling(categoryFilter);
   updateSelectStyling(brandFilter);
 
-  // Toggle brand filter visibility based on tab
+  // Always show brand filter for all tabs since it's now for clients
   const brandFilterContainer = brandFilter.closest('.filter-group');
-  if (tabName === 'food') {
-    // Hide brand filter for food tab
-    if (brandFilterContainer) {
-      brandFilterContainer.style.display = 'none';
-    }
-  } else {
-    // Show brand filter for other tabs
-    if (brandFilterContainer) {
-      brandFilterContainer.style.display = '';
-    }
+  if (brandFilterContainer) {
+    brandFilterContainer.style.display = '';
   }
 
   // Update filter options based on the new tab
@@ -1207,12 +1211,7 @@ function setupEventListeners() {
       
       const tabName = btn.dataset.tab;
       
-      // If switching to food tab, clear the brand filter
-      if (tabName === 'food') {
-        currentFilters.brand = '';
-        brandFilter.value = '';
-        updateSelectStyling(brandFilter);
-      }
+      // Don't clear brand filter for any tab since it's now for clients
       
       switchTab(tabName);
     });

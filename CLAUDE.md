@@ -1,7 +1,7 @@
 # AGAT Catalog Project Documentation
 
 ## Project Overview
-A product catalog web application for AGAT that displays products from different categories (Alcohol, Whiskey, Wine, Beer, Food). The application allows filtering by category, country, and brand/client.
+A product catalog web application for AGAT that displays products from different categories (Alcohol, Whiskey, Wine, Beer, Food). The application allows filtering by category, country, and client.
 
 ## Data Sources
 All data is loaded directly from Google Sheets:
@@ -11,13 +11,13 @@ All data is loaded directly from Google Sheets:
 3. **Beer**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vQGFPOHiYkWGPDASiBePqXkbxoikcLYiFAz1RobyVTlX2-dj71jMSCCFLgrNXOjFpOZYwS7MHCD6IrU/pub?output=csv` 
 4. **Food**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vS5zrZyn-cmKHuk3H-nI4QG9NDJFvB-q3MjjdIUuQfk_lhtQPzTeovn_kAz46o2PnuH_aZ8Mq1zteFD/pub?output=csv`
 5. **Whiskey**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vSnSgqeW3W-2vKiqPwsBLpOE9vamrHELbgZCNHDYv6bGGYPnkhp44KzYvbly7qCLq3E_Rgu2VyYKMGY/pub?output=csv`
-6. **Brands**: `brands.csv` (local file with list of all client/store brands)
+6. **Clients**: `brands.csv` (local file with list of all client/store names)
 
 ## File Structure
 - `index.html` - Main HTML file 
 - `app.js` - JavaScript application logic
 - `styles.css` - CSS styles
-- `brands.csv` - List of all brands/clients
+- `brands.csv` - List of all clients/stores
 - `tl/` - Directory containing product images named by barcode
 - `media/` - Fallback directory for product images
 
@@ -26,7 +26,7 @@ All data is loaded directly from Google Sheets:
 2. **Filtering**:
    - By country (dropdown)
    - By category (dropdown)
-   - By brand/client (לקוח) (dropdown)
+   - By client (לקוח) (dropdown)
    - Text search with search button
 3. **Product Cards**: Display product information with images
 4. **Product Modals**: Detailed view of product with all specifications
@@ -47,7 +47,7 @@ Each product card displays the following information, with different field mappi
 6. **Volume**: For beverages
 7. **Weight**: For food products
 8. **Description**: From `תאור` or `תיאור פריט`
-9. **Availability**: If a brand is selected, shows availability status
+9. **Availability**: If a client is selected, shows availability status
 
 ## Technical Implementation Notes
 
@@ -57,8 +57,8 @@ Each product card displays the following information, with different field mappi
 - Handles error cases gracefully
 - Adds a retry button if data loading fails
 
-### Brand Filter
-The brand filter loads from brands.csv and populates a dropdown that filters products to only show those where the selected brand column has a value of "TRUE".
+### Client Filter
+The client filter loads from brands.csv and populates a dropdown that filters products to only show those where the selected client column has a value of "TRUE". Each product has multiple client columns, with a "TRUE" value indicating the product is available for that specific client.
 
 ### Image Handling
 Product images are fetched using the barcode as the filename:
@@ -72,14 +72,16 @@ Product images are fetched using the barcode as the filename:
 - Enhanced product card display with category-specific field mapping
 - Improved visual design with animated tab navigation, product cards with hover effects, and consistent styling
 - Converted brand filter from modal to dropdown for better user experience and consistent design
-- Fixed ReferenceError related to updateBrandFilterButtonStatus function
-- Removed unnecessary code related to the old brand filter modal implementation
+- Implemented dedicated client filtering by column instead of brand/company name
+- Made client filter available on all tabs including food
+- Fixed client filtering to check for "TRUE" values in client columns
 
 ## Recent Fixes
-- Fixed a ReferenceError where `updateBrandFilterButtonStatus()` was called in the populateFilters function but no longer existed after converting from brand modal to dropdown
-- Replaced the modal-related code with the appropriate `updateSelectStyling(brandFilter)` function
-- Removed unused event listener for the brand filter modal that no longer exists
-- Removed the "כל הקטגוריות פעילות כעת!" notification message
-- Fixed search button positioning to match RTL layout (search icon on right side)
-- Added 'x' clear buttons to all filter dropdowns for easily removing filters
-- Improved filter usability with visual feedback when filters are active
+- Fixed client dropdown filter to properly filter products by checking for "TRUE" values in columns named after clients
+- Updated client filter to be consistently available across all product tabs
+- Made client filtering case-insensitive to handle variations like "TRUE", "true", etc.
+- Improved client filter loading to first try local file before falling back to Google Sheets
+- Added proper error handling for missing client data
+- Removed code that replaced client filter with product brands on certain tabs
+- Standardized client filter label to consistently show "כל הלקוחות" across all tabs
+- Fixed filter behavior to correctly handle cases where client data may be missing
