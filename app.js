@@ -1192,23 +1192,15 @@ function openProductModal(product) {
     modalSpecs.appendChild(countrySpec);
   }
 
-  // Add stocked in brands section
+  // Just collect the brand information but don't display it on the product card
   const productBrands = [];
   for (const brand of brands) {
     if (product[brand] && product[brand].toLowerCase() === 'true') {
       productBrands.push(brand);
     }
   }
-
-  if (productBrands.length > 0) {
-    const brandsSpec = document.createElement('div');
-    brandsSpec.className = 'spec-item brands-spec';
-    brandsSpec.innerHTML = `
-      <div class="spec-label"><strong>נמצא אצל</strong>:</div>
-      <div class="spec-value">${productBrands.join(', ')}</div>
-    `;
-    modalSpecs.appendChild(brandsSpec);
-  }
+  
+  // Removed the brand display section entirely
 
   // Add product specs
   for (const [key, value] of Object.entries(product)) {
