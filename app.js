@@ -13,14 +13,14 @@ let currentFilters = {
   search: '',
   tab: 'all',
   brand: '', // New filter for brands
-  // kosher filter removed
+  kosher: '' // Kosher filter added back
 };
 
 // DOM elements
 const countryFilter = document.getElementById('country-filter');
 const categoryFilter = document.getElementById('category-filter');
 const brandFilter = document.getElementById('brand-filter');
-// Kosher filter removed
+const kosherFilter = document.getElementById('kosher-filter');
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
 const productsContainer = document.getElementById('products-container');
@@ -36,7 +36,7 @@ const tabButtons = document.querySelectorAll('.tab-button');
 const clearCountryFilterBtn = document.getElementById('clear-country-filter');
 const clearCategoryFilterBtn = document.getElementById('clear-category-filter');
 const clearBrandFilterBtn = document.getElementById('clear-brand-filter');
-// Kosher filter button removed
+const clearKosherFilterBtn = document.getElementById('clear-kosher-filter');
 
 // CSV URLs for each product category
 const ALCOHOL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv';
@@ -684,7 +684,26 @@ function getFilteredProducts() {
       }
     }
     
-    // Kosher filter removed
+    // Kosher filter
+    if (currentFilters.kosher) {
+      if (!product['כשרות']) {
+        return false;
+      }
+      
+      const kosherValue = product['כשרות'].toString().toLowerCase();
+      
+      if (currentFilters.kosher === 'true') {
+        // Filter for kosher products
+        if (kosherValue !== 'true' && kosherValue !== 'כן' && kosherValue !== 'כשר') {
+          return false;
+        }
+      } else if (currentFilters.kosher === 'false') {
+        // Filter for non-kosher products
+        if (kosherValue !== 'false' && kosherValue !== 'לא' && kosherValue !== 'לא כשר') {
+          return false;
+        }
+      }
+    }
 
     // Search filter
     if (currentFilters.search) {
@@ -834,7 +853,15 @@ function createProductCard(product) {
   // Get company/brand name from appropriate field
   const company = product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג'] || '';
 
-  // Kosher status display removed
+  // Kosher status display
+  let kosherHtml = '';
+  if (product['כשרות']) {
+    if (product['כשרות'].toString().toLowerCase() === 'true' || product['כשרות'].toString().toLowerCase() === 'כן' || product['כשרות'].toString().toLowerCase() === 'כשר') {
+      kosherHtml = '<div class="kosher-status kosher-yes">כשר</div>';
+    } else if (product['כשרות'].toString().toLowerCase() === 'false' || product['כשרות'].toString().toLowerCase() === 'לא' || product['כשרות'].toString().toLowerCase() === 'לא כשר') {
+      kosherHtml = '<div class="kosher-status kosher-no">לא כשר</div>';
+    }
+  }
   
   // Get category-specific fields for wine
   let wineFieldsHtml = '';
@@ -962,7 +989,7 @@ function createProductCard(product) {
         ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
         <span class="country-name">${product['מדינה']}</span>
       </div>` : ''}
-      <!-- Kosher status removed -->
+      ${kosherHtml}
       ${wineFieldsHtml}
       ${whiskeyFieldsHtml}
       ${beerFieldsHtml}
@@ -1027,7 +1054,26 @@ function openProductModal(product) {
   modalSpecs.innerHTML = '';
   modalVariants.innerHTML = '';
 
-  // Kosher status in modal removed
+  // Add kosher status to modal
+  if (product['כשרות']) {
+    const kosherSpec = document.createElement('div');
+    kosherSpec.className = 'spec-item';
+    
+    let kosherValue;
+    if (product['כשרות'].toString().toLowerCase() === 'true' || product['כשרות'].toString().toLowerCase() === 'כן' || product['כשרות'].toString().toLowerCase() === 'כשר') {
+      kosherValue = '<span class="kosher-status kosher-yes">כשר</span>';
+    } else if (product['כשרות'].toString().toLowerCase() === 'false' || product['כשרות'].toString().toLowerCase() === 'לא' || product['כשרות'].toString().toLowerCase() === 'לא כשר') {
+      kosherValue = '<span class="kosher-status kosher-no">לא כשר</span>';
+    } else {
+      kosherValue = product['כשרות'];
+    }
+    
+    kosherSpec.innerHTML = `
+      <div class="spec-label"><strong>כשרות</strong>:</div>
+      <div class="spec-value">${kosherValue}</div>
+    `;
+    modalSpecs.appendChild(kosherSpec);
+  }
 
   // Add country with flag to specs
   if (product['מדינה']) {
@@ -1102,8 +1148,7 @@ function openProductModal(product) {
     if (!value || 
         key === 'שם פריט אוטומטי' || 
         key === 'תאור' || 
-        // 'כשרות' field is excluded but still kept in the data
-        key === 'כשרות' || 
+        key === 'כשרות' || // Already displayed in special section
         key === 'מדינה' ||
         key === 'company' || 
         key === 'קבוצה / מותג' || 
@@ -1171,14 +1216,17 @@ function switchTab(tabName) {
   currentFilters.country = '';
   currentFilters.category = '';
   currentFilters.brand = '';
+  currentFilters.kosher = '';
   countryFilter.value = '';
   categoryFilter.value = '';
   brandFilter.value = '';
+  kosherFilter.value = '';
   
   // Reset styling
   updateSelectStyling(countryFilter);
   updateSelectStyling(categoryFilter);
   updateSelectStyling(brandFilter);
+  updateSelectStyling(kosherFilter);
 
   // Always show brand filter for all tabs since it's now for clients
   const brandFilterContainer = brandFilter.closest('.filter-group');
@@ -1236,7 +1284,11 @@ function setupEventListeners() {
     displayProducts();
   });
   
-  // Kosher filter event listener removed
+  kosherFilter.addEventListener('change', function() {
+    currentFilters.kosher = this.value;
+    updateSelectStyling(this);
+    displayProducts();
+  });
 
   // Search button click
   searchBtn.addEventListener('click', performSearch);
@@ -1307,5 +1359,10 @@ function setupEventListeners() {
     displayProducts();
   });
 
-  // Kosher filter clear button removed
+  clearKosherFilterBtn.addEventListener('click', function() {
+    kosherFilter.value = '';
+    currentFilters.kosher = '';
+    updateSelectStyling(kosherFilter);
+    displayProducts();
+  });
 }
