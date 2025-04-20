@@ -1048,9 +1048,9 @@ function createProductCard(product) {
   let weightHtml = '';
   if (tabCategory === 'food' && product['משקל']) {
     const autoCategory = product['קטגוריה אוטומטי'] ? product['קטגוריה אוטומטי'].toLowerCase() : '';
-    // Check if it's juice or syrup, display in ml
+    // Check if it's juice or syrup, display in liters
     if (autoCategory === 'מיץ' || autoCategory === 'סירופ') {
-      weightHtml = `<div class="product-weight"><strong>נפח</strong>: ${product['משקל']} מ"ל</div>`;
+      weightHtml = `<div class="product-weight"><strong>נפח</strong>: ${product['משקל']} ל'</div>`;
     } else {
       weightHtml = `<div class="product-weight"><strong>משקל</strong>: ${product['משקל']} גרם</div>`;
     }
