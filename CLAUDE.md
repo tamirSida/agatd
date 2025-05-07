@@ -166,8 +166,8 @@ Each product card displays the following information, with different field mappi
   - Updated `loadClientsForLikesFilter()` function to first query users with CLIENT role
   - Previously all records in the 'clients' collection were shown (including admins/agents)
   - Now filters by checking user role before displaying in the dropdown
-- Fixed user creation functionality in admin panel
-  - Changed to use Firebase Auth REST API to create users without logging out the admin
+- Fixed user creation functionality in admin panel and agent panel
+  - Changed to use Firebase Auth REST API to create users without logging out the admin/agent
   - Added explicit logging and proper promise handling for Firestore operations
   - Ensured all database documents are created properly before completion
   - Added proper error handling and visual feedback during user creation
@@ -175,6 +175,15 @@ Each product card displays the following information, with different field mappi
   - Resolved agent duplication issue with improved loading logic
   - Fixed styling and alignment of dropdown elements
   - Added truncation for long email addresses with hover tooltips
+- Fixed favorites page (favorites.html) errors
+  - Resolved reference errors by properly initializing DOM elements
+  - Fixed function declaration conflicts with firebase-config.js
+  - Added defensive null checks to prevent errors when accessing elements
+  - Improved error handling and user feedback
+- Fixed client filter visibility in catalog
+  - Updated the client filter to remain consistently hidden for CLIENT role users
+  - Fixed the filter visibility logic when switching between tabs
+  - Ensured proper display across all catalog views
 
 ### Client Filter
 The client filter loads directly from the Google Sheets URL and populates a dropdown that filters products to only show those where the selected client column has a value of "TRUE". Each product has multiple client columns, with a "TRUE" value indicating the product is available for that specific client.
