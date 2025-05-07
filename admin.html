@@ -493,14 +493,17 @@
                 </select>
               </div>
             </div>
-            <div class="form-row" id="agent-assignment-row" style="display: none;">
-              <div class="form-group" style="width: 100%;">
-                <label for="user-agent">סוכן מטפל</label>
-                <select id="user-agent" style="width: 100%;">
+            <!-- Agent Selection - Match first form row style -->
+            <div class="form-row" id="agent-assignment-row" style="display: none; margin-top: 15px;">
+              <div class="form-group" style="width: 33.333%; margin-right: 15px;">
+                <label for="user-agent" style="display: block; margin-bottom: 5px; font-weight: bold;">סוכן מטפל</label>
+                <select id="user-agent" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; direction: rtl; text-align: right;">
                   <option value="">-- ללא סוכן --</option>
                   <!-- Will be populated by JavaScript -->
                 </select>
               </div>
+              <!-- Add empty div to match layout -->
+              <div style="flex: 2;"></div>
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">הוסף משתמש</button>
@@ -2221,26 +2224,29 @@
           
           console.log(`Found ${agentsData.length} agents`);
           
-          // Add options to select
+          // Create HTML for all options
+          let optionsHTML = '';
+          
           agentsData.forEach(agent => {
-            const option = document.createElement('option');
-            option.value = agent.id;
-            
             // For very long email addresses, truncate for display
             const emailText = agent.email;
             const maxLength = 30;
             
+            let displayText;
             if (emailText.length > maxLength) {
               const firstPart = emailText.substring(0, 15);
               const lastPart = emailText.substring(emailText.length - 15);
-              option.textContent = `${firstPart}...${lastPart}`;
-              option.title = emailText; // Show full email on hover
+              displayText = `${firstPart}...${lastPart}`;
             } else {
-              option.textContent = emailText;
+              displayText = emailText;
             }
             
-            agentSelect.appendChild(option);
+            // Add option with full email as title for hover tooltip
+            optionsHTML += `<option value="${agent.id}" title="${emailText}">${displayText}</option>`;
           });
+          
+          // Add all options to select at once (more efficient)
+          agentSelect.innerHTML += optionsHTML;
           
         } catch (error) {
           console.error('Error loading agents for user form:', error);

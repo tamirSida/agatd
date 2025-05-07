@@ -166,6 +166,15 @@ Each product card displays the following information, with different field mappi
   - Updated `loadClientsForLikesFilter()` function to first query users with CLIENT role
   - Previously all records in the 'clients' collection were shown (including admins/agents)
   - Now filters by checking user role before displaying in the dropdown
+- Fixed user creation functionality in admin panel
+  - Changed to use Firebase Auth REST API to create users without logging out the admin
+  - Added explicit logging and proper promise handling for Firestore operations
+  - Ensured all database documents are created properly before completion
+  - Added proper error handling and visual feedback during user creation
+- Fixed agent dropdown in user creation form
+  - Resolved agent duplication issue with improved loading logic
+  - Fixed styling and alignment of dropdown elements
+  - Added truncation for long email addresses with hover tooltips
 
 ### Client Filter
 The client filter loads directly from the Google Sheets URL and populates a dropdown that filters products to only show those where the selected client column has a value of "TRUE". Each product has multiple client columns, with a "TRUE" value indicating the product is available for that specific client.
