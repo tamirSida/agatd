@@ -1,7 +1,7 @@
 # AGAT Catalog Project Documentation
 
 ## Project Overview
-A product catalog web application for AGAT that displays products from different categories (Alcohol, Whiskey, Wine, Beer, Food). The application allows filtering by category, country, and client. The application now includes a user system with authentication, likes feature, and role-based permissions.
+A product catalog web application for AGAT that displays products from different categories (Alcohol, Whiskey, Wine, Beer, Food). The application allows filtering by category, country, and client. The application includes a complete user authentication system with Firebase, role-based access control (admin, agent, client roles), and features like a "like" system for clients to save favorite products.
 
 ## Data Sources
 All data is loaded directly from Google Sheets URLs without any local file dependencies:
@@ -14,14 +14,23 @@ All data is loaded directly from Google Sheets URLs without any local file depen
 6. **Clients/Brands**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vRbLyJcDTPOjBtcGOSKUXYuKn5U8_sRF_KOSgFwiyPoeO3YazAxOhXXVCSK7M94-yxyO7j1fr5J3ou_/pub?output=csv`
 
 ## File Structure
-- `index.html` - Main HTML file 
+- `index.html` - Main HTML file with product catalog
 - `app.js` - JavaScript application logic
 - `styles.css` - CSS styles
-- `login.html` - User authentication page
+- `login.html` - User authentication page with login/register forms
 - `admin.html` - Admin dashboard for user management
 - `agent.html` - Agent dashboard for client monitoring
-- `firebase-config.js` - Firebase configuration
+- `favorites.html` - Client's saved/liked products page
+- `firebase-config.js` - Firebase configuration with environment variable support
 - `firestore.rules` - Firestore security rules
+- `netlify.toml` - Netlify deployment configuration
+- `_redirects` - URL routing rules for Netlify
+- `_headers` - Security headers for Netlify
+- `README.md` - Overview of the project
+- `DEPLOYMENT.md` - Deployment guide for Netlify
+- `DEPLOYMENT_UPDATE.md` - Guide for updating existing Netlify site
+- `FIREBASE_SETUP.md` - Firebase configuration for Netlify
+- `TESTING_CHECKLIST.md` - Post-deployment testing checklist
 - `tl/` - Directory containing product images named by barcode
 - `media/` - Fallback directory for product images
 
@@ -46,20 +55,29 @@ The system has three user roles:
 
 1. **Admin**:
    - Full access to all features
-   - Can create and manage users
+   - Can create and manage users (add, edit, delete)
    - Can assign clients to agents
+   - Can approve or reject registration requests
    - Can set client view restrictions
    - Can view all clients' liked products
+   - Can access admin dashboard
+   - Cannot like products (heart icons are hidden)
 
 2. **Agent**:
    - Can access the agent dashboard
-   - Can view all products
-   - Can see assigned clients' information and likes
-   - Can like products themselves
+   - Can view all assigned clients' information
+   - Can view products liked by their assigned clients
+   - Can view all products in the catalog
+   - Cannot like products (heart icons are hidden)
+   - Cannot access admin dashboard
+   - Cannot manage users directly
 
 3. **Client**:
+   - Can view the main product catalog
    - Can view only products that match their allowed brands (if restrictions are set)
-   - Can like products (requires login)
+   - Can like products by clicking heart icons
+   - Can view their favorites page with all liked products
+   - Can remove products from their favorites
    - Cannot access admin or agent dashboards
 
 ## Firebase Setup for User Management
@@ -149,18 +167,34 @@ The client filter loads directly from the Google Sheets URL and populates a drop
 ### Authentication
 - Uses Firebase Authentication for user management
 - Login page handles authentication and redirects based on user role
+- Features "Remember me" option with Firebase persistence
+- "Show password" toggle button for better user experience
+- User can request password reset via email
 - Access control for admin and agent pages
+- Registration requests system for new users (admins approve/reject)
 
-### Client View Restrictions
-- Admins can set brand restrictions for clients
-- When client logs in, they see only products for their allowed brands
-- Restrictions are enforced on the client side using Firestore data
+### Client-Agent Relationship
+- Admins can assign clients to specific agents
+- Agents can only see their assigned clients' information and likes
+- When creating a client user, admin can select which agent will manage them
+- One client can belong to only one agent
 
-### Like Feature
+### Favorites System
 - Likes are stored in Firestore for each client
 - Updates in real-time when user clicks heart icons
-- Agents can view their clients' liked products
+- Heart icons only visible to client users (hidden for admin/agent)
+- Clients can view their favorites on a dedicated page
+- Clients can remove items from favorites
+- Agents can view their clients' liked products in their dashboard
+- Agents can filter liked products by specific client
 - Admins can view all liked products across the system
+
+### Deployment
+- Ready for Netlify deployment with proper configuration
+- Firebase integration with environment variables
+- Security headers and routing rules for Netlify
+- Documentation for updating existing site or creating new one
+- Post-deployment testing checklist
 
 ### Image Handling
 Product images are fetched using the barcode as the filename:

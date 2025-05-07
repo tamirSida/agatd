@@ -2068,34 +2068,29 @@
         likesClientFilter.innerHTML = '<option value="">כל הלקוחות</option>';
         
         try {
-          const clientsSnapshot = await db.collection('clients').get();
+          // Get only actual client users (not admins or agents)
+          const clientsSnapshot = await db.collection('users')
+            .where('role', '==', USER_ROLES.CLIENT)
+            .get();
           
           if (!clientsSnapshot.empty) {
             const clientsData = [];
             
             for (const doc of clientsSnapshot.docs) {
-              const clientData = doc.data();
+              const userData = doc.data();
+              const userEmail = userData.email || '';
               
-              // Get user info
-              let userEmail = clientData.email || '';
-              
-              // If no email, try to get from users collection
-              if (!userEmail) {
-                try {
-                  const userDoc = await db.collection('users').doc(doc.id).get();
-                  if (userDoc.exists) {
-                    userEmail = userDoc.data().email || '';
-                  }
-                } catch (userError) {
-                  console.error('Error getting user data:', userError);
+              // Check if there's a corresponding client record
+              try {
+                const clientDoc = await db.collection('clients').doc(doc.id).get();
+                if (clientDoc.exists && userEmail) {
+                  clientsData.push({
+                    id: doc.id,
+                    email: userEmail
+                  });
                 }
-              }
-              
-              if (userEmail) {
-                clientsData.push({
-                  id: doc.id,
-                  email: userEmail
-                });
+              } catch (clientError) {
+                console.error('Error getting client data:', clientError);
               }
             }
             
