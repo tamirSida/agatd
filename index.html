@@ -277,6 +277,12 @@
               } else if (userData.role === USER_ROLES.CLIENT) {
                 // Show favorites button for clients
                 document.getElementById('favorites-button').style.display = 'block';
+                
+                // Hide client filter only for client users
+                const brandFilterContainer = document.querySelector('#brand-filter').closest('.filter-group');
+                if (brandFilterContainer) {
+                  brandFilterContainer.style.display = 'none';
+                }
               } else {
                 // For clients, check if they have restrictions
                 const clientDoc = await db.collection('clients').doc(user.uid).get();
@@ -293,14 +299,6 @@
               
               // Store user role in window object for global access
               window.userRole = userData.role;
-              
-              // Hide client filter if user is a client
-              if (userData.role === USER_ROLES.CLIENT) {
-                const brandFilterContainer = document.querySelector('#brand-filter').closest('.filter-group');
-                if (brandFilterContainer) {
-                  brandFilterContainer.style.display = 'none';
-                }
-              }
             } else {
               // Create user document if it doesn't exist
               await db.collection('users').doc(user.uid).set({

@@ -313,9 +313,13 @@ async function init() {
     populateFilters();
 
     // Always keep the brand filter visible for all tabs since it's now for clients
+    // This ensures it's visible for non-logged in users and admin/agent users
     const brandFilterContainer = brandFilter.closest('.filter-group');
     if (brandFilterContainer) {
-      brandFilterContainer.style.display = '';
+      // Only hide for CLIENT role users (handled in auth state change)
+      if (window.userRole !== USER_ROLES.CLIENT) {
+        brandFilterContainer.style.display = '';
+      }
     }
 
     // Display products

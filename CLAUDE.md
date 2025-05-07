@@ -161,6 +161,12 @@ Each product card displays the following information, with different field mappi
 - Adds a retry button if data loading fails
 - No local fallbacks - fully depends on remote API endpoints
 
+### Recent Bug Fixes
+- Fixed client filter in admin panel to only show actual client users (not admins or agents)
+  - Updated `loadClientsForLikesFilter()` function to first query users with CLIENT role
+  - Previously all records in the 'clients' collection were shown (including admins/agents)
+  - Now filters by checking user role before displaying in the dropdown
+
 ### Client Filter
 The client filter loads directly from the Google Sheets URL and populates a dropdown that filters products to only show those where the selected client column has a value of "TRUE". Each product has multiple client columns, with a "TRUE" value indicating the product is available for that specific client.
 

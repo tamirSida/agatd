@@ -1688,12 +1688,37 @@
             clientsQuery = clientsQuery.where('agentId', '==', agentFilter);
           }
           
-          if (clientFilter) {
-            // Specific client filter
-            clientsQuery = db.collection('clients').where(firebase.firestore.FieldPath.documentId(), '==', clientFilter);
-          }
+          let clientsSnapshot;
           
-          const clientsSnapshot = await clientsQuery.get();
+          if (clientFilter) {
+            console.log('Filtering by client ID:', clientFilter);
+            // When filtering by client, get just that specific client document rather than using a where clause
+            // This fixes the issue with the client filter not working
+            const clientDoc = await db.collection('clients').doc(clientFilter).get();
+            
+            if (!clientDoc.exists) {
+              likesDashboard.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">הלקוח שנבחר לא נמצא</div>';
+              return;
+            }
+            
+            // Check if agent filter exists and matches
+            if (agentFilter && clientDoc.data().agentId !== agentFilter) {
+              likesDashboard.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">הלקוח שנבחר אינו משויך לסוכן שנבחר</div>';
+              return;
+            }
+            
+            // Create a custom snapshot-like object with just this client
+            clientsSnapshot = {
+              empty: false,
+              docs: [clientDoc],
+              forEach: function(callback) {
+                callback(clientDoc);
+              }
+            };
+          } else {
+            // No client filter, use regular query
+            clientsSnapshot = await clientsQuery.get();
+          }
           
           if (clientsSnapshot.empty) {
             likesDashboard.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">לא נמצאו לקוחות</div>';
