@@ -313,11 +313,13 @@ async function init() {
     populateFilters();
 
     // Always keep the brand filter visible for all tabs since it's now for clients
-    // This ensures it's visible for non-logged in users and admin/agent users
+    // Handle brand filter visibility based on user role
     const brandFilterContainer = brandFilter.closest('.filter-group');
     if (brandFilterContainer) {
-      // Only hide for CLIENT role users (handled in auth state change)
-      if (window.userRole !== USER_ROLES.CLIENT) {
+      // Hide for CLIENT role users, show for all others
+      if (window.userRole === USER_ROLES.CLIENT) {
+        brandFilterContainer.style.display = 'none';
+      } else {
         brandFilterContainer.style.display = '';
       }
     }
@@ -1601,10 +1603,14 @@ function switchTab(tabName) {
   updateSelectStyling(brandGroupFilter);
   updateSelectStyling(kosherFilter);
 
-  // Always show brand filter for all tabs since it's now for clients
+  // Only show brand filter for non-client users
   const brandFilterContainer = brandFilter.closest('.filter-group');
   if (brandFilterContainer) {
-    brandFilterContainer.style.display = '';
+    if (window.userRole === USER_ROLES.CLIENT) {
+      brandFilterContainer.style.display = 'none';
+    } else {
+      brandFilterContainer.style.display = '';
+    }
   }
 
   // Update filter options based on the new tab

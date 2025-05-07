@@ -630,76 +630,123 @@
           const password = document.getElementById('client-password').value;
           
           try {
-            // Store the current authentication state for restoration
-            const agentEmail = currentAgentUser.email;
-            const agentUid = currentAgentUser.uid;
+            // Show loading indicator
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.textContent;
+            submitButton.innerHTML = '<span class="spinner"></span> יוצר לקוח...';
+            submitButton.disabled = true;
             
+            // Get current agent info
+            const agentUser = auth.currentUser;
+            if (!agentUser) {
+              alert('אתה לא מחובר כסוכן. אנא התחבר מחדש.');
+              window.location.href = 'login.html';
+              return;
+            }
+            const agentUid = agentUser.uid;
+            
+            // Create new user - we'll use the REST API to avoid affecting the current session
             let newUserUid = '';
             
             try {
-              // Create user in Firebase Authentication
-              const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-              newUserUid = userCredential.user.uid;
+              // Use the Firebase Auth REST API to create a new user without affecting the current session
+              const createUserEndpoint = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`;
+              const response = await fetch(createUserEndpoint, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  email: email,
+                  password: password,
+                  returnSecureToken: true
+                })
+              });
               
-              // Immediately sign out the new user
-              await firebase.auth().signOut();
+              const responseData = await response.json();
               
-              // We'll complete all database operations before redirecting
-              // DO NOT return here - let the function continue with Firestore operations
+              if (response.ok) {
+                newUserUid = responseData.localId;
+                console.log('Created new user with UID:', newUserUid);
+              } else {
+                throw new Error(responseData.error?.message || 'שגיאה ביצירת לקוח');
+              }
             } catch (authError) {
               console.error('Authentication error during client creation:', authError);
               alert(`שגיאה ביצירת לקוח: ${authError.message}`);
+              
+              // Reset button state
+              submitButton.innerHTML = originalButtonText;
+              submitButton.disabled = false;
               return;
             }
             
             if (!newUserUid) {
-              alert('שגיאה ביצירת לקוח');
+              alert('שגיאה ביצירת לקוח - לא התקבל מזהה משתמש');
+              
+              // Reset button state
+              submitButton.innerHTML = originalButtonText;
+              submitButton.disabled = false;
               return;
             }
             
-            // Create user document in Firestore with CLIENT role - using explicit promises
-            console.log('Creating user document in Firestore with ID:', newUserUid);
-            const userDocPromise = db.collection('users').doc(newUserUid).set({
-              email: email,
-              role: 'client',
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            // Wait for the user document to be created
-            await userDocPromise;
-            console.log('User document created successfully in Firestore');
-            
-            // Create client document with automatic assignment to current agent - explicit promise
-            console.log('Creating client document with ID:', newUserUid);
-            const clientDocPromise = db.collection('clients').doc(newUserUid).set({
-              email: email,
-              agentId: agentUid, // Automatically assign to current agent
-              allowedBrands: [],
-              likes: [],
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            await clientDocPromise;
-            console.log('Client document created successfully');
-            
-            // Update the agent's clients array - explicit promise
-            console.log('Updating agent document with ID:', agentUid);
-            const agentUpdatePromise = db.collection('agents').doc(agentUid).update({
-              clients: firebase.firestore.FieldValue.arrayUnion(newUserUid)
-            });
-            await agentUpdatePromise;
-            console.log('Agent document updated successfully');
-            
-            // Reset the form
-            document.getElementById('add-client-form').reset();
-            
-            // Redirect to login page AFTER all Firestore operations are complete
-            alert('הלקוח נוצר בהצלחה! אנא התחבר מחדש כדי להמשיך');
-            setTimeout(() => {
-              window.location.href = 'login.html';
-            }, 1000);
+            try {
+              // Create all necessary Firestore documents
+              // 1. First create the base user document
+              console.log('Creating user document in Firestore with ID:', newUserUid);
+              await db.collection('users').doc(newUserUid).set({
+                email: email,
+                role: 'client',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              console.log('User document created successfully in Firestore');
+              
+              // 2. Create client document with automatic assignment to current agent
+              console.log('Creating client document with ID:', newUserUid);
+              await db.collection('clients').doc(newUserUid).set({
+                email: email,
+                agentId: agentUid, // Automatically assign to current agent
+                allowedBrands: [],
+                likes: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              console.log('Client document created successfully');
+              
+              // 3. Update the agent's clients array
+              console.log('Updating agent document with ID:', agentUid);
+              await db.collection('agents').doc(agentUid).update({
+                clients: firebase.firestore.FieldValue.arrayUnion(newUserUid)
+              });
+              console.log('Agent document updated successfully');
+              
+              // Reset form and show success message
+              document.getElementById('add-client-form').reset();
+              alert(`הלקוח ${email} נוצר בהצלחה!`);
+              
+              // Reset button state
+              submitButton.innerHTML = originalButtonText;
+              submitButton.disabled = false;
+              
+              // Refresh clients list
+              loadClients(agentUid);
+            } catch (firestoreError) {
+              console.error('Error creating Firestore documents:', firestoreError);
+              alert(`הלקוח נוצר באימות Firebase, אך התרחשה שגיאה ביצירת המסמכים ב-Firestore: ${firestoreError.message}`);
+              
+              // Reset button state
+              submitButton.innerHTML = originalButtonText;
+              submitButton.disabled = false;
+            }
           } catch (error) {
-            console.error('Error creating client:', error);
+            console.error('Error in client creation process:', error);
             alert(`שגיאה ביצירת לקוח: ${error.message}`);
+            
+            // Reset button state if it exists
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            if (submitButton) {
+              submitButton.innerHTML = originalButtonText || 'הוסף לקוח';
+              submitButton.disabled = false;
+            }
           }
         });
         

@@ -456,6 +456,7 @@
             }
             
             // Load user's favorite products
+            // Elements will be initialized in the loadFavoriteProducts function
             loadFavoriteProducts(user.uid);
             
           } catch (error) {
@@ -473,22 +474,58 @@
   <script>
     // Global variables
     let favoriteProducts = [];
+    let productCache = {};
     
-    // DOM elements
-    const productGrid = document.getElementById('product-grid');
-    const loadingElement = document.getElementById('loading');
-    const noFavoritesElement = document.getElementById('no-favorites');
-    const modal = document.getElementById('product-modal');
-    const closeModalBtn = document.querySelector('.close');
-    const modalTitle = document.getElementById('modal-product-title');
-    const modalCompany = document.getElementById('modal-product-company');
-    const modalImage = document.getElementById('modal-product-image');
-    const modalDescription = document.getElementById('modal-product-description');
-    const modalSpecs = document.getElementById('modal-product-specs');
-    const modalVariants = document.getElementById('modal-product-variants');
+    // DOM elements - will be initialized in DOMContentLoaded
+    let productGrid;
+    let loadingElement;
+    let noFavoritesElement;
+    let modal;
+    let closeModalBtn;
+    let modalTitle;
+    let modalCompany;
+    let modalImage;
+    let modalDescription;
+    let modalSpecs;
+    let modalVariants;
     
-    // Product dictionaries from different categories
-    const productCache = {};
+    // Show no favorites message
+    function showNoFavorites() {
+      if (loadingElement) loadingElement.style.display = 'none';
+      if (productGrid) productGrid.style.display = 'none';
+      if (noFavoritesElement) {
+        noFavoritesElement.style.display = 'block';
+      }
+    }
+    
+    // Show error message
+    function showError(message) {
+      if (loadingElement) loadingElement.style.display = 'none';
+      if (productGrid) productGrid.style.display = 'none';
+      if (noFavoritesElement) {
+        noFavoritesElement.style.display = 'block';
+        noFavoritesElement.innerHTML = `
+          <h3>שגיאה</h3>
+          <p>${message}</p>
+          <a href="index.html" class="browse-button">חזרה לקטלוג המוצרים</a>
+        `;
+      }
+    }
+    
+    // Initialize DOM elements - called once page is loaded
+    function initializeElements() {
+      productGrid = document.getElementById('product-grid');
+      loadingElement = document.getElementById('loading');
+      noFavoritesElement = document.getElementById('no-favorites');
+      modal = document.getElementById('product-modal');
+      closeModalBtn = document.querySelector('.close');
+      modalTitle = document.getElementById('modal-product-title');
+      modalCompany = document.getElementById('modal-product-company');
+      modalImage = document.getElementById('modal-product-image');
+      modalDescription = document.getElementById('modal-product-description');
+      modalSpecs = document.getElementById('modal-product-specs');
+      modalVariants = document.getElementById('modal-product-variants');
+    }
     
     // CSV URLs for each product category
     const ALCOHOL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv';
@@ -500,6 +537,20 @@
     // Load favorite products for the user
     async function loadFavoriteProducts(userId) {
       try {
+        // Initialize DOM elements first
+        initializeElements();
+        
+        // Show loading indicator
+        if (loadingElement) {
+          loadingElement.style.display = 'block';
+        }
+        if (productGrid) {
+          productGrid.style.display = 'none';
+        }
+        if (noFavoritesElement) {
+          noFavoritesElement.style.display = 'none';
+        }
+        
         // Get user's liked products
         const clientDoc = await db.collection('clients').doc(userId).get();
         if (!clientDoc.exists) {
@@ -993,65 +1044,18 @@
       document.body.style.overflow = 'auto'; // Enable scrolling on body again
     }
     
-    // Toggle like for a product (reusing function from firebase-config.js)
-    async function toggleProductLike(barcode) {
-      const user = auth.currentUser;
-      if (!user) return false;
-      
-      try {
-        const clientRef = db.collection('clients').doc(user.uid);
-        const clientDoc = await clientRef.get();
-        
-        if (!clientDoc.exists) {
-          console.error('Client document does not exist');
-          return false;
-        }
-        
-        const likes = clientDoc.data().likes || [];
-        const isLiked = likes.includes(barcode);
-        
-        if (isLiked) {
-          // Remove from likes
-          await clientRef.update({
-            likes: firebase.firestore.FieldValue.arrayRemove(barcode)
-          });
-        } else {
-          // Add to likes
-          await clientRef.update({
-            likes: firebase.firestore.FieldValue.arrayUnion(barcode)
-          });
-        }
-        
-        return !isLiked; // Return new like status
-      } catch (error) {
-        console.error('Error toggling product like:', error);
-        throw error;
-      }
-    }
+    // Using the toggleProductLike function from firebase-config.js
     
     // Show message when no favorites exist
-    function showNoFavorites() {
-      loadingElement.style.display = 'none';
-      productGrid.style.display = 'none';
-      noFavoritesElement.style.display = 'block';
-    }
-    
-    // Show error message
-    function showError(message) {
-      loadingElement.style.display = 'none';
-      productGrid.style.display = 'none';
-      noFavoritesElement.style.display = 'block';
-      noFavoritesElement.innerHTML = `
-        <h3>שגיאה</h3>
-        <p>${message}</p>
-        <a href="index.html" class="browse-button">חזרה לקטלוג המוצרים</a>
-      `;
-    }
-    
     // Set up event listeners
     document.addEventListener('DOMContentLoaded', () => {
+      // Initialize DOM elements first
+      initializeElements();
+      
       // Close modal events
-      closeModalBtn.addEventListener('click', closeProductModal);
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeProductModal);
+      }
       
       window.addEventListener('click', function(event) {
         if (event.target === modal) {
