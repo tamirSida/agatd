@@ -33,7 +33,9 @@ firebase-data.json
 serviceAccountKey.json
 
 # Local CSV files (if using local copies of Google Sheets data)
-*.csv
+# Uncommenting the line below would exclude all CSV files
+# *.csv
+# We need brands.csv for the app to function properly, so we're not ignoring CSV files
 
 # Media files - you may want to version control some, but typically images are large
 media/
@@ -92,4 +94,16 @@ temp/
 # Local Netlify folder
 .netlify
 
+# Excluding setup scripts that might contain sensitive information
 setup-collections.js
+
+# Including documentation files
+!README.md
+!DEPLOYMENT.md
+!DEPLOYMENT_UPDATE.md
+!FIREBASE_SETUP.md
+!TESTING_CHECKLIST.md
+!firestore.rules
+!_redirects
+!_headers
+!netlify.toml

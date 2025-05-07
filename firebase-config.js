@@ -1,12 +1,12 @@
-// Firebase configuration
+// Firebase configuration - Use environment variables if available
 const firebaseConfig = {
-  apiKey: "AIzaSyDASzvsx7igxJ0FQe2ikv-WLt7l05tahPw",
-  authDomain: "agatd-e37c7.firebaseapp.com",
-  projectId: "agatd-e37c7",
-  storageBucket: "agatd-e37c7.firebasestorage.app",
-  messagingSenderId: "1005336153638",
-  appId: "1:1005336153638:web:8838a025f3b8f171ca60e7",
-  measurementId: "G-SL0XPS0WGM"
+  apiKey: typeof process !== 'undefined' && process.env.FIREBASE_API_KEY || "AIzaSyDASzvsx7igxJ0FQe2ikv-WLt7l05tahPw",
+  authDomain: typeof process !== 'undefined' && process.env.FIREBASE_AUTH_DOMAIN || "agatd-e37c7.firebaseapp.com",
+  projectId: typeof process !== 'undefined' && process.env.FIREBASE_PROJECT_ID || "agatd-e37c7",
+  storageBucket: typeof process !== 'undefined' && process.env.FIREBASE_STORAGE_BUCKET || "agatd-e37c7.firebasestorage.app",
+  messagingSenderId: typeof process !== 'undefined' && process.env.FIREBASE_MESSAGING_SENDER_ID || "1005336153638",
+  appId: typeof process !== 'undefined' && process.env.FIREBASE_APP_ID || "1:1005336153638:web:8838a025f3b8f171ca60e7",
+  measurementId: typeof process !== 'undefined' && process.env.FIREBASE_MEASUREMENT_ID || "G-SL0XPS0WGM"
 };
 
 // Initialize Firebase

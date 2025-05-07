@@ -1,0 +1,29 @@
+[build]
+  # Directory to publish (the site's root folder)
+  publish = "."
+  
+  # Your build command if using a build step
+  # command = "npm run build"
+  
+[build.environment]
+  # Set the Node.js version if needed
+  NODE_VERSION = "16"
+
+# Handle redirects for SPA (Single Page Application)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  
+  # Add conditions to exclude API routes if needed
+  # conditions = {Path = {exclude = ["/api/**"]}}
+
+# Headers to set for security best practices
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com https://flagcdn.com data:; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://flagcdn.com data:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com;"
