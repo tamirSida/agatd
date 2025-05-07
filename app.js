@@ -716,6 +716,8 @@ function getFilteredProducts() {
   const products = getProductsByTab();
 
   return products.filter(product => {
+    // Client brand restrictions are no longer applied
+    
     // Country filter
     if (currentFilters.country && product['מדינה'] !== currentFilters.country) {
       return false;
@@ -1138,11 +1140,14 @@ function createProductCard(product) {
     priceHtml = `<span class="price available">זמין</span>`;
   }
 
+  // Only show heart button for client users
+  const showHeartButton = window.userRole === USER_ROLES.CLIENT;
+  
   card.innerHTML = `
     <div class="product-image">
       <img src="${imageUrl}" alt="${productName}" onerror="if(this.src.includes('tl/')){ this.src='media/${barcode || ''}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.nextElementSibling.style.display='block'; }">
       <div class="image-not-found">image not found</div>
-      <button class="heart-button" data-barcode="${barcode || ''}"><i class="heart-icon">♡</i></button>
+      ${showHeartButton ? `<button class="heart-button" data-barcode="${barcode || ''}"><i class="heart-icon">♡</i></button>` : ''}
     </div>
     <div class="product-info">
       <h3>${productName}</h3>
@@ -1180,21 +1185,65 @@ function createProductCard(product) {
     openProductModal(product);
   });
 
-  // Add heart button click event
+  // Add heart button click event - only for client users
   const heartButton = card.querySelector('.heart-button');
-  if (heartButton) {
-    heartButton.addEventListener('click', (e) => {
+  if (heartButton && showHeartButton) {
+    heartButton.addEventListener('click', async (e) => {
       e.stopPropagation(); // Prevent modal from opening
+      
+      // Check if user is logged in
+      if (!auth.currentUser) {
+        alert('עליך להתחבר כדי לסמן מוצרים כמועדפים');
+        window.location.href = 'login.html';
+        return;
+      }
+      
       const heartIcon = heartButton.querySelector('.heart-icon');
-      if (heartIcon) {
-        // Toggle heart state
-        if (heartButton.classList.contains('liked')) {
-          heartButton.classList.remove('liked');
-          heartIcon.textContent = '♡'; // Empty heart
-        } else {
+      const barcode = heartButton.dataset.barcode;
+      
+      if (!barcode) {
+        console.error('No barcode found for product');
+        return;
+      }
+      
+      try {
+        // Toggle like in Firebase
+        const isLiked = await toggleProductLike(barcode);
+        
+        // Update UI
+        if (isLiked) {
           heartButton.classList.add('liked');
           heartIcon.textContent = '♥'; // Filled heart
+          
+          // Add to local likes array
+          if (!window.userLikes) window.userLikes = [];
+          if (!window.userLikes.includes(barcode)) {
+            window.userLikes.push(barcode);
+          }
+        } else {
+          heartButton.classList.remove('liked');
+          heartIcon.textContent = '♡'; // Empty heart
+          
+          // Remove from local likes array
+          if (window.userLikes) {
+            window.userLikes = window.userLikes.filter(b => b !== barcode);
+          }
         }
+        
+        // Update modal heart button if open
+        const modalHeartButton = document.querySelector('.modal-heart-button');
+        if (modalHeartButton && modalHeartButton.dataset.barcode === barcode) {
+          if (isLiked) {
+            modalHeartButton.classList.add('liked');
+            modalHeartButton.querySelector('.heart-icon').textContent = '♥';
+          } else {
+            modalHeartButton.classList.remove('liked');
+            modalHeartButton.querySelector('.heart-icon').textContent = '♡';
+          }
+        }
+      } catch (error) {
+        console.error('Error toggling like:', error);
+        alert('שגיאה בסימון המוצר כמועדף. אנא נסה שוב מאוחר יותר.');
       }
     });
   }
@@ -1406,12 +1455,23 @@ function openProductModal(product) {
     });
   }
 
-  // Check if product is liked (for demonstration only - will be implemented with real storage later)
-  const isLiked = document.querySelector(`.heart-button[data-barcode="${barcode || ''}"].liked`) !== null;
+  // Check if product is liked by current user
+  const isLiked = window.userLikes && window.userLikes.includes(barcode);
   
-  // Add heart button to modal if not already present
+  // Only add heart button for client users
+  const showHeartButton = window.userRole === USER_ROLES.CLIENT;
+  
+  // Manage modal heart button
   let modalHeartButton = document.querySelector('.modal-heart-button');
-  if (!modalHeartButton) {
+  
+  // Remove heart button if exists but user is not a client
+  if (modalHeartButton && !showHeartButton) {
+    modalHeartButton.remove();
+    modalHeartButton = null;
+  }
+  
+  // Add heart button if user is a client and heart button doesn't exist yet
+  if (showHeartButton && !modalHeartButton) {
     modalHeartButton = document.createElement('button');
     modalHeartButton.className = 'modal-heart-button';
     modalHeartButton.innerHTML = `<i class="heart-icon">${isLiked ? '♥' : '♡'}</i>`;
@@ -1421,28 +1481,63 @@ function openProductModal(product) {
     document.querySelector('.modal-header').appendChild(modalHeartButton);
     
     // Add event listener to heart button
-    modalHeartButton.addEventListener('click', function() {
-      const heartIcon = this.querySelector('.heart-icon');
-      if (this.classList.contains('liked')) {
-        this.classList.remove('liked');
-        heartIcon.textContent = '♡'; // Empty heart
+    modalHeartButton.addEventListener('click', async function() {
+      // Check if user is logged in
+      if (!auth.currentUser) {
+        alert('עליך להתחבר כדי לסמן מוצרים כמועדפים');
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      const barcode = this.dataset.barcode;
+      
+      if (!barcode) {
+        console.error('No barcode found for product');
+        return;
+      }
+      
+      try {
+        // Toggle like in Firebase
+        const isLiked = await toggleProductLike(barcode);
         
-        // Update grid view heart too
-        const gridHeartButton = document.querySelector(`.heart-button[data-barcode="${barcode || ''}"]`);
-        if (gridHeartButton) {
-          gridHeartButton.classList.remove('liked');
-          gridHeartButton.querySelector('.heart-icon').textContent = '♡';
-        }
-      } else {
-        this.classList.add('liked');
-        heartIcon.textContent = '♥'; // Filled heart
+        const heartIcon = this.querySelector('.heart-icon');
         
-        // Update grid view heart too
-        const gridHeartButton = document.querySelector(`.heart-button[data-barcode="${barcode || ''}"]`);
-        if (gridHeartButton) {
-          gridHeartButton.classList.add('liked');
-          gridHeartButton.querySelector('.heart-icon').textContent = '♥';
+        // Update UI
+        if (isLiked) {
+          this.classList.add('liked');
+          heartIcon.textContent = '♥'; // Filled heart
+          
+          // Add to local likes array
+          if (!window.userLikes) window.userLikes = [];
+          if (!window.userLikes.includes(barcode)) {
+            window.userLikes.push(barcode);
+          }
+          
+          // Update grid view heart too
+          const gridHeartButton = document.querySelector(`.heart-button[data-barcode="${barcode}"]`);
+          if (gridHeartButton) {
+            gridHeartButton.classList.add('liked');
+            gridHeartButton.querySelector('.heart-icon').textContent = '♥';
+          }
+        } else {
+          this.classList.remove('liked');
+          heartIcon.textContent = '♡'; // Empty heart
+          
+          // Remove from local likes array
+          if (window.userLikes) {
+            window.userLikes = window.userLikes.filter(b => b !== barcode);
+          }
+          
+          // Update grid view heart too
+          const gridHeartButton = document.querySelector(`.heart-button[data-barcode="${barcode}"]`);
+          if (gridHeartButton) {
+            gridHeartButton.classList.remove('liked');
+            gridHeartButton.querySelector('.heart-icon').textContent = '♡';
+          }
         }
+      } catch (error) {
+        console.error('Error toggling like:', error);
+        alert('שגיאה בסימון המוצר כמועדף. אנא נסה שוב מאוחר יותר.');
       }
     });
   } else {

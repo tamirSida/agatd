@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>המוצרים המועדפים שלי - AGAT&D</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="images/logo.png" type="image/png">
+  <style>
+    /* Favorites page styles */
+    .favorites-container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .favorites-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .favorites-title {
+      margin: 0;
+      font-size: 24px;
+      color: #333;
+    }
+    
+    .back-button {
+      display: inline-block;
+      padding: 8px 15px;
+      background-color: #f1f1f1;
+      color: #333;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    
+    .back-button:hover {
+      background-color: #ddd;
+    }
+    
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .product-card {
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 15px;
+      background-color: white;
+      transition: transform 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .product-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .product-image {
+      position: relative;
+      height: 200px;
+      margin-bottom: 15px;
+    }
+    
+    .product-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    
+    .product-info h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    
+    .product-company {
+      color: #666;
+      margin-bottom: 8px;
+    }
+    
+    .product-country {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .country-flag {
+      margin-left: 8px;
+      border: 1px solid #eee;
+    }
+    
+    .heart-button {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      z-index: 10;
+      padding: 0;
+    }
+    
+    .heart-icon {
+      font-size: 22px;
+      color: #e74c3c;
+      font-style: normal;
+    }
+    
+    .heart-button.liked .heart-icon {
+      color: #e74c3c;
+    }
+    
+    .image-not-found {
+      display: none;
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    
+    .product-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+    }
+    
+    .barcode {
+      color: #999;
+      font-size: 12px;
+    }
+    
+    .price {
+      background-color: #f8f9fa;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    
+    .kosher-tags {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    
+    .kosher-status {
+      font-size: 12px;
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+    
+    .kosher-yes {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+    
+    .kosher-no {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+    
+    .kosher-passover {
+      background-color: #e3f2fd;
+      color: #1565c0;
+    }
+    
+    .no-products {
+      text-align: center;
+      padding: 50px 20px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    
+    .no-products h3 {
+      margin-top: 0;
+      color: #555;
+    }
+    
+    .no-products p {
+      color: #777;
+      margin-bottom: 20px;
+    }
+    
+    .browse-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #3498db;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    
+    .browse-button:hover {
+      background-color: #2980b9;
+    }
+    
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: #3498db;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    /* Auth styles */
+    .auth-container {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .auth-button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .auth-button:hover {
+      background-color: #2980b9;
+    }
+    
+    .user-info {
+      margin-right: 10px;
+      display: none;
+    }
+    
+    .logout-button {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 10px;
+      display: none;
+    }
+    
+    .logout-button:hover {
+      background-color: #c0392b;
+    }
+    
+    .admin-button {
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 10px;
+      display: none;
+    }
+    
+    .admin-button:hover {
+      background-color: #2ecc71;
+    }
+    
+    .agent-button {
+      background-color: #f39c12;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 10px;
+      display: none;
+    }
+    
+    .agent-button:hover {
+      background-color: #f1c40f;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="images/logo.png" alt="Logo" class="company-logo">
+    </div>
+    <div class="auth-container">
+      <div class="user-info" id="user-info"></div>
+      <button class="admin-button" id="admin-button">ניהול</button>
+      <button class="agent-button" id="agent-button">דאשבורד סוכן</button>
+      <button class="logout-button" id="logout-button">התנתק</button>
+      <button class="auth-button" id="login-button">התחבר</button>
+    </div>
+    <h1>המוצרים המועדפים שלי</h1>
+  </header>
+
+  <main>
+    <div class="favorites-container">
+      <div class="favorites-header">
+        <h2 class="favorites-title">המוצרים שסימנתי כמועדפים</h2>
+        <div>
+          <a href="index.html" class="back-button">חזרה לקטלוג</a>
+        </div>
+      </div>
+      
+      <div id="favorites-content">
+        <div id="loading" style="text-align: center; padding: 30px;">
+          <div class="spinner"></div>
+          <p>טוען מוצרים מועדפים...</p>
+        </div>
+        
+        <div id="product-grid" class="product-grid" style="display: none;">
+          <!-- Will be populated by JavaScript -->
+        </div>
+        
+        <div id="no-favorites" class="no-products" style="display: none;">
+          <h3>אין לך מוצרים מועדפים עדיין</h3>
+          <p>סמן מוצרים כמועדפים בעזרת לחיצה על אייקון הלב בעמוד הקטלוג</p>
+          <a href="index.html" class="browse-button">עבור לקטלוג המוצרים</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Product Modal -->
+  <div id="product-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div class="modal-header">
+        <h2 id="modal-product-title">שם מוצר</h2>
+        <div id="modal-product-company">שם חברה</div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-image">
+          <img id="modal-product-image" src="placeholder.jpg" alt="Product Image">
+          <div class="modal-image-not-found">image not found</div>
+        </div>
+        <div class="modal-details">
+          <p id="modal-product-description">תיאור המוצר...</p>
+          <div id="modal-product-specs"></div>
+          <div id="modal-product-variants"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- Config -->
+  <script src="firebase-config.js"></script>
+  
+  <!-- Auth Manager -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const userInfoElement = document.getElementById('user-info');
+      const loginButton = document.getElementById('login-button');
+      const logoutButton = document.getElementById('logout-button');
+      const adminButton = document.getElementById('admin-button');
+      const agentButton = document.getElementById('agent-button');
+      
+      // Handle login button click
+      loginButton.addEventListener('click', () => {
+        window.location.href = 'login.html';
+      });
+      
+      // Handle admin button click
+      adminButton.addEventListener('click', () => {
+        window.location.href = 'admin.html';
+      });
+      
+      // Handle agent button click
+      agentButton.addEventListener('click', () => {
+        window.location.href = 'agent.html';
+      });
+      
+      // Handle logout button click
+      logoutButton.addEventListener('click', async () => {
+        try {
+          await auth.signOut();
+          window.location.reload();
+        } catch (error) {
+          console.error('Logout error:', error);
+        }
+      });
+      
+      // Listen for auth state changes
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          // User is signed in
+          userInfoElement.style.display = 'block';
+          userInfoElement.textContent = user.email;
+          
+          logoutButton.style.display = 'block';
+          loginButton.style.display = 'none';
+          
+          // Get user role from Firestore
+          try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            
+            if (userDoc.exists) {
+              const userData = userDoc.data();
+              
+              // Show role-specific buttons
+              if (userData.role === USER_ROLES.ADMIN) {
+                adminButton.style.display = 'block';
+              } else if (userData.role === USER_ROLES.AGENT) {
+                agentButton.style.display = 'block';
+              } else if (userData.role !== USER_ROLES.CLIENT) {
+                // Redirect non-client users back to catalog
+                alert('רק ללקוחות יש גישה לדף המועדפים');
+                window.location.href = 'index.html';
+                return;
+              }
+              
+              // Store user role in window object for global access
+              window.userRole = userData.role;
+            }
+            
+            // Load user's favorite products
+            loadFavoriteProducts(user.uid);
+            
+          } catch (error) {
+            console.error('Error getting user data:', error);
+          }
+        } else {
+          // User is signed out, redirect to login
+          window.location.href = 'login.html';
+        }
+      });
+    });
+  </script>
+  
+  <!-- Favorites Logic -->
+  <script>
+    // Global variables
+    let favoriteProducts = [];
+    
+    // DOM elements
+    const productGrid = document.getElementById('product-grid');
+    const loadingElement = document.getElementById('loading');
+    const noFavoritesElement = document.getElementById('no-favorites');
+    const modal = document.getElementById('product-modal');
+    const closeModalBtn = document.querySelector('.close');
+    const modalTitle = document.getElementById('modal-product-title');
+    const modalCompany = document.getElementById('modal-product-company');
+    const modalImage = document.getElementById('modal-product-image');
+    const modalDescription = document.getElementById('modal-product-description');
+    const modalSpecs = document.getElementById('modal-product-specs');
+    const modalVariants = document.getElementById('modal-product-variants');
+    
+    // Product dictionaries from different categories
+    const productCache = {};
+    
+    // CSV URLs for each product category
+    const ALCOHOL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv';
+    const WINE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRkUmKUxQGkMSoLEhfkgdXBU6KGDDea6Z8crHPVeFEsYajhCUmSQevyTL_9WucAyhw2UnDfoFQXURCB/pub?output=csv';
+    const BEER_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGFPOHiYkWGPDASiBePqXkbxoikcLYiFAz1RobyVTlX2-dj71jMSCCFLgrNXOjFpOZYwS7MHCD6IrU/pub?output=csv';
+    const FOOD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5zrZyn-cmKHuk3H-nI4QG9NDJFvB-q3MjjdIUuQfk_lhtQPzTeovn_kAz46o2PnuH_aZ8Mq1zteFD/pub?output=csv';
+    const WHISKEY_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSnSgqeW3W-2vKiqPwsBLpOE9vamrHELbgZCNHDYv6bGGYPnkhp44KzYvbly7qCLq3E_Rgu2VyYKMGY/pub?output=csv';
+    
+    // Load favorite products for the user
+    async function loadFavoriteProducts(userId) {
+      try {
+        // Get user's liked products
+        const clientDoc = await db.collection('clients').doc(userId).get();
+        if (!clientDoc.exists) {
+          console.error('Client document not found');
+          showNoFavorites();
+          return;
+        }
+        
+        const likes = clientDoc.data().likes || [];
+        console.log('User likes:', likes);
+        
+        if (likes.length === 0) {
+          showNoFavorites();
+          return;
+        }
+        
+        // Load product data from all sources
+        await loadProductData();
+        
+        // Filter out only liked products
+        favoriteProducts = [];
+        for (const barcode of likes) {
+          const product = productCache[barcode];
+          if (product) {
+            favoriteProducts.push(product);
+          }
+        }
+        
+        if (favoriteProducts.length === 0) {
+          showNoFavorites();
+          return;
+        }
+        
+        // Display favorite products
+        displayFavoriteProducts();
+        
+      } catch (error) {
+        console.error('Error loading favorite products:', error);
+        showError('שגיאה בטעינת מוצרים מועדפים');
+      }
+    }
+    
+    // Load product data from all sources
+    async function loadProductData() {
+      try {
+        const sources = [
+          { url: ALCOHOL_CSV_URL, name: 'alcohol' },
+          { url: WINE_CSV_URL, name: 'wine' },
+          { url: BEER_CSV_URL, name: 'beer' },
+          { url: FOOD_CSV_URL, name: 'food' },
+          { url: WHISKEY_CSV_URL, name: 'whiskey' }
+        ];
+        
+        // Load all data sources concurrently
+        const results = await Promise.allSettled(sources.map(source => 
+          fetch(source.url)
+            .then(response => response.text())
+            .then(text => ({ data: parseCSV(text), source: source.name }))
+        ));
+        
+        // Process results and populate cache
+        results.forEach(result => {
+          if (result.status === 'fulfilled') {
+            const products = result.value.data;
+            products.forEach(product => {
+              const barcode = product['ברקוד'];
+              if (barcode) {
+                product.source = result.value.source;
+                productCache[barcode] = product;
+              }
+            });
+          }
+        });
+        
+        console.log('Loaded product data:', Object.keys(productCache).length, 'products');
+        
+      } catch (error) {
+        console.error('Error loading product data:', error);
+        throw error;
+      }
+    }
+    
+    // Parse CSV text to array of objects
+    function parseCSV(csvText) {
+      // Remove potential BOM character
+      if (csvText.charCodeAt(0) === 0xFEFF) {
+        csvText = csvText.slice(1);
+      }
+    
+      const lines = csvText.split('\n');
+      // Don't lowercase headers - preserve original case
+      const headers = lines[0].split(',').map(header => header.trim());
+      
+      return lines.slice(1)
+        .filter(line => line.trim())
+        .map(line => {
+          // Handle quoted fields with commas
+          const values = [];
+          let currentValue = '';
+          let insideQuotes = false;
+    
+          for (let char of line) {
+            if (char === '"') {
+              insideQuotes = !insideQuotes;
+            } else if (char === ',' && !insideQuotes) {
+              values.push(currentValue.trim());
+              currentValue = '';
+            } else {
+              currentValue += char;
+            }
+          }
+          values.push(currentValue.trim()); // Add the last value
+    
+          // Create object with header keys
+          const product = {};
+          headers.forEach((header, index) => {
+            // Normalize the header to handle encoding issues
+            const normalizedHeader = header.normalize('NFKC').replace(/\s+/g, ' ');
+            product[normalizedHeader] = values[index] || '';
+            // Clean quotes
+            if (typeof product[normalizedHeader] === 'string') {
+              product[normalizedHeader] = product[normalizedHeader].replace(/"/g, '');
+            }
+          });
+    
+          return product;
+        })
+        .filter(product => {
+          // Filter out invalid products that don't have essential data
+          // A product must have at least a name (from either field) to be valid
+          return (product['שם פריט אוטומטי'] && product['שם פריט אוטומטי'].trim() !== '') || 
+                 (product['תיאור פריט'] && product['תיאור פריט'].trim() !== '');
+        });
+    }
+    
+    // Display favorite products
+    function displayFavoriteProducts() {
+      // Hide loading indicator
+      loadingElement.style.display = 'none';
+      noFavoritesElement.style.display = 'none';
+      
+      // Clear product grid
+      productGrid.innerHTML = '';
+      
+      // Show product grid
+      productGrid.style.display = 'grid';
+      
+      // Create product cards
+      favoriteProducts.forEach(product => {
+        const card = createProductCard(product);
+        productGrid.appendChild(card);
+      });
+    }
+    
+    // Create product card element
+    function createProductCard(product) {
+      const barcode = product['ברקוד'];
+      const productType = product.source || 'alcohol';
+      
+      // Get product name from appropriate field based on product type
+      let productName = '';
+      if (productType === 'whiskey') {
+        productName = product['תיאור פריט'] || product['שם פריט אוטומטי'] || '';
+      } else {
+        productName = product['שם פריט אוטומטי'] || product['תיאור פריט'] || '';
+      }
+      
+      // Get image URL based on barcode
+      const imageUrl = barcode ? `tl/${barcode}.jpg` : 'placeholder.jpg';
+      
+      // Get company/brand name from appropriate field
+      const company = product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג'] || '';
+      
+      // Create card element
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      
+      // Get country code for flag
+      const countryToCode = {
+        'ישראל': 'il',
+        'איטליה': 'it',
+        'צרפת': 'fr',
+        'גרמניה': 'de',
+        'ספרד': 'es',
+        'ארה"ב': 'us',
+        'בריטניה': 'gb',
+        'סין': 'cn',
+        'יפן': 'jp',
+        'הודו': 'in',
+        'ברזיל': 'br',
+        'אוסטרליה': 'au',
+        'קנדה': 'ca',
+        'רוסיה': 'ru',
+        'טורקיה': 'tr',
+        'מולדובה': 'md',
+        'גאורגיה': 'ge',
+        'איחוד האמירויות': 'ae',
+        'אוקראינה': 'ua',
+        'פולין': 'pl',
+        'בולגריה': 'bg',
+        'גואטמאלה': 'gt',
+        'מקסיקו': 'mx',
+        'סנט לוסיה': 'lc',
+        'קולומביה': 'co',
+        'קאריבים': 'bs', // Using Bahamas as generic Caribbean flag
+        'יוון': 'gr',
+        'סקוטלנד': 'gb', // Using UK flag for Scotland
+        'מלטה': 'mt',
+        'קניה': 'ke',
+        'סלובניה': 'si'
+      };
+      
+      const countryCode = product['מדינה'] && countryToCode[product['מדינה']] ? countryToCode[product['מדינה']] : '';
+      
+      // Kosher status
+      let kosherHtml = '';
+      if (product['כשרות']) {
+        const kosherValue = product['כשרות'].toString().trim().toLowerCase();
+        if (kosherValue === 'true' || kosherValue === 'כן' || kosherValue === 'כשר') {
+          kosherHtml = '<div class="kosher-status kosher-yes">כשר</div>';
+        } else if (kosherValue === 'false' || kosherValue === 'לא' || kosherValue === 'לא כשר') {
+          kosherHtml = '<div class="kosher-status kosher-no">לא כשר</div>';
+        }
+      }
+      
+      // Build card HTML
+      card.innerHTML = `
+        <div class="product-image">
+          <img src="${imageUrl}" alt="${productName}" onerror="if(this.src.includes('tl/')){ this.src='media/${barcode || ''}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.nextElementSibling.style.display='block'; }">
+          <div class="image-not-found">image not found</div>
+          <button class="heart-button liked" data-barcode="${barcode || ''}"><i class="heart-icon">♥</i></button>
+        </div>
+        <div class="product-info">
+          <h3>${productName}</h3>
+          ${company ? `<div class="product-company">${company}</div>` : ''}
+          ${product['מדינה'] ? `<div class="product-country">
+            ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
+            <span class="country-name">${product['מדינה']}</span>
+          </div>` : ''}
+          <div class="kosher-tags">
+            ${kosherHtml}
+          </div>
+          <div class="product-details">
+            ${barcode ? `<span class="barcode">${barcode}</span>` : ''}
+          </div>
+        </div>
+      `;
+      
+      // Add click event to open modal
+      card.addEventListener('click', (e) => {
+        // Don't open modal if heart button was clicked
+        if (e.target.closest('.heart-button') || e.target.classList.contains('heart-icon')) {
+          e.stopPropagation();
+          return;
+        }
+        openProductModal(product);
+      });
+      
+      // Add heart button click event
+      const heartButton = card.querySelector('.heart-button');
+      if (heartButton) {
+        heartButton.addEventListener('click', async (e) => {
+          e.stopPropagation(); // Prevent modal from opening
+          
+          const barcode = heartButton.dataset.barcode;
+          
+          if (!barcode) {
+            console.error('No barcode found for product');
+            return;
+          }
+          
+          try {
+            // Remove from likes
+            await toggleProductLike(barcode);
+            
+            // Remove card from grid with animation
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.8)';
+            card.style.transition = 'opacity 0.3s, transform 0.3s';
+            
+            setTimeout(() => {
+              card.remove();
+              
+              // Check if grid is empty
+              if (productGrid.children.length === 0) {
+                showNoFavorites();
+              }
+            }, 300);
+            
+          } catch (error) {
+            console.error('Error removing like:', error);
+            alert('שגיאה בהסרת מוצר מהמועדפים. אנא נסה שוב מאוחר יותר.');
+          }
+        });
+      }
+      
+      return card;
+    }
+    
+    // Open product modal
+    function openProductModal(product) {
+      // Set modal content based on product type
+      const productType = product.source || 'alcohol';
+      if (productType === 'whiskey') {
+        modalTitle.textContent = product['תיאור פריט'] || product['שם פריט אוטומטי'] || 'Unnamed Product';
+      } else {
+        modalTitle.textContent = product['שם פריט אוטומטי'] || product['תיאור פריט'] || 'Unnamed Product';
+      }
+      
+      // Set company
+      const company = product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג'] || '';
+      modalCompany.textContent = company;
+      
+      // Set description
+      modalDescription.textContent = product['תאור'] || '';
+      
+      // Set image
+      const barcode = product['ברקוד'];
+      const imageUrl = barcode ? `tl/${barcode}.jpg` : 'placeholder.jpg';
+      modalImage.src = imageUrl;
+      modalImage.alt = product['שם פריט אוטומטי'] || 'Product';
+      
+      // Reset the image not found message
+      document.querySelector('.modal-image-not-found').style.display = 'none';
+      
+      // Handle image error - try alternative folders before showing error
+      modalImage.onerror = function() {
+        if (this.src.includes('tl/')) {
+          // If tl/ folder failed, try media/ folder
+          this.src = `media/${barcode}.jpg`;
+        } else if (this.src.includes('media/')) {
+          // If media/ folder also failed, use placeholder and show error
+          this.src = 'placeholder.jpg';
+          document.querySelector('.modal-image-not-found').style.display = 'block';
+        }
+      };
+      
+      // Clear specs
+      modalSpecs.innerHTML = '';
+      modalVariants.innerHTML = '';
+      
+      // Add country with flag to specs
+      if (product['מדינה']) {
+        const countryToCode = {
+          'ישראל': 'il',
+          'איטליה': 'it',
+          'צרפת': 'fr',
+          'גרמניה': 'de',
+          'ספרד': 'es',
+          'ארה"ב': 'us',
+          'בריטניה': 'gb',
+          'סין': 'cn',
+          'יפן': 'jp',
+          'הודו': 'in',
+          'ברזיל': 'br',
+          'אוסטרליה': 'au',
+          'קנדה': 'ca',
+          'רוסיה': 'ru',
+          'טורקיה': 'tr',
+          'מולדובה': 'md',
+          'גאורגיה': 'ge',
+          'איחוד האמירויות': 'ae',
+          'אוקראינה': 'ua',
+          'פולין': 'pl',
+          'בולגריה': 'bg',
+          'גואטמאלה': 'gt',
+          'מקסיקו': 'mx',
+          'סנט לוסיה': 'lc',
+          'קולומביה': 'co',
+          'קאריבים': 'bs',
+          'יוון': 'gr',
+          'סקוטלנד': 'gb',
+          'מלטה': 'mt',
+          'קניה': 'ke',
+          'סלובניה': 'si'
+        };
+        
+        const countryCode = countryToCode[product['מדינה']] || '';
+        const countrySpec = document.createElement('div');
+        countrySpec.className = 'spec-item country-spec';
+        countrySpec.innerHTML = `
+          <div class="spec-label"><strong>מדינת ייצור</strong>:</div>
+          <div class="spec-value">
+            ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
+            <span class="country-name">${product['מדינה']}</span>
+          </div>
+        `;
+        modalSpecs.appendChild(countrySpec);
+      }
+      
+      // Add kosher status to modal
+      if (product['כשרות']) {
+        const kosherSpec = document.createElement('div');
+        kosherSpec.className = 'spec-item';
+        
+        let kosherValue;
+        const kosherRawValue = product['כשרות'].toString().trim().toLowerCase();
+        
+        if (kosherRawValue === 'true' || kosherRawValue === 'כן' || kosherRawValue === 'כשר') {
+          kosherValue = '<span class="kosher-status kosher-yes">כשר</span>';
+        } else if (kosherRawValue === 'false' || kosherRawValue === 'לא' || kosherRawValue === 'לא כשר') {
+          kosherValue = '<span class="kosher-status kosher-no">לא כשר</span>';
+        } else {
+          kosherValue = product['כשרות'];
+        }
+        
+        kosherSpec.innerHTML = `
+          <div class="spec-label"><strong>כשרות</strong>:</div>
+          <div class="spec-value">${kosherValue}</div>
+        `;
+        modalSpecs.appendChild(kosherSpec);
+      }
+      
+      // Add product specs
+      for (const [key, value] of Object.entries(product)) {
+        // Skip empty values, brands, and fields displayed elsewhere
+        if (!value || 
+            key === 'שם פריט אוטומטי' || 
+            key === 'תאור' || 
+            key === 'כשרות' ||
+            key === 'מדינה' ||
+            key === 'company' || 
+            key === 'קבוצה / מותג' || 
+            key === 'קבוצה / מותג אוטומטי' ||
+            key === 'source' ||
+            (typeof value === 'string' && 
+             (value.trim().toUpperCase() === 'TRUE' || 
+              value.trim().toUpperCase() === 'FALSE'))) continue;
+        
+        const specItem = document.createElement('div');
+        specItem.className = 'spec-item';
+        
+        specItem.innerHTML = `
+          <div class="spec-label"><strong>${key}</strong>:</div>
+          <div class="spec-value">${value}</div>
+        `;
+        
+        modalSpecs.appendChild(specItem);
+      }
+      
+      // Add heart button to modal
+      let modalHeartButton = document.querySelector('.modal-heart-button');
+      
+      if (!modalHeartButton) {
+        modalHeartButton = document.createElement('button');
+        modalHeartButton.className = 'modal-heart-button liked';
+        modalHeartButton.innerHTML = `<i class="heart-icon">♥</i>`;
+        modalHeartButton.dataset.barcode = barcode || '';
+        
+        document.querySelector('.modal-header').appendChild(modalHeartButton);
+        
+        // Add event listener to heart button
+        modalHeartButton.addEventListener('click', async function() {
+          const barcode = this.dataset.barcode;
+          
+          if (!barcode) {
+            console.error('No barcode found for product');
+            return;
+          }
+          
+          try {
+            // Toggle like in Firebase
+            await toggleProductLike(barcode);
+            
+            // Close modal
+            closeProductModal();
+            
+            // Reload the page to refresh the favorites list
+            window.location.reload();
+            
+          } catch (error) {
+            console.error('Error toggling like:', error);
+            alert('שגיאה בעדכון המועדפים. אנא נסה שוב מאוחר יותר.');
+          }
+        });
+      } else {
+        // Update existing heart button
+        modalHeartButton.dataset.barcode = barcode || '';
+        modalHeartButton.classList.add('liked');
+        modalHeartButton.querySelector('.heart-icon').textContent = '♥';
+      }
+      
+      // Show modal
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden'; // Prevent scrolling of the background
+    }
+    
+    // Close product modal
+    function closeProductModal() {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto'; // Enable scrolling on body again
+    }
+    
+    // Toggle like for a product (reusing function from firebase-config.js)
+    async function toggleProductLike(barcode) {
+      const user = auth.currentUser;
+      if (!user) return false;
+      
+      try {
+        const clientRef = db.collection('clients').doc(user.uid);
+        const clientDoc = await clientRef.get();
+        
+        if (!clientDoc.exists) {
+          console.error('Client document does not exist');
+          return false;
+        }
+        
+        const likes = clientDoc.data().likes || [];
+        const isLiked = likes.includes(barcode);
+        
+        if (isLiked) {
+          // Remove from likes
+          await clientRef.update({
+            likes: firebase.firestore.FieldValue.arrayRemove(barcode)
+          });
+        } else {
+          // Add to likes
+          await clientRef.update({
+            likes: firebase.firestore.FieldValue.arrayUnion(barcode)
+          });
+        }
+        
+        return !isLiked; // Return new like status
+      } catch (error) {
+        console.error('Error toggling product like:', error);
+        throw error;
+      }
+    }
+    
+    // Show message when no favorites exist
+    function showNoFavorites() {
+      loadingElement.style.display = 'none';
+      productGrid.style.display = 'none';
+      noFavoritesElement.style.display = 'block';
+    }
+    
+    // Show error message
+    function showError(message) {
+      loadingElement.style.display = 'none';
+      productGrid.style.display = 'none';
+      noFavoritesElement.style.display = 'block';
+      noFavoritesElement.innerHTML = `
+        <h3>שגיאה</h3>
+        <p>${message}</p>
+        <a href="index.html" class="browse-button">חזרה לקטלוג המוצרים</a>
+      `;
+    }
+    
+    // Set up event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      // Close modal events
+      closeModalBtn.addEventListener('click', closeProductModal);
+      
+      window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+          closeProductModal();
+        }
+      });
+      
+      // Close modal with Escape key
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+          if (modal.style.display === 'block') {
+            closeProductModal();
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>כניסה למערכת - AGAT&D</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="images/logo.png" type="image/png">
+  <style>
+    .auth-container {
+      max-width: 500px;
+      margin: 50px auto;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      background-color: #fff;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    
+    .btn-primary {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+    
+    .btn-primary:hover {
+      background-color: #2980b9;
+    }
+    
+    .auth-toggle {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    
+    .auth-toggle a {
+      color: #3498db;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    
+    .auth-error {
+      color: red;
+      margin-top: 10px;
+      display: none;
+    }
+    
+    .auth-success {
+      color: green;
+      margin-top: 10px;
+      display: none;
+    }
+    
+    .auth-tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .auth-tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+    }
+    
+    .auth-tab.active {
+      border-bottom: 3px solid #3498db;
+      font-weight: bold;
+    }
+    
+    .auth-content {
+      display: none;
+    }
+    
+    .auth-content.active {
+      display: block;
+    }
+    
+    .back-to-catalog {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #555;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="images/logo.png" alt="Logo" class="company-logo">
+    </div>
+    <h1>כניסה למערכת</h1>
+  </header>
+
+  <main>
+    <div class="auth-container">
+      <div class="auth-tabs">
+        <div class="auth-tab active" data-tab="login">התחברות</div>
+        <div class="auth-tab" data-tab="register">בקשת הרשמה</div>
+      </div>
+      
+      <div class="auth-content active" id="login-content">
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">אימייל</label>
+            <input type="email" id="login-email" required>
+          </div>
+          <div class="form-group password-group">
+            <label for="login-password">סיסמה</label>
+            <div class="password-input-container" style="position: relative;">
+              <input type="password" id="login-password" required>
+              <button type="button" class="toggle-password-btn" id="login-toggle-password" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #666;">👁️</button>
+            </div>
+          </div>
+          <div class="form-group" style="display: flex; align-items: center; margin-top: -10px;">
+            <input type="checkbox" id="login-remember-me" style="width: auto; margin-left: 10px;">
+            <label for="login-remember-me" style="display: inline; margin-bottom: 0;">זכור אותי</label>
+          </div>
+          <button type="submit" class="btn-primary">התחבר</button>
+          <div class="auth-error" id="login-error"></div>
+        </form>
+        <div class="auth-toggle">
+          <a id="forgot-password-link">שכחת סיסמה?</a>
+        </div>
+      </div>
+      
+      <div class="auth-content" id="register-content">
+        <form id="register-form">
+          <div class="form-group">
+            <label for="register-name">שם מלא</label>
+            <input type="text" id="register-name" required>
+          </div>
+          <div class="form-group">
+            <label for="register-email">אימייל</label>
+            <input type="email" id="register-email" required>
+          </div>
+          <div class="form-group password-group">
+            <label for="register-password">סיסמה</label>
+            <div class="password-input-container" style="position: relative;">
+              <input type="password" id="register-password" required minlength="6">
+              <button type="button" class="toggle-password-btn" id="register-toggle-password" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #666;">👁️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="register-type">סוג משתמש</label>
+            <select id="register-type" required>
+              <option value="client">לקוח</option>
+              <option value="agent">סוכן</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">שלח בקשת הרשמה</button>
+          <div class="auth-error" id="register-error"></div>
+          <div class="auth-success" id="register-success"></div>
+        </form>
+      </div>
+      
+      <div class="auth-content" id="forgot-password-content">
+        <form id="forgot-password-form">
+          <div class="form-group">
+            <label for="forgot-email">אימייל</label>
+            <input type="email" id="forgot-email" required>
+          </div>
+          <button type="submit" class="btn-primary">שלח קישור לאיפוס סיסמה</button>
+          <div class="auth-error" id="forgot-error"></div>
+          <div class="auth-success" id="forgot-success"></div>
+        </form>
+        <div class="auth-toggle">
+          <a id="back-to-login-link">חזרה להתחברות</a>
+        </div>
+      </div>
+      
+      <a href="index.html" class="back-to-catalog">חזרה לקטלוג</a>
+    </div>
+  </main>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- Config -->
+  <script src="firebase-config.js"></script>
+  
+  <!-- Auth Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Tab switching
+      const authTabs = document.querySelectorAll('.auth-tab');
+      const authContents = document.querySelectorAll('.auth-content');
+      
+      authTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          // Remove active class from all tabs and contents
+          authTabs.forEach(t => t.classList.remove('active'));
+          authContents.forEach(c => c.classList.remove('active'));
+          
+          // Add active class to clicked tab
+          tab.classList.add('active');
+          
+          // Show corresponding content
+          const tabName = tab.dataset.tab;
+          document.getElementById(`${tabName}-content`).classList.add('active');
+        });
+      });
+      
+      // Forgot password link
+      document.getElementById('forgot-password-link').addEventListener('click', () => {
+        authContents.forEach(c => c.classList.remove('active'));
+        document.getElementById('forgot-password-content').classList.add('active');
+      });
+      
+      // Toggle password visibility
+      document.getElementById('login-toggle-password').addEventListener('click', function() {
+        const passwordInput = document.getElementById('login-password');
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          this.textContent = '🔒';
+        } else {
+          passwordInput.type = 'password';
+          this.textContent = '👁️';
+        }
+      });
+      
+      document.getElementById('register-toggle-password').addEventListener('click', function() {
+        const passwordInput = document.getElementById('register-password');
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          this.textContent = '🔒';
+        } else {
+          passwordInput.type = 'password';
+          this.textContent = '👁️';
+        }
+      });
+      
+      // Check for saved email in localStorage
+      const savedEmail = localStorage.getItem('rememberedEmail');
+      if (savedEmail) {
+        document.getElementById('login-email').value = savedEmail;
+        document.getElementById('login-remember-me').checked = true;
+      }
+      
+      // Back to login link
+      document.getElementById('back-to-login-link').addEventListener('click', () => {
+        authContents.forEach(c => c.classList.remove('active'));
+        document.getElementById('login-content').classList.add('active');
+      });
+      
+      // Login form
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const errorElement = document.getElementById('login-error');
+        
+        try {
+          errorElement.style.display = 'none';
+          
+          // Check if "remember me" is checked
+          const rememberMe = document.getElementById('login-remember-me').checked;
+          
+          // Save or remove email from local storage
+          if (rememberMe) {
+            localStorage.setItem('rememberedEmail', email);
+          } else {
+            localStorage.removeItem('rememberedEmail');
+          }
+          
+          // Set persistence
+          const persistenceType = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+          await auth.setPersistence(persistenceType);
+          
+          // Sign in with email and password
+          await auth.signInWithEmailAndPassword(email, password);
+          
+          // Get user role
+          const user = auth.currentUser;
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            
+            // Redirect based on role
+            if (userData.role === USER_ROLES.ADMIN) {
+              window.location.href = 'admin.html';
+            } else if (userData.role === USER_ROLES.AGENT) {
+              window.location.href = 'agent.html';
+            } else {
+              // Clients go to main catalog
+              window.location.href = 'index.html';
+            }
+          } else {
+            // User exists in Firebase Auth but not in Firestore
+            // Create a client record
+            await db.collection('users').doc(user.uid).set({
+              email: user.email,
+              role: USER_ROLES.CLIENT,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            await db.collection('clients').doc(user.uid).set({
+              email: user.email,
+              allowedBrands: [],
+              likes: [],
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            window.location.href = 'index.html';
+          }
+        } catch (error) {
+          console.error('Login error:', error);
+          errorElement.textContent = getAuthErrorMessage(error.code);
+          errorElement.style.display = 'block';
+        }
+      });
+      
+      // Register form
+      document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const name = document.getElementById('register-name').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+        const type = document.getElementById('register-type').value;
+        const errorElement = document.getElementById('register-error');
+        const successElement = document.getElementById('register-success');
+        
+        try {
+          errorElement.style.display = 'none';
+          successElement.style.display = 'none';
+          
+          // Here, we'll collect registration requests instead of creating users directly
+          // Only admins can create actual accounts
+          await db.collection('registrationRequests').add({
+            name: name,
+            email: email,
+            requestedRole: type,
+            password: password, // Note: In a production app, don't store raw passwords. This is for demo purposes.
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
+          // Show success message
+          successElement.textContent = 'בקשת ההרשמה נשלחה בהצלחה! מנהל המערכת יצור איתך קשר בקרוב.';
+          successElement.style.display = 'block';
+          
+          // Reset form
+          document.getElementById('register-form').reset();
+        } catch (error) {
+          console.error('Registration request error:', error);
+          errorElement.textContent = getAuthErrorMessage(error.code);
+          errorElement.style.display = 'block';
+        }
+      });
+      
+      // Forgot password form
+      document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('forgot-email').value;
+        const errorElement = document.getElementById('forgot-error');
+        const successElement = document.getElementById('forgot-success');
+        
+        try {
+          errorElement.style.display = 'none';
+          successElement.style.display = 'none';
+          
+          await auth.sendPasswordResetEmail(email);
+          
+          successElement.textContent = 'הוראות לאיפוס הסיסמה נשלחו לאימייל שלך.';
+          successElement.style.display = 'block';
+          
+          document.getElementById('forgot-password-form').reset();
+        } catch (error) {
+          console.error('Password reset error:', error);
+          errorElement.textContent = getAuthErrorMessage(error.code);
+          errorElement.style.display = 'block';
+        }
+      });
+      
+      // Helper function to translate Firebase auth error codes to Hebrew
+      function getAuthErrorMessage(errorCode) {
+        switch (errorCode) {
+          case 'auth/invalid-email':
+            return 'כתובת האימייל אינה תקינה.';
+          case 'auth/user-disabled':
+            return 'המשתמש הזה הושבת על ידי מנהל המערכת.';
+          case 'auth/user-not-found':
+            return 'לא נמצא משתמש עם כתובת האימייל הזו.';
+          case 'auth/wrong-password':
+            return 'סיסמה שגויה, נסה שוב.';
+          case 'auth/email-already-in-use':
+            return 'כתובת האימייל כבר קיימת במערכת.';
+          case 'auth/weak-password':
+            return 'הסיסמה חלשה מדי, נסה סיסמה ארוכה יותר.';
+          default:
+            return 'אירעה שגיאה, אנא נסה שוב מאוחר יותר.';
+        }
+      }
+      
+      // Check if user is already logged in
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            
+            // Auto-redirect to appropriate page
+            if (userData.role === USER_ROLES.ADMIN) {
+              window.location.href = 'admin.html';
+            } else if (userData.role === USER_ROLES.AGENT) {
+              window.location.href = 'agent.html';
+            } else if (window.location.pathname.endsWith('login.html')) {
+              // Redirect clients to index only if on login page
+              window.location.href = 'index.html';
+            }
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>דאשבורד סוכן - AGAT&D</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="images/logo.png" type="image/png">
+  <style>
+    /* Dashboard styles - unified with admin panel */
+    .admin-container, .agent-container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .admin-header, .agent-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .admin-title, .agent-title {
+      margin: 0;
+      font-size: 24px;
+      color: #333;
+    }
+    
+    /* Tabs system */
+    .admin-tabs, .agent-tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    
+    .admin-tab, .agent-tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      margin-right: 5px;
+    }
+    
+    .admin-tab.active, .agent-tab.active {
+      background-color: #fff;
+      border-bottom: 1px solid #fff;
+      margin-bottom: -1px;
+      font-weight: bold;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Client summary cards */
+    .clients-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    
+    .client-card {
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease;
+    }
+    
+    .client-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .client-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e1e1e1;
+    }
+    
+    .client-email {
+      font-weight: bold;
+      font-size: 18px;
+      color: #333;
+    }
+    
+    .client-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+    
+    .stat-item {
+      text-align: center;
+      flex: 1;
+    }
+    
+    .stat-number {
+      font-size: 24px;
+      font-weight: bold;
+      color: #3498db;
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: #777;
+      margin-top: 5px;
+    }
+    
+    .btn {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s ease;
+    }
+    
+    .btn-primary {
+      background-color: #3498db;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: #2980b9;
+    }
+    
+    .btn-danger {
+      background-color: #e74c3c;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background-color: #c0392b;
+    }
+    
+    .btn-success {
+      background-color: #2ecc71;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background-color: #27ae60;
+    }
+    
+    /* Client likes section */
+    .client-likes {
+      margin-top: 15px;
+    }
+    
+    .likes-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    .likes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+      gap: 10px;
+    }
+    
+    .like-item {
+      position: relative;
+    }
+    
+    .like-image {
+      width: 100%;
+      height: 70px;
+      object-fit: contain;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      background-color: white;
+    }
+    
+    .like-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 10;
+      visibility: hidden;
+      opacity: 0;
+      transition: visibility 0s, opacity 0.3s;
+    }
+    
+    .like-item:hover .like-tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    /* Search */
+    .search-container {
+      margin-bottom: 20px;
+    }
+    
+    .search-input {
+      padding: 8px;
+      width: 300px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    /* Back button */
+    .back-button {
+      display: inline-block;
+      padding: 8px 15px;
+      background-color: #f1f1f1;
+      color: #333;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    
+    .back-button:hover {
+      background-color: #ddd;
+    }
+    
+    /* No clients message */
+    .no-clients {
+      text-align: center;
+      padding: 30px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    
+    /* Tables */
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    
+    .admin-table th, 
+    .admin-table td {
+      padding: 10px;
+      text-align: right;
+      border: 1px solid #ddd;
+    }
+    
+    .admin-table th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    
+    .admin-table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    
+    .admin-table tr:hover {
+      background-color: #f1f1f1;
+    }
+    
+    /* Forms */
+    .admin-form {
+      margin-bottom: 30px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+    }
+    
+    .form-row {
+      display: flex;
+      margin-bottom: 15px;
+    }
+    
+    .form-group {
+      flex: 1;
+      margin-right: 15px;
+    }
+    
+    .form-group:last-child {
+      margin-right: 0;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .form-actions {
+      margin-top: 15px;
+    }
+    
+    /* Detail view */
+    .client-detail {
+      display: none;
+      margin-top: 30px;
+    }
+    
+    .client-detail.active {
+      display: block;
+    }
+    
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .detail-title {
+      font-size: 20px;
+      margin: 0;
+    }
+    
+    .detail-back {
+      cursor: pointer;
+      color: #3498db;
+    }
+    
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    
+    .product-card {
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 15px;
+      background-color: white;
+    }
+    
+    .product-image {
+      width: 100%;
+      height: 150px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
+    
+    .product-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .product-barcode {
+      color: #777;
+      font-size: 14px;
+    }
+    
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: #3498db;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    /* Like dashboard */
+    .like-dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .like-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      background-color: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .like-image {
+      width: 100%;
+      height: 150px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
+    
+    .like-info {
+      font-size: 14px;
+    }
+    
+    .like-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .like-details {
+      color: #666;
+      margin-bottom: 3px;
+    }
+    
+    .like-client {
+      margin-top: 10px;
+      color: #3498db;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="images/logo.png" alt="Logo" class="company-logo">
+    </div>
+    <h1>דאשבורד סוכן</h1>
+  </header>
+
+  <main>
+    <div class="agent-container">
+      <div class="agent-header">
+        <h2 class="agent-title">ניהול מערכת</h2>
+        <div>
+          <span id="agent-user-info"></span>
+          <a href="index.html" class="back-button">חזרה לקטלוג</a>
+          <button id="agent-logout-button" class="btn btn-danger">התנתק</button>
+        </div>
+      </div>
+      
+      <div class="agent-tabs">
+        <div class="agent-tab active" data-tab="clients">הלקוחות שלי</div>
+        <div class="agent-tab" data-tab="likes">מועדפים</div>
+      </div>
+      
+      <!-- Clients Tab -->
+      <div class="tab-content active" id="clients-tab">
+        <div class="search-container">
+          <input type="text" id="client-search" class="search-input" placeholder="חיפוש לקוחות...">
+        </div>
+        
+        <div id="clients-grid" class="clients-grid">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+      
+      <!-- Likes Tab -->
+      <div class="tab-content" id="likes-tab">
+        <div class="admin-form">
+          <h3>סינון מועדפים</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="likes-client-filter">סינון לפי לקוח</label>
+              <select id="likes-client-filter">
+                <option value="">כל הלקוחות</option>
+                <!-- Will be populated by JavaScript -->
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div id="likes-dashboard" class="like-dashboard">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+      
+      <!-- Client Detail View -->
+      <div id="client-detail" class="client-detail">
+        <div class="detail-header">
+          <h3 class="detail-title">מוצרים מועדפים של <span id="detail-client-name"></span></h3>
+          <span class="detail-back">&larr; חזרה לרשימת הלקוחות</span>
+        </div>
+        
+        <div id="product-grid" class="product-grid">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- Config -->
+  <script src="firebase-config.js"></script>
+  
+  <!-- Agent Dashboard Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check if user is agent
+      const user = auth.currentUser;
+      if (!user) {
+        // Wait for auth state to be determined
+        auth.onAuthStateChanged(async (user) => {
+          if (!user) {
+            // Not logged in, redirect to login
+            window.location.href = 'login.html';
+            return;
+          }
+          
+          // Check if user is agent
+          const isUserAgent = await isAgent();
+          if (!isUserAgent) {
+            alert('אין לך הרשאות לצפות בדף זה');
+            window.location.href = 'index.html';
+            return;
+          }
+          
+          // User is agent, initialize the dashboard
+          initAgentDashboard(user);
+        });
+      } else {
+        // Check if user is agent
+        const isUserAgent = await isAgent();
+        if (!isUserAgent) {
+          alert('אין לך הרשאות לצפות בדף זה');
+          window.location.href = 'index.html';
+          return;
+        }
+        
+        // User is agent, initialize the dashboard
+        initAgentDashboard(user);
+      }
+      
+      // Initialize agent dashboard
+      async function initAgentDashboard(user) {
+        // Display user info
+        document.getElementById('agent-user-info').textContent = `מחובר כ: ${user.email}`;
+        
+        // Logout button
+        document.getElementById('agent-logout-button').addEventListener('click', async () => {
+          try {
+            await auth.signOut();
+            window.location.href = 'login.html';
+          } catch (error) {
+            console.error('Logout error:', error);
+            alert('שגיאה בהתנתקות');
+          }
+        });
+        
+        // Tab switching
+        const agentTabs = document.querySelectorAll('.agent-tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        agentTabs.forEach(tab => {
+          tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+            
+            // Remove active class from all tabs and contents
+            agentTabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            tab.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Load tab-specific data
+            if (tabName === 'clients') {
+              loadClients(user.uid);
+            } else if (tabName === 'likes') {
+              loadLikes(user.uid);
+            }
+          });
+        });
+        
+        // Back button in detail view
+        document.querySelector('.detail-back').addEventListener('click', () => {
+          document.getElementById('client-detail').classList.remove('active');
+          document.getElementById('clients-tab').classList.add('active');
+        });
+        
+        // Search input
+        document.getElementById('client-search').addEventListener('input', (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          
+          document.querySelectorAll('.client-card').forEach(card => {
+            const clientEmail = card.querySelector('.client-email').textContent.toLowerCase();
+            
+            if (clientEmail.includes(searchTerm)) {
+              card.style.display = '';
+            } else {
+              card.style.display = 'none';
+            }
+          });
+        });
+        
+        // Client filter for likes tab
+        document.getElementById('likes-client-filter').addEventListener('change', () => {
+          loadLikes(user.uid);
+        });
+        
+        // Load initial data for active tab
+        const activeTab = document.querySelector('.agent-tab.active').dataset.tab;
+        if (activeTab === 'clients') {
+          await loadClients(user.uid);
+        } else if (activeTab === 'likes') {
+          await loadLikes(user.uid);
+        }
+      }
+      
+      // Load clients for agent
+      async function loadClients(agentId) {
+        const clientsGrid = document.getElementById('clients-grid');
+        
+        clientsGrid.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;"><div class="spinner"></div> טוען לקוחות...</div>';
+        
+        try {
+          // Make sure the agent has a document in the agents collection
+          const agentDoc = await db.collection('agents').doc(agentId).get();
+          if (!agentDoc.exists) {
+            // Create agent document if it doesn't exist
+            await db.collection('agents').doc(agentId).set({
+              clients: [],
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+          
+          // Get clients for this agent
+          const clientsSnapshot = await db.collection('clients')
+            .where('agentId', '==', agentId)
+            .get();
+          
+          if (clientsSnapshot.empty) {
+            clientsGrid.innerHTML = '<div class="no-clients">אין לקוחות משויכים לחשבון זה</div>';
+            return;
+          }
+          
+          // Clear grid
+          clientsGrid.innerHTML = '';
+          
+          // Load client data
+          for (const doc of clientsSnapshot.docs) {
+            const clientData = doc.data();
+            
+            // Get user info
+            let userEmail = clientData.email || '';
+            
+            // If no email, try to get from users collection
+            if (!userEmail) {
+              try {
+                const userDoc = await db.collection('users').doc(doc.id).get();
+                if (userDoc.exists) {
+                  userEmail = userDoc.data().email || '';
+                }
+              } catch (userError) {
+                console.error('Error getting user data:', userError);
+              }
+            }
+            
+            // Create client card
+            const clientCard = document.createElement('div');
+            clientCard.className = 'client-card';
+            clientCard.dataset.clientId = doc.id;
+            
+            // Get likes info
+            const likes = clientData.likes || [];
+            
+            clientCard.innerHTML = `
+              <div class="client-header">
+                <div class="client-email">${userEmail}</div>
+              </div>
+              <div class="client-stats">
+                <div class="stat-item">
+                  <div class="stat-number">${likes.length}</div>
+                  <div class="stat-label">מוצרים מועדפים</div>
+                </div>
+              </div>
+              <button class="btn btn-primary view-likes-btn">צפה במועדפים</button>
+            `;
+            
+            // Add client likes preview if there are any
+            if (likes.length > 0) {
+              const preview = document.createElement('div');
+              preview.className = 'client-likes';
+              
+              preview.innerHTML = `
+                <div class="likes-title">מועדפים אחרונים:</div>
+                <div class="likes-grid">
+                  ${likes.slice(0, 6).map(barcode => `
+                    <div class="like-item">
+                      <img src="tl/${barcode}.jpg" alt="Product" class="like-image" onerror="if(this.src.includes('tl/')){ this.src='media/${barcode}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.style.opacity='0.5'; }">
+                      <div class="like-tooltip">${barcode}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              `;
+              
+              clientCard.appendChild(preview);
+            }
+            
+            clientsGrid.appendChild(clientCard);
+          }
+          
+          // Add view likes click handlers
+          document.querySelectorAll('.view-likes-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const clientCard = btn.closest('.client-card');
+              const clientId = clientCard.dataset.clientId;
+              const clientEmail = clientCard.querySelector('.client-email').textContent;
+              
+              await showClientLikes(clientId, clientEmail);
+            });
+          });
+        } catch (error) {
+          console.error('Error loading clients:', error);
+          clientsGrid.innerHTML = '<div class="no-clients">שגיאה בטעינת לקוחות</div>';
+        }
+      }
+      
+      // Show client likes in detail view
+      async function showClientLikes(clientId, clientEmail) {
+        const clientDetail = document.getElementById('client-detail');
+        const clientsGrid = document.getElementById('clients-grid');
+        const productGrid = document.getElementById('product-grid');
+        const detailClientName = document.getElementById('detail-client-name');
+        
+        // Show loading
+        productGrid.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;"><div class="spinner"></div> טוען מוצרים...</div>';
+        
+        // Show detail view
+        clientsGrid.style.display = 'none';
+        clientDetail.classList.add('active');
+        detailClientName.textContent = clientEmail;
+        
+        try {
+          // Get client data
+          const clientDoc = await db.collection('clients').doc(clientId).get();
+          
+          if (!clientDoc.exists) {
+            productGrid.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">לא נמצאו נתוני לקוח</div>';
+            return;
+          }
+          
+          const clientData = clientDoc.data();
+          const likes = clientData.likes || [];
+          
+          if (likes.length === 0) {
+            productGrid.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">אין מוצרים מועדפים ללקוח זה</div>';
+            return;
+          }
+          
+          // Clear grid
+          productGrid.innerHTML = '';
+          
+          // Load product data
+          likes.forEach(barcode => {
+            // Create product card
+            const productCard = document.createElement('div');
+            productCard.className = 'product-card';
+            
+            productCard.innerHTML = `
+              <img src="tl/${barcode}.jpg" alt="Product" class="product-image" onerror="if(this.src.includes('tl/')){ this.src='media/${barcode}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.style.opacity='0.5'; }">
+              <div class="product-barcode">מק"ט: ${barcode}</div>
+            `;
+            
+            productGrid.appendChild(productCard);
+          });
+        } catch (error) {
+          console.error('Error loading client likes:', error);
+          productGrid.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">שגיאה בטעינת מוצרים מועדפים</div>';
+        }
+      }
+      // Load likes
+      async function loadLikes(agentId) {
+        const likesDashboard = document.getElementById('likes-dashboard');
+        const clientFilter = document.getElementById('likes-client-filter').value;
+        
+        likesDashboard.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">טוען מועדפים...</div>';
+        
+        try {
+          // Populate client filter if not already populated
+          const clientSelect = document.getElementById('likes-client-filter');
+          if (clientSelect.options.length <= 1) {
+            // Get clients for this agent
+            const clientsSnapshot = await db.collection('clients')
+              .where('agentId', '==', agentId)
+              .get();
+              
+            if (!clientsSnapshot.empty) {
+              clientsSnapshot.forEach(async doc => {
+                const clientData = doc.data();
+                let userEmail = clientData.email || '';
+                
+                // If no email, try to get from users collection
+                if (!userEmail) {
+                  try {
+                    const userDoc = await db.collection('users').doc(doc.id).get();
+                    if (userDoc.exists) {
+                      userEmail = userDoc.data().email || '';
+                    }
+                  } catch (userError) {
+                    console.error('Error getting user data:', userError);
+                  }
+                }
+                
+                if (userEmail) {
+                  const option = document.createElement('option');
+                  option.value = doc.id;
+                  option.textContent = userEmail;
+                  clientSelect.appendChild(option);
+                }
+              });
+            }
+          }
+          
+          // Build query based on filters
+          let clientsQuery = db.collection('clients');
+          
+          if (clientFilter) {
+            // Specific client filter
+            clientsQuery = db.collection('clients').where(firebase.firestore.FieldPath.documentId(), '==', clientFilter);
+          } else {
+            // All clients for this agent
+            clientsQuery = db.collection('clients').where('agentId', '==', agentId);
+          }
+          
+          const clientsSnapshot = await clientsQuery.get();
+          
+          if (clientsSnapshot.empty) {
+            likesDashboard.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">לא נמצאו לקוחות</div>';
+            return;
+          }
+          
+          // Get all liked products
+          const allLikes = [];
+          const clientsMap = {};
+          
+          for (const doc of clientsSnapshot.docs) {
+            const clientData = doc.data();
+            const likes = clientData.likes || [];
+            
+            // Get user email if needed
+            let userEmail = clientData.email || '';
+            if (!userEmail) {
+              try {
+                const userDoc = await db.collection('users').doc(doc.id).get();
+                if (userDoc.exists) {
+                  userEmail = userDoc.data().email || '';
+                }
+              } catch (userError) {
+                console.error('Error getting user data:', userError);
+              }
+            }
+            
+            clientsMap[doc.id] = userEmail || 'Unknown';
+            
+            likes.forEach(barcode => {
+              allLikes.push({
+                barcode,
+                clientId: doc.id,
+                clientEmail: userEmail || 'Unknown'
+              });
+            });
+          }
+          
+          if (allLikes.length === 0) {
+            likesDashboard.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">לא נמצאו מוצרים מועדפים</div>';
+            return;
+          }
+          
+          // Clear dashboard
+          likesDashboard.innerHTML = '';
+          
+          // Group likes by barcode
+          const groupedLikes = {};
+          
+          allLikes.forEach(like => {
+            if (!groupedLikes[like.barcode]) {
+              groupedLikes[like.barcode] = {
+                barcode: like.barcode,
+                clients: []
+              };
+            }
+            
+            groupedLikes[like.barcode].clients.push({
+              id: like.clientId,
+              email: like.clientEmail
+            });
+          });
+          
+          // Create product cards
+          Object.values(groupedLikes).forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'like-card';
+            
+            card.innerHTML = `
+              <img src="tl/${product.barcode}.jpg" alt="Product" class="like-image" onerror="if(this.src.includes('tl/')){ this.src='media/${product.barcode}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.style.opacity='0.5'; }">
+              <div class="like-info">
+                <div class="like-title">מק"ט: ${product.barcode}</div>
+                <div class="like-details">מספר לקוחות: ${product.clients.length}</div>
+                <div class="like-client">${product.clients.map(c => c.email).join(', ')}</div>
+              </div>
+            `;
+            
+            likesDashboard.appendChild(card);
+          });
+        } catch (error) {
+          console.error('Error loading likes:', error);
+          likesDashboard.innerHTML = `<div style="text-align: center; grid-column: 1 / -1; color: red;">שגיאה בטעינת מועדפים: ${error.message}</div>`;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

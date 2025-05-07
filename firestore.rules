@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Basic security rules that allow authenticated users to access the necessary collections
+    
+    // Match all documents in the users collection
+    match /users/{userId} {
+      // Allow authenticated users to read and write their own documents
+      // Allow admins to read and write all documents
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == userId || 
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+    
+    // Match all documents in the clients collection
+    match /clients/{clientId} {
+      // Allow authenticated users to read and write their own documents
+      // Allow agents to read all client documents (for dashboard)
+      // Allow admins to read and write all documents
+      allow read: if request.auth != null && 
+        (request.auth.uid == clientId || 
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agent'));
+      
+      // Allow write access to admins and clients updating their own docs  
+      allow write: if request.auth != null && 
+        (request.auth.uid == clientId || 
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+    
+    // Match all documents in the agents collection
+    match /agents/{agentId} {
+      // Allow authenticated users to read and write their own documents
+      // Allow admins to read and write all documents
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == agentId || 
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+    
+    // Registration requests
+    match /registrationRequests/{requestId} {
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if true; // Anyone can request registration
+      allow update, delete: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}

@@ -1,23 +1,27 @@
 # AGAT Catalog Project Documentation
 
 ## Project Overview
-A product catalog web application for AGAT that displays products from different categories (Alcohol, Whiskey, Wine, Beer, Food). The application allows filtering by category, country, and client.
+A product catalog web application for AGAT that displays products from different categories (Alcohol, Whiskey, Wine, Beer, Food). The application allows filtering by category, country, and client. The application now includes a user system with authentication, likes feature, and role-based permissions.
 
 ## Data Sources
-All data is loaded directly from Google Sheets:
+All data is loaded directly from Google Sheets URLs without any local file dependencies:
 
 1. **Alcohol**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv`
 2. **Wine**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vRkUmKUxQGkMSoLEhfkgdXBU6KGDDea6Z8crHPVeFEsYajhCUmSQevyTL_9WucAyhw2UnDfoFQXURCB/pub?output=csv`
 3. **Beer**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vQGFPOHiYkWGPDASiBePqXkbxoikcLYiFAz1RobyVTlX2-dj71jMSCCFLgrNXOjFpOZYwS7MHCD6IrU/pub?output=csv` 
 4. **Food**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vS5zrZyn-cmKHuk3H-nI4QG9NDJFvB-q3MjjdIUuQfk_lhtQPzTeovn_kAz46o2PnuH_aZ8Mq1zteFD/pub?output=csv`
 5. **Whiskey**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vSnSgqeW3W-2vKiqPwsBLpOE9vamrHELbgZCNHDYv6bGGYPnkhp44KzYvbly7qCLq3E_Rgu2VyYKMGY/pub?output=csv`
-6. **Clients**: `brands.csv` (local file with list of all client/store names)
+6. **Clients/Brands**: `https://docs.google.com/spreadsheets/d/e/2PACX-1vRbLyJcDTPOjBtcGOSKUXYuKn5U8_sRF_KOSgFwiyPoeO3YazAxOhXXVCSK7M94-yxyO7j1fr5J3ou_/pub?output=csv`
 
 ## File Structure
 - `index.html` - Main HTML file 
 - `app.js` - JavaScript application logic
 - `styles.css` - CSS styles
-- `brands.csv` - List of all clients/stores
+- `login.html` - User authentication page
+- `admin.html` - Admin dashboard for user management
+- `agent.html` - Agent dashboard for client monitoring
+- `firebase-config.js` - Firebase configuration
+- `firestore.rules` - Firestore security rules
 - `tl/` - Directory containing product images named by barcode
 - `media/` - Fallback directory for product images
 
@@ -31,7 +35,85 @@ All data is loaded directly from Google Sheets:
 3. **Product Cards**: Display product information with images
 4. **Product Modals**: Detailed view of product with all specifications
 5. **Responsive Design**: Works well on mobile and desktop devices
-6. **Like Feature**: Heart icon to mark favorite products in both grid and modal views
+6. **User Authentication**: Login system with role-based access
+7. **Like Feature**: Heart icon to mark favorite products with Firebase storage
+8. **Admin Panel**: User management, client assignments, and view restrictions
+9. **Agent Dashboard**: Monitor clients and view their liked products
+10. **Client Restrictions**: Limit client views to specific brands only
+
+## User Roles and Permissions
+The system has three user roles:
+
+1. **Admin**:
+   - Full access to all features
+   - Can create and manage users
+   - Can assign clients to agents
+   - Can set client view restrictions
+   - Can view all clients' liked products
+
+2. **Agent**:
+   - Can access the agent dashboard
+   - Can view all products
+   - Can see assigned clients' information and likes
+   - Can like products themselves
+
+3. **Client**:
+   - Can view only products that match their allowed brands (if restrictions are set)
+   - Can like products (requires login)
+   - Cannot access admin or agent dashboards
+
+## Firebase Setup for User Management
+
+### Setting up an Admin User
+1. Create a user in Firebase Authentication (Email/Password)
+2. In Firestore, create the following documents:
+   - `/users/{user_uid}` with fields:
+     - `email`: string (user's email)
+     - `role`: string (value: "admin")
+     - `createdAt`: timestamp
+   - `/clients/{user_uid}` with fields:
+     - `email`: string (user's email)
+     - `allowedBrands`: array (empty)
+     - `likes`: array (empty)
+     - `createdAt`: timestamp
+
+### Setting up an Agent User
+1. Create a user in Firebase Authentication (Email/Password)
+2. In Firestore, create the following documents:
+   - `/users/{user_uid}` with fields:
+     - `email`: string (user's email)
+     - `role`: string (value: "agent")
+     - `createdAt`: timestamp
+   - `/agents/{user_uid}` with fields:
+     - `email`: string (user's email)
+     - `clients`: array (empty, will contain client UIDs)
+     - `createdAt`: timestamp
+   - `/clients/{user_uid}` with fields:
+     - `email`: string (user's email)
+     - `allowedBrands`: array (empty)
+     - `likes`: array (empty)
+     - `agentId`: string (agent's UID)
+     - `createdAt`: timestamp
+
+### Setting up a Client User
+1. Create a user in Firebase Authentication (Email/Password)
+2. In Firestore, create the following documents:
+   - `/users/{user_uid}` with fields:
+     - `email`: string (user's email)
+     - `role`: string (value: "client")
+     - `createdAt`: timestamp
+   - `/clients/{user_uid}` with fields:
+     - `email`: string (user's email)
+     - `allowedBrands`: array (brands the client is allowed to see)
+     - `likes`: array (empty, will contain product barcodes)
+     - `agentId`: string (optional, ID of assigned agent)
+     - `createdAt`: timestamp
+
+### Alternative: Using the Admin Panel
+Instead of manually creating documents in Firestore, you can:
+1. Create one admin user manually as described above
+2. Login with this admin user to the Admin Panel (`admin.html`)
+3. Use the 'Add User' form to create other users of any role
 
 ## Product Display Fields 
 Each product card displays the following information, with different field mappings based on the product category:
@@ -49,42 +131,39 @@ Each product card displays the following information, with different field mappi
 7. **Weight**: For food products
 8. **Description**: From `תאור` or `תיאור פריט`
 9. **Availability**: If a client is selected, shows availability status
+10. **Like Button**: Heart icon to mark products as favorites (requires login)
 
 ## Technical Implementation Notes
 
 ### Data Loading
-- Uses direct Google Sheets URLs with CSV output format 
+- Uses direct Google Sheets URLs with CSV output format for all data (products and client brands)
+- Does not rely on any local CSV files - all data is fetched from remote sources
 - Fetches all data in parallel
 - Handles error cases gracefully
 - Adds a retry button if data loading fails
+- No local fallbacks - fully depends on remote API endpoints
 
 ### Client Filter
-The client filter loads from brands.csv and populates a dropdown that filters products to only show those where the selected client column has a value of "TRUE". Each product has multiple client columns, with a "TRUE" value indicating the product is available for that specific client.
+The client filter loads directly from the Google Sheets URL and populates a dropdown that filters products to only show those where the selected client column has a value of "TRUE". Each product has multiple client columns, with a "TRUE" value indicating the product is available for that specific client.
+
+### Authentication
+- Uses Firebase Authentication for user management
+- Login page handles authentication and redirects based on user role
+- Access control for admin and agent pages
+
+### Client View Restrictions
+- Admins can set brand restrictions for clients
+- When client logs in, they see only products for their allowed brands
+- Restrictions are enforced on the client side using Firestore data
+
+### Like Feature
+- Likes are stored in Firestore for each client
+- Updates in real-time when user clicks heart icons
+- Agents can view their clients' liked products
+- Admins can view all liked products across the system
 
 ### Image Handling
 Product images are fetched using the barcode as the filename:
 1. First tries to load from `tl/[barcode].jpg`
 2. If not found, falls back to `media/[barcode].jpg`
 3. If still not found, falls back to `images/logo.png` and shows an "image not found" message
-
-## Development Timeline
-- Initial implementation focused on alcohol products
-- Added support for wine, beer, food, and whiskey categories
-- Enhanced product card display with category-specific field mapping
-- Improved visual design with animated tab navigation, product cards with hover effects, and consistent styling
-- Converted brand filter from modal to dropdown for better user experience and consistent design
-- Implemented dedicated client filtering by column instead of brand/company name
-- Made client filter available on all tabs including food
-- Fixed client filtering to check for "TRUE" values in client columns
-
-## Recent Fixes
-- Fixed client dropdown filter to properly filter products by checking for "TRUE" values in columns named after clients
-- Updated client filter to be consistently available across all product tabs
-- Made client filtering case-insensitive to handle variations like "TRUE", "true", etc.
-- Improved client filter loading to first try local file before falling back to Google Sheets
-- Added proper error handling for missing client data
-- Removed code that replaced client filter with product brands on certain tabs
-- Standardized client filter label to consistently show "כל הלקוחות" across all tabs
-- Fixed filter behavior to correctly handle cases where client data may be missing
-- Added heart icon feature for liking products in both grid view and detail modal
-- Updated image fallback to use company logo when product images aren't found

@@ -8,11 +8,96 @@
   <title>קטלוג מוצרים - AGAT&D</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="images/logo.png" type="image/png">
+  <style>
+    /* Auth styles */
+    .auth-container {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .auth-button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .auth-button:hover {
+      background-color: #2980b9;
+    }
+    
+    .user-info {
+      margin-right: 10px;
+      display: none;
+    }
+    
+    .logout-button {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 10px;
+      display: none;
+    }
+    
+    .logout-button:hover {
+      background-color: #c0392b;
+    }
+    
+    .admin-button {
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 10px;
+      display: none;
+    }
+    
+    .admin-button:hover {
+      background-color: #2ecc71;
+    }
+    
+    .agent-button {
+      background-color: #f39c12;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 10px;
+      display: none;
+    }
+    
+    .agent-button:hover {
+      background-color: #f1c40f;
+    }
+  </style>
 </head>
 <body>
   <header>
     <div class="logo-container">
       <img src="images/logo.png" alt="Logo" class="company-logo">
+    </div>
+    <div class="auth-container">
+      <div class="user-info" id="user-info"></div>
+      <button class="admin-button" id="admin-button">ניהול</button>
+      <button class="agent-button" id="agent-button">דאשבורד סוכן</button>
+      <button class="favorites-button" id="favorites-button" style="display: none; background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 10px;">מועדפים</button>
+      <button class="logout-button" id="logout-button">התנתק</button>
+      <button class="auth-button" id="login-button">התחבר</button>
     </div>
     <h1>קטלוג מוצרים</h1>
     
@@ -96,6 +181,187 @@
 
   <!-- We no longer need the brand filter modal since we're using a dropdown -->
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- Config -->
+  <script src="firebase-config.js"></script>
+  
+  <!-- Auth Manager -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const userInfoElement = document.getElementById('user-info');
+      const loginButton = document.getElementById('login-button');
+      const logoutButton = document.getElementById('logout-button');
+      const adminButton = document.getElementById('admin-button');
+      const agentButton = document.getElementById('agent-button');
+      
+      // Handle login button click
+      loginButton.addEventListener('click', () => {
+        window.location.href = 'login.html';
+      });
+      
+      // Handle admin button click
+      adminButton.addEventListener('click', () => {
+        window.location.href = 'admin.html';
+      });
+      
+      // Handle agent button click
+      agentButton.addEventListener('click', () => {
+        window.location.href = 'agent.html';
+      });
+      
+      // Handle favorites button click
+      const favoritesButton = document.getElementById('favorites-button');
+      favoritesButton.addEventListener('click', () => {
+        window.location.href = 'favorites.html';
+      });
+      
+      // Handle logout button click
+      logoutButton.addEventListener('click', async () => {
+        try {
+          await auth.signOut();
+          window.location.reload();
+        } catch (error) {
+          console.error('Logout error:', error);
+        }
+      });
+      
+      // Listen for auth state changes
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          // User is signed in
+          userInfoElement.style.display = 'block';
+          userInfoElement.textContent = user.email;
+          
+          logoutButton.style.display = 'block';
+          loginButton.style.display = 'none';
+          
+          // Get user role from Firestore
+          try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            
+            if (userDoc.exists) {
+              const userData = userDoc.data();
+              
+              // Show role-specific buttons
+              if (userData.role === USER_ROLES.ADMIN) {
+                adminButton.style.display = 'block';
+                
+                // For admins, initialize client filter data if it doesn't exist
+                const clientDataDoc = await db.collection('clients').doc(user.uid).get();
+                if (!clientDataDoc.exists) {
+                  await db.collection('clients').doc(user.uid).set({
+                    email: user.email,
+                    allowedBrands: [],
+                    likes: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                }
+              } else if (userData.role === USER_ROLES.AGENT) {
+                agentButton.style.display = 'block';
+                
+                // For agents, initialize client filter data if it doesn't exist
+                const clientDataDoc = await db.collection('clients').doc(user.uid).get();
+                if (!clientDataDoc.exists) {
+                  await db.collection('clients').doc(user.uid).set({
+                    email: user.email,
+                    allowedBrands: [],
+                    likes: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    agentId: user.uid // Agents are their own agents
+                  });
+                }
+              } else if (userData.role === USER_ROLES.CLIENT) {
+                // Show favorites button for clients
+                document.getElementById('favorites-button').style.display = 'block';
+              } else {
+                // For clients, check if they have restrictions
+                const clientDoc = await db.collection('clients').doc(user.uid).get();
+                
+                if (clientDoc.exists) {
+                  const clientData = clientDoc.data();
+                  
+                  // Apply brand restrictions if any
+                  if (clientData.allowedBrands && clientData.allowedBrands.length > 0) {
+                    window.clientAllowedBrands = clientData.allowedBrands;
+                  }
+                }
+              }
+              
+              // Store user role in window object for global access
+              window.userRole = userData.role;
+              
+              // Hide client filter if user is a client
+              if (userData.role === USER_ROLES.CLIENT) {
+                const brandFilterContainer = document.querySelector('#brand-filter').closest('.filter-group');
+                if (brandFilterContainer) {
+                  brandFilterContainer.style.display = 'none';
+                }
+              }
+            } else {
+              // Create user document if it doesn't exist
+              await db.collection('users').doc(user.uid).set({
+                email: user.email,
+                role: USER_ROLES.CLIENT,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              
+              // Create client document
+              await db.collection('clients').doc(user.uid).set({
+                email: user.email,
+                allowedBrands: [],
+                likes: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              
+              window.userRole = USER_ROLES.CLIENT;
+              
+              // Hide client filter for new client users
+              const brandFilterContainer = document.querySelector('#brand-filter').closest('.filter-group');
+              if (brandFilterContainer) {
+                brandFilterContainer.style.display = 'none';
+              }
+            }
+            
+            // Load user liked products
+            const clientDoc = await db.collection('clients').doc(user.uid).get();
+            if (clientDoc.exists) {
+              window.userLikes = clientDoc.data().likes || [];
+            } else {
+              window.userLikes = [];
+            }
+            
+            // User ID for global access
+            window.userId = user.uid;
+            
+            // Redisplay products with updated like status
+            if (typeof displayProducts === 'function') {
+              displayProducts();
+            }
+          } catch (error) {
+            console.error('Error getting user data:', error);
+          }
+        } else {
+          // User is signed out
+          userInfoElement.style.display = 'none';
+          logoutButton.style.display = 'none';
+          loginButton.style.display = 'block';
+          adminButton.style.display = 'none';
+          agentButton.style.display = 'none';
+          
+          // Clear user data
+          window.userRole = null;
+          window.userLikes = [];
+          window.userId = null;
+          window.clientAllowedBrands = null;
+        }
+      });
+    });
+  </script>
+  
   <script src="fallback-data.js"></script>
   <script src="app.js"></script>
 </body>

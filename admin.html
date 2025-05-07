@@ -1,0 +1,2124 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>לוח ניהול - AGAT&D</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="images/logo.png" type="image/png">
+  <style>
+    /* Admin panel styles */
+    .admin-container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .admin-title {
+      margin: 0;
+      font-size: 24px;
+      color: #333;
+    }
+    
+    .admin-tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    
+    .admin-tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      margin-right: 5px;
+    }
+    
+    .admin-tab.active {
+      background-color: #fff;
+      border-bottom: 1px solid #fff;
+      margin-bottom: -1px;
+      font-weight: bold;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Tables */
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    
+    .admin-table th, 
+    .admin-table td {
+      padding: 10px;
+      text-align: right;
+      border: 1px solid #ddd;
+    }
+    
+    .admin-table th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    
+    .admin-table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    
+    .admin-table tr:hover {
+      background-color: #f1f1f1;
+    }
+    
+    /* Forms */
+    .admin-form {
+      margin-bottom: 30px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+    }
+    
+    .form-row {
+      display: flex;
+      margin-bottom: 15px;
+    }
+    
+    .form-group {
+      flex: 1;
+      margin-right: 15px;
+    }
+    
+    .form-group:last-child {
+      margin-right: 0;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .form-actions {
+      margin-top: 15px;
+    }
+    
+    .btn {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .btn-primary {
+      background-color: #3498db;
+      color: white;
+    }
+    
+    .btn-success {
+      background-color: #2ecc71;
+      color: white;
+    }
+    
+    .btn-danger {
+      background-color: #e74c3c;
+      color: white;
+    }
+    
+    .btn-warning {
+      background-color: #f39c12;
+      color: white;
+    }
+    
+    /* Status Badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .badge-success {
+      background-color: #dff2e1;
+      color: #27ae60;
+    }
+    
+    .badge-danger {
+      background-color: #f8d7da;
+      color: #e74c3c;
+    }
+    
+    .badge-warning {
+      background-color: #ffeeba;
+      color: #f39c12;
+    }
+    
+    .badge-info {
+      background-color: #d1ecf1;
+      color: #17a2b8;
+    }
+    
+    /* Multi-select */
+    .multiselect-container {
+      position: relative;
+      width: 100%;
+    }
+    
+    .multiselect-checkbox-list {
+      width: 100%;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: white;
+      max-height: 300px;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    
+    .multiselect-option {
+      display: flex;
+      align-items: center;
+      padding: 5px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    
+    .multiselect-option:hover {
+      background-color: #f4f8fb;
+    }
+    
+    .multiselect-option label {
+      cursor: pointer;
+      margin: 0;
+      padding-right: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 14px;
+    }
+    
+    .multiselect-checkbox {
+      margin-left: 10px;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+    
+    .multiselect-select-all {
+      grid-column: 1 / -1;
+      margin-bottom: 10px;
+      padding: 8px;
+      text-align: center;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    
+    .multiselect-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+    }
+    
+    .multiselect-filter {
+      margin-bottom: 10px;
+      grid-column: 1 / -1;
+    }
+    
+    .multiselect-filter input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    /* Search */
+    .search-container {
+      margin-bottom: 20px;
+    }
+    
+    .search-input {
+      padding: 8px;
+      width: 300px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: #3498db;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+    
+    .modal-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 500px;
+      width: 100%;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .modal-title {
+      margin: 0;
+      font-size: 20px;
+    }
+    
+    .modal-close {
+      cursor: pointer;
+      font-size: 24px;
+      background: none;
+      border: none;
+    }
+    
+    .modal-body {
+      margin-bottom: 20px;
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    
+    /* Back to catalog button */
+    .back-button {
+      display: inline-block;
+      padding: 8px 15px;
+      background-color: #f1f1f1;
+      color: #333;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    
+    .back-button:hover {
+      background-color: #ddd;
+    }
+    
+    /* Like dashboard */
+    .like-dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .like-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      background-color: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .like-image {
+      width: 100%;
+      height: 150px;
+      object-fit: contain;
+      margin-bottom: 10px;
+    }
+    
+    .like-info {
+      font-size: 14px;
+    }
+    
+    .like-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .like-details {
+      color: #666;
+      margin-bottom: 3px;
+    }
+    
+    .like-client {
+      margin-top: 10px;
+      color: #3498db;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="images/logo.png" alt="Logo" class="company-logo">
+    </div>
+    <h1>לוח ניהול</h1>
+  </header>
+
+  <main>
+    <div class="admin-container">
+      <div class="admin-header">
+        <h2 class="admin-title">ניהול מערכת</h2>
+        <div>
+          <span id="admin-user-info"></span>
+          <a href="index.html" class="back-button">חזרה לקטלוג</a>
+          <button id="admin-logout-button" class="btn btn-danger">התנתק</button>
+        </div>
+      </div>
+      
+      <div class="admin-tabs">
+        <div class="admin-tab active" data-tab="users">משתמשים</div>
+        <div class="admin-tab" data-tab="clients">לקוחות</div>
+        <div class="admin-tab" data-tab="agents">סוכנים</div>
+        <div class="admin-tab" data-tab="registration">בקשות הרשמה</div>
+        <div class="admin-tab" data-tab="likes">מועדפים</div>
+      </div>
+      
+      <!-- Users Tab -->
+      <div class="tab-content active" id="users-tab">
+        <div class="admin-form">
+          <h3>הוספת משתמש חדש</h3>
+          <form id="add-user-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="user-email">אימייל</label>
+                <input type="email" id="user-email" required>
+              </div>
+              <div class="form-group">
+                <label for="user-password">סיסמה</label>
+                <input type="password" id="user-password" required>
+              </div>
+              <div class="form-group">
+                <label for="user-role">תפקיד</label>
+                <select id="user-role" required>
+                  <option value="client">לקוח</option>
+                  <option value="agent">סוכן</option>
+                  <option value="admin">מנהל</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row" id="agent-assignment-row" style="display: none;">
+              <div class="form-group">
+                <label for="user-agent">סוכן מטפל</label>
+                <select id="user-agent">
+                  <option value="">-- ללא סוכן --</option>
+                  <!-- Will be populated by JavaScript -->
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">הוסף משתמש</button>
+            </div>
+          </form>
+        </div>
+        
+        <div class="search-container">
+          <input type="text" id="users-search" class="search-input" placeholder="חיפוש משתמשים...">
+        </div>
+        
+        <table class="admin-table" id="users-table">
+          <thead>
+            <tr>
+              <th>אימייל</th>
+              <th>תפקיד</th>
+              <th>תאריך הצטרפות</th>
+              <th>פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body">
+            <!-- Will be populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Clients Tab -->
+      <div class="tab-content" id="clients-tab">
+        <div class="admin-form">
+          <h3>ניהול לקוחות</h3>
+          <form id="update-client-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="client-select">בחר לקוח</label>
+                <select id="client-select" required>
+                  <option value="">-- בחר לקוח --</option>
+                  <!-- Will be populated by JavaScript -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="client-agent">סוכן</label>
+                <select id="client-agent">
+                  <option value="">-- ללא סוכן --</option>
+                  <!-- Will be populated by JavaScript -->
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">עדכן לקוח</button>
+            </div>
+          </form>
+        </div>
+        
+        <div class="search-container">
+          <input type="text" id="clients-search" class="search-input" placeholder="חיפוש לקוחות...">
+        </div>
+        
+        <table class="admin-table" id="clients-table">
+          <thead>
+            <tr>
+              <th>אימייל</th>
+              <th>סוכן</th>
+              <th>תאריך הצטרפות</th>
+              <th>מספר מועדפים</th>
+              <th>פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="clients-table-body">
+            <!-- Will be populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Agents Tab -->
+      <div class="tab-content" id="agents-tab">
+        <div class="search-container">
+          <input type="text" id="agents-search" class="search-input" placeholder="חיפוש סוכנים...">
+        </div>
+        
+        <table class="admin-table" id="agents-table">
+          <thead>
+            <tr>
+              <th>אימייל</th>
+              <th>מספר לקוחות</th>
+              <th>תאריך הצטרפות</th>
+              <th>פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="agents-table-body">
+            <!-- Will be populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Registration Requests Tab -->
+      <div class="tab-content" id="registration-tab">
+        <table class="admin-table" id="registration-table">
+          <thead>
+            <tr>
+              <th>שם</th>
+              <th>אימייל</th>
+              <th>תפקיד מבוקש</th>
+              <th>סטטוס</th>
+              <th>תאריך בקשה</th>
+              <th>פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="registration-table-body">
+            <!-- Will be populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Likes Tab -->
+      <div class="tab-content" id="likes-tab">
+        <div class="admin-form">
+          <h3>סינון מועדפים</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="likes-client-filter">סינון לפי לקוח</label>
+              <select id="likes-client-filter">
+                <option value="">כל הלקוחות</option>
+                <!-- Will be populated by JavaScript -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="likes-agent-filter">סינון לפי סוכן</label>
+              <select id="likes-agent-filter">
+                <option value="">כל הסוכנים</option>
+                <!-- Will be populated by JavaScript -->
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div id="likes-dashboard" class="like-dashboard">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Edit User Modal -->
+    <div id="edit-user-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">ערוך משתמש</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="edit-user-form">
+            <input type="hidden" id="edit-user-id">
+            <div class="form-group">
+              <label for="edit-user-email">אימייל</label>
+              <input type="email" id="edit-user-email" readonly>
+            </div>
+            <div class="form-group">
+              <label for="edit-user-role">תפקיד</label>
+              <select id="edit-user-role" required>
+                <option value="client">לקוח</option>
+                <option value="agent">סוכן</option>
+                <option value="admin">מנהל</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-user-password">סיסמה חדשה (השאר ריק אם אין שינוי)</label>
+              <input type="password" id="edit-user-password">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button id="edit-user-save" class="btn btn-primary">שמור שינויים</button>
+          <button id="edit-user-delete" class="btn btn-danger">מחק משתמש</button>
+          <button class="modal-close-btn btn">ביטול</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- Config -->
+  <script src="firebase-config.js"></script>
+  
+  <!-- Admin Panel Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check if user is admin
+      const user = auth.currentUser;
+      if (!user) {
+        // Wait for auth state to be determined
+        auth.onAuthStateChanged(async (user) => {
+          if (!user) {
+            // Not logged in, redirect to login
+            window.location.href = 'login.html';
+            return;
+          }
+          
+          // Check if user is admin
+          const isUserAdmin = await isAdmin();
+          if (!isUserAdmin) {
+            alert('אין לך הרשאות לצפות בדף זה');
+            window.location.href = 'index.html';
+            return;
+          }
+          
+          // User is admin, initialize the panel
+          initAdminPanel(user);
+        });
+      } else {
+        // Check if user is admin
+        const isUserAdmin = await isAdmin();
+        if (!isUserAdmin) {
+          alert('אין לך הרשאות לצפות בדף זה');
+          window.location.href = 'index.html';
+          return;
+        }
+        
+        // User is admin, initialize the panel
+        initAdminPanel(user);
+      }
+      
+      // Initialize admin panel
+      async function initAdminPanel(user) {
+        // Display user info
+        document.getElementById('admin-user-info').textContent = `מחובר כ: ${user.email}`;
+        
+        // Logout button
+        document.getElementById('admin-logout-button').addEventListener('click', async () => {
+          try {
+            await auth.signOut();
+            window.location.href = 'login.html';
+          } catch (error) {
+            console.error('Logout error:', error);
+            alert('שגיאה בהתנתקות');
+          }
+        });
+        
+        // Tab switching
+        const adminTabs = document.querySelectorAll('.admin-tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        adminTabs.forEach(tab => {
+          tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+            
+            // Remove active class from all tabs and contents
+            adminTabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            tab.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Load tab-specific data
+            if (tabName === 'users') {
+              loadUsers();
+            } else if (tabName === 'clients') {
+              loadClients();
+              loadAgentsForSelect();
+              loadBrandsForMultiselect();
+            } else if (tabName === 'agents') {
+              loadAgents();
+            } else if (tabName === 'registration') {
+              loadRegistrationRequests();
+            } else if (tabName === 'likes') {
+              loadLikes();
+            }
+          });
+        });
+        
+        // Modal close buttons
+        document.querySelectorAll('.modal-close, .modal-close-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.modal').forEach(modal => {
+              modal.style.display = 'none';
+            });
+          });
+        });
+        
+        // Click outside modal to close
+        window.addEventListener('click', (event) => {
+          document.querySelectorAll('.modal').forEach(modal => {
+            if (event.target === modal) {
+              modal.style.display = 'none';
+            }
+          });
+        });
+        
+        // Initialize multiselect dropdown - only if these elements exist
+        const brandsInput = document.getElementById('brands-input');
+        const brandsDropdown = document.getElementById('brands-dropdown');
+        
+        if (brandsInput && brandsDropdown) {
+          brandsInput.addEventListener('click', () => {
+            brandsDropdown.style.display = brandsDropdown.style.display === 'block' ? 'none' : 'block';
+          });
+          
+          // Close dropdown when clicking outside
+          document.addEventListener('click', (event) => {
+            if (!event.target.closest('.multiselect-container')) {
+              brandsDropdown.style.display = 'none';
+            }
+          });
+        }
+        
+        // Set up role select to show/hide agent selection
+        const roleSelect = document.getElementById('user-role');
+        const agentAssignmentRow = document.getElementById('agent-assignment-row');
+        
+        roleSelect.addEventListener('change', function() {
+          if (this.value === 'client') {
+            agentAssignmentRow.style.display = '';
+            // Load agents into the dropdown
+            loadAgentsForUserForm();
+          } else {
+            agentAssignmentRow.style.display = 'none';
+          }
+        });
+        
+        // Load initial data for active tab
+        const activeTab = document.querySelector('.admin-tab.active').dataset.tab;
+        if (activeTab === 'users') {
+          loadUsers();
+          loadAgentsForUserForm(); // Pre-load agents for the form
+        } else if (activeTab === 'clients') {
+          loadClients();
+          loadAgentsForSelect();
+          loadBrandsForMultiselect();
+        } else if (activeTab === 'agents') {
+          loadAgents();
+        } else if (activeTab === 'registration') {
+          loadRegistrationRequests();
+        } else if (activeTab === 'likes') {
+          loadLikes();
+        }
+        
+        // Add user form
+        document.getElementById('add-user-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const email = document.getElementById('user-email').value;
+          const password = document.getElementById('user-password').value;
+          const role = document.getElementById('user-role').value;
+          
+          try {
+            // Create user in Firebase Authentication
+            const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+            const newUser = userCredential.user;
+            
+            // Create user document in Firestore
+            await db.collection('users').doc(newUser.uid).set({
+              email: email,
+              role: role,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Create additional documents based on role
+            if (role === USER_ROLES.CLIENT) {
+              // Check if an agent was selected
+              const selectedAgentId = document.getElementById('user-agent').value;
+              
+              // Create client document with or without agent
+              const clientData = {
+                email: email,
+                allowedBrands: [],
+                likes: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              };
+              
+              // Add agent ID if one was selected
+              if (selectedAgentId) {
+                clientData.agentId = selectedAgentId;
+                
+                // Also update the agent's client list
+                await db.collection('agents').doc(selectedAgentId).update({
+                  clients: firebase.firestore.FieldValue.arrayUnion(newUser.uid)
+                }).catch(error => {
+                  console.error('Error updating agent\'s client list:', error);
+                  // Continue even if this fails
+                });
+              }
+              
+              await db.collection('clients').doc(newUser.uid).set(clientData);
+            } else if (role === USER_ROLES.AGENT) {
+              await db.collection('agents').doc(newUser.uid).set({
+                email: email,
+                clients: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              
+              // Agents also get a client record for their own likes
+              await db.collection('clients').doc(newUser.uid).set({
+                email: email,
+                allowedBrands: [],
+                likes: [],
+                agentId: newUser.uid, // Agents are their own agents
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            } else if (role === USER_ROLES.ADMIN) {
+              // Admins also get a client record for their own likes
+              await db.collection('clients').doc(newUser.uid).set({
+                email: email,
+                allowedBrands: [],
+                likes: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }
+            
+            alert(`נוצר משתמש חדש: ${email}`);
+            document.getElementById('add-user-form').reset();
+            loadUsers();
+          } catch (error) {
+            console.error('Error creating user:', error);
+            alert(`שגיאה ביצירת משתמש: ${error.message}`);
+          }
+        });
+        
+        // Edit user form save
+        document.getElementById('edit-user-save').addEventListener('click', async () => {
+          const userId = document.getElementById('edit-user-id').value;
+          const newRole = document.getElementById('edit-user-role').value;
+          const newPassword = document.getElementById('edit-user-password').value;
+          
+          try {
+            // Update user role
+            await db.collection('users').doc(userId).update({
+              role: newRole
+            });
+            
+            // Update password if provided
+            if (newPassword) {
+              try {
+                const user = firebase.auth().currentUser;
+                if (user.uid === userId) {
+                  // Cannot change own password from admin panel
+                  alert('אינך יכול לשנות את הסיסמה של עצמך מתוך פאנל הניהול, השתמש באפשרות איפוס סיסמה מעמוד התחברות');
+                } else {
+                  // Only admins have access to the Firebase Admin SDK for password resets
+                  // For frontend access, generate reset link instead
+                  const userRecord = await db.collection('users').doc(userId).get();
+                  await firebase.auth().sendPasswordResetEmail(userRecord.data().email);
+                  alert('נשלח קישור לאיפוס סיסמה');
+                }
+              } catch (passwordError) {
+                console.error('Error resetting password:', passwordError);
+                alert(`שגיאה באיפוס סיסמה: ${passwordError.message}`);
+              }
+            }
+            
+            // Check for role changes
+            const userDoc = await db.collection('users').doc(userId).get();
+            const oldRole = userDoc.data().role;
+            
+            if (oldRole !== newRole) {
+              // Role has changed, update related collections
+              if (newRole === USER_ROLES.CLIENT) {
+                // Check if client record exists
+                const clientDoc = await db.collection('clients').doc(userId).get();
+                if (!clientDoc.exists) {
+                  await db.collection('clients').doc(userId).set({
+                    email: userDoc.data().email,
+                    allowedBrands: [],
+                    likes: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                }
+                
+                // Remove agent record if exists
+                const agentDoc = await db.collection('agents').doc(userId).get();
+                if (agentDoc.exists) {
+                  await db.collection('agents').doc(userId).delete();
+                }
+              } else if (newRole === USER_ROLES.AGENT) {
+                // Check if agent record exists
+                const agentDoc = await db.collection('agents').doc(userId).get();
+                if (!agentDoc.exists) {
+                  await db.collection('agents').doc(userId).set({
+                    email: userDoc.data().email,
+                    clients: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                }
+                
+                // Make sure client record exists for agents
+                const clientDoc = await db.collection('clients').doc(userId).get();
+                if (!clientDoc.exists) {
+                  await db.collection('clients').doc(userId).set({
+                    email: userDoc.data().email,
+                    allowedBrands: [],
+                    likes: [],
+                    agentId: userId, // Agents are their own agents
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                } else {
+                  // Update existing client record to add agentId
+                  await db.collection('clients').doc(userId).update({
+                    agentId: userId
+                  });
+                }
+              } else if (newRole === USER_ROLES.ADMIN) {
+                // Make sure client record exists for admins
+                const clientDoc = await db.collection('clients').doc(userId).get();
+                if (!clientDoc.exists) {
+                  await db.collection('clients').doc(userId).set({
+                    email: userDoc.data().email,
+                    allowedBrands: [],
+                    likes: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                }
+                
+                // Remove agent record if exists
+                const agentDoc = await db.collection('agents').doc(userId).get();
+                if (agentDoc.exists) {
+                  await db.collection('agents').doc(userId).delete();
+                }
+              }
+            }
+            
+            alert('המשתמש עודכן בהצלחה');
+            document.getElementById('edit-user-modal').style.display = 'none';
+            loadUsers();
+          } catch (error) {
+            console.error('Error updating user:', error);
+            alert(`שגיאה בעדכון משתמש: ${error.message}`);
+          }
+        });
+        
+        // Edit user delete
+        document.getElementById('edit-user-delete').addEventListener('click', async () => {
+          const userId = document.getElementById('edit-user-id').value;
+          const userEmail = document.getElementById('edit-user-email').value;
+          
+          if (confirm(`האם אתה בטוח שברצונך למחוק את המשתמש ${userEmail}?`)) {
+            try {
+              // Check if user is not current user
+              if (userId === auth.currentUser.uid) {
+                alert('אינך יכול למחוק את עצמך');
+                return;
+              }
+              
+              // Delete user document from Firestore
+              await db.collection('users').doc(userId).delete();
+              
+              // Delete client record if exists
+              const clientDoc = await db.collection('clients').doc(userId).get();
+              if (clientDoc.exists) {
+                await db.collection('clients').doc(userId).delete();
+              }
+              
+              // Delete agent record if exists
+              const agentDoc = await db.collection('agents').doc(userId).get();
+              if (agentDoc.exists) {
+                await db.collection('agents').doc(userId).delete();
+              }
+              
+              // Delete user from Authentication
+              try {
+                // This is normally done using admin SDK
+                // For frontend, deactivate user instead
+                alert('המשתמש הוסר ממסד הנתונים, אך לא ניתן למחוק אותו מלקוחות האימות ללא גישת Admin SDK');
+              } catch (authError) {
+                console.error('Error deleting auth user:', authError);
+              }
+              
+              alert('המשתמש נמחק בהצלחה');
+              document.getElementById('edit-user-modal').style.display = 'none';
+              loadUsers();
+            } catch (error) {
+              console.error('Error deleting user:', error);
+              alert(`שגיאה במחיקת משתמש: ${error.message}`);
+            }
+          }
+        });
+        
+        // Update client form
+        document.getElementById('update-client-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const clientId = document.getElementById('client-select').value;
+          const agentId = document.getElementById('client-agent').value;
+          
+          if (!clientId) {
+            alert('אנא בחר לקוח');
+            return;
+          }
+          
+          try {
+              // Update client record
+            const updates = {};
+            
+            if (agentId) {
+              updates.agentId = agentId;
+            } else {
+              // If no agent is selected, remove the field
+              updates.agentId = firebase.firestore.FieldValue.delete();
+            }
+            
+            await db.collection('clients').doc(clientId).update(updates);
+            
+            // If agent is selected, update agent's clients array
+            if (agentId) {
+              // Check if agent document exists
+              const agentDoc = await db.collection('agents').doc(agentId).get();
+              
+              if (agentDoc.exists) {
+                // Add client to agent's clients array if not already there
+                await db.collection('agents').doc(agentId).update({
+                  clients: firebase.firestore.FieldValue.arrayUnion(clientId)
+                });
+              }
+            }
+            
+            alert('פרטי הלקוח עודכנו בהצלחה');
+            loadClients();
+          } catch (error) {
+            console.error('Error updating client:', error);
+            alert(`שגיאה בעדכון לקוח: ${error.message}`);
+          }
+        });
+        
+        // Client select change - simplified to just set agent
+        document.getElementById('client-select').addEventListener('change', async () => {
+          const clientId = document.getElementById('client-select').value;
+          
+          if (clientId) {
+            try {
+              // Get client data
+              const clientDoc = await db.collection('clients').doc(clientId).get();
+              
+              if (clientDoc.exists) {
+                const clientData = clientDoc.data();
+                
+                // Set agent
+                document.getElementById('client-agent').value = clientData.agentId || '';
+              }
+            } catch (error) {
+              console.error('Error getting client data:', error);
+            }
+          }
+        });
+        
+        // Search filters
+        document.getElementById('users-search').addEventListener('input', (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          
+          document.querySelectorAll('#users-table-body tr').forEach(row => {
+            const email = row.querySelector('td:first-child').textContent.toLowerCase();
+            const role = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            
+            if (email.includes(searchTerm) || role.includes(searchTerm)) {
+              row.style.display = '';
+            } else {
+              row.style.display = 'none';
+            }
+          });
+        });
+        
+        document.getElementById('clients-search').addEventListener('input', (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          
+          document.querySelectorAll('#clients-table-body tr').forEach(row => {
+            const email = row.querySelector('td:first-child').textContent.toLowerCase();
+            const agent = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            
+            if (email.includes(searchTerm) || agent.includes(searchTerm)) {
+              row.style.display = '';
+            } else {
+              row.style.display = 'none';
+            }
+          });
+        });
+        
+        document.getElementById('agents-search').addEventListener('input', (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          
+          document.querySelectorAll('#agents-table-body tr').forEach(row => {
+            const email = row.querySelector('td:first-child').textContent.toLowerCase();
+            
+            if (email.includes(searchTerm)) {
+              row.style.display = '';
+            } else {
+              row.style.display = 'none';
+            }
+          });
+        });
+        
+        // Like filters
+        document.getElementById('likes-client-filter').addEventListener('change', loadLikes);
+        document.getElementById('likes-agent-filter').addEventListener('change', loadLikes);
+      }
+      
+      // Load users
+      async function loadUsers() {
+        const usersTableBody = document.getElementById('users-table-body');
+        usersTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">טוען משתמשים...</td></tr>';
+        
+        try {
+          const usersSnapshot = await db.collection('users').get();
+          
+          if (usersSnapshot.empty) {
+            usersTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">אין משתמשים</td></tr>';
+            return;
+          }
+          
+          usersTableBody.innerHTML = '';
+          
+          usersSnapshot.forEach(doc => {
+            const userData = doc.data();
+            const row = document.createElement('tr');
+            
+            // Format role
+            let roleText = '';
+            switch (userData.role) {
+              case USER_ROLES.ADMIN:
+                roleText = 'מנהל';
+                break;
+              case USER_ROLES.AGENT:
+                roleText = 'סוכן';
+                break;
+              case USER_ROLES.CLIENT:
+                roleText = 'לקוח';
+                break;
+              default:
+                roleText = userData.role || '';
+            }
+            
+            // Format date
+            let dateText = '';
+            if (userData.createdAt) {
+              const date = userData.createdAt.toDate();
+              dateText = new Date(date).toLocaleDateString('he-IL');
+            }
+            
+            row.innerHTML = `
+              <td>${userData.email || ''}</td>
+              <td>${roleText}</td>
+              <td>${dateText}</td>
+              <td>
+                <button class="btn btn-primary edit-user-btn" data-id="${doc.id}">ערוך</button>
+              </td>
+            `;
+            
+            usersTableBody.appendChild(row);
+          });
+          
+          // Add edit click handlers
+          document.querySelectorAll('.edit-user-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const userId = btn.dataset.id;
+              
+              try {
+                const userDoc = await db.collection('users').doc(userId).get();
+                
+                if (userDoc.exists) {
+                  const userData = userDoc.data();
+                  
+                  // Populate edit form
+                  document.getElementById('edit-user-id').value = userId;
+                  document.getElementById('edit-user-email').value = userData.email || '';
+                  document.getElementById('edit-user-role').value = userData.role || '';
+                  document.getElementById('edit-user-password').value = '';
+                  
+                  // Show modal
+                  document.getElementById('edit-user-modal').style.display = 'block';
+                }
+              } catch (error) {
+                console.error('Error getting user data:', error);
+                alert(`שגיאה בטעינת נתוני משתמש: ${error.message}`);
+              }
+            });
+          });
+        } catch (error) {
+          console.error('Error loading users:', error);
+          usersTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: red;">שגיאה בטעינת משתמשים: ${error.message}</td></tr>`;
+        }
+      }
+      
+      // Load clients
+      async function loadClients() {
+        const clientsTableBody = document.getElementById('clients-table-body');
+        const clientSelect = document.getElementById('client-select');
+        
+        clientsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">טוען לקוחות...</td></tr>';
+        
+        try {
+          // Clear client select except first option
+          clientSelect.innerHTML = '<option value="">-- בחר לקוח --</option>';
+          
+          const clientsSnapshot = await db.collection('clients').get();
+          
+          if (clientsSnapshot.empty) {
+            clientsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">אין לקוחות</td></tr>';
+            return;
+          }
+          
+          clientsTableBody.innerHTML = '';
+          
+          // Map of agent IDs to emails
+          const agentEmails = {};
+          const agentsSnapshot = await db.collection('users')
+            .where('role', '==', USER_ROLES.AGENT)
+            .get();
+          
+          agentsSnapshot.forEach(doc => {
+            agentEmails[doc.id] = doc.data().email;
+          });
+          
+          // Load clients with agent info
+          const clientsData = [];
+          
+          // Gather client data with related user info
+          for (const doc of clientsSnapshot.docs) {
+            const clientData = doc.data();
+            
+            // Get user info
+            let userEmail = clientData.email || '';
+            
+            // If no email, try to get from users collection
+            if (!userEmail) {
+              try {
+                const userDoc = await db.collection('users').doc(doc.id).get();
+                if (userDoc.exists) {
+                  userEmail = userDoc.data().email || '';
+                }
+              } catch (userError) {
+                console.error('Error getting user data:', userError);
+              }
+            }
+            
+            let createdDate = '';
+            if (clientData.createdAt) {
+              createdDate = new Date(clientData.createdAt.toDate()).toLocaleDateString('he-IL');
+            }
+            
+            clientsData.push({
+              id: doc.id,
+              email: userEmail,
+              agent: clientData.agentId ? (agentEmails[clientData.agentId] || 'Unknown') : '',
+              agentId: clientData.agentId || '',
+              createdDate: createdDate,
+              likes: clientData.likes || []
+            });
+            
+            // Add to client select
+            const option = document.createElement('option');
+            option.value = doc.id;
+            option.textContent = userEmail;
+            clientSelect.appendChild(option);
+          }
+          
+          // Sort by email
+          clientsData.sort((a, b) => a.email.localeCompare(b.email));
+          
+          // Display clients
+          clientsData.forEach(client => {
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+              <td>${client.email}</td>
+              <td>${client.agent || 'ללא סוכן'}</td>
+              <td>${client.createdDate || 'לא ידוע'}</td>
+              <td>${client.likes.length}</td>
+              <td>
+                <button class="btn btn-primary edit-client-btn" data-id="${client.id}">שיוך סוכן</button>
+                <button class="btn btn-danger delete-client-btn" data-id="${client.id}" data-email="${client.email}">מחק</button>
+              </td>
+            `;
+            
+            clientsTableBody.appendChild(row);
+          });
+          
+          // Add edit click handlers
+          document.querySelectorAll('.edit-client-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const clientId = btn.dataset.id;
+              document.getElementById('client-select').value = clientId;
+              
+              // Trigger change event to load client data
+              const event = new Event('change');
+              document.getElementById('client-select').dispatchEvent(event);
+              
+              // Scroll to form
+              document.querySelector('.admin-form').scrollIntoView({ behavior: 'smooth' });
+            });
+          });
+          
+          // Add delete click handlers
+          document.querySelectorAll('.delete-client-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const clientId = btn.dataset.id;
+              const clientEmail = btn.dataset.email;
+              
+              if (confirm(`האם אתה בטוח שברצונך למחוק את הלקוח ${clientEmail}?`)) {
+                try {
+                  // Check if client has user record
+                  const userDoc = await db.collection('users').doc(clientId).get();
+                  
+                  if (userDoc.exists) {
+                    // Delete user record
+                    await db.collection('users').doc(clientId).delete();
+                  }
+                  
+                  // Delete client record
+                  await db.collection('clients').doc(clientId).delete();
+                  
+                  alert(`הלקוח ${clientEmail} נמחק בהצלחה`);
+                  loadClients(); // Reload client list
+                } catch (error) {
+                  console.error('Error deleting client:', error);
+                  alert(`שגיאה במחיקת הלקוח: ${error.message}`);
+                }
+              }
+            });
+          });
+        } catch (error) {
+          console.error('Error loading clients:', error);
+          clientsTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: red;">שגיאה בטעינת לקוחות: ${error.message}</td></tr>`;
+        }
+      }
+      
+      // Load agents
+      async function loadAgents() {
+        const agentsTableBody = document.getElementById('agents-table-body');
+        
+        agentsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">טוען סוכנים...</td></tr>';
+        
+        try {
+          // Get agents
+          const agentsSnapshot = await db.collection('users')
+            .where('role', '==', USER_ROLES.AGENT)
+            .get();
+          
+          if (agentsSnapshot.empty) {
+            agentsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">אין סוכנים</td></tr>';
+            return;
+          }
+          
+          agentsTableBody.innerHTML = '';
+          
+          // For each agent, get their clients count
+          for (const doc of agentsSnapshot.docs) {
+            const agentData = doc.data();
+            
+            // Get clients for this agent
+            const clientsSnapshot = await db.collection('clients')
+              .where('agentId', '==', doc.id)
+              .get();
+            
+            const clientsCount = clientsSnapshot.size;
+            
+            // Format date
+            let dateText = '';
+            if (agentData.createdAt) {
+              const date = agentData.createdAt.toDate();
+              dateText = new Date(date).toLocaleDateString('he-IL');
+            }
+            
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+              <td>${agentData.email || ''}</td>
+              <td>${clientsCount}</td>
+              <td>${dateText}</td>
+              <td>
+                <button class="btn btn-primary view-agent-clients-btn" data-id="${doc.id}">לקוחות הסוכן</button>
+              </td>
+            `;
+            
+            agentsTableBody.appendChild(row);
+          }
+          
+          // Add view clients click handlers
+          document.querySelectorAll('.view-agent-clients-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const agentId = btn.dataset.id;
+              
+              try {
+                const clientsSnapshot = await db.collection('clients')
+                  .where('agentId', '==', agentId)
+                  .get();
+                
+                const clientEmails = [];
+                
+                clientsSnapshot.forEach(doc => {
+                  const clientData = doc.data();
+                  clientEmails.push(clientData.email || 'Unknown');
+                });
+                
+                if (clientEmails.length > 0) {
+                  alert(`לקוחות הסוכן:\n${clientEmails.join('\n')}`);
+                } else {
+                  alert('אין לקוחות לסוכן זה');
+                }
+              } catch (error) {
+                console.error('Error getting agent clients:', error);
+                alert(`שגיאה בטעינת לקוחות הסוכן: ${error.message}`);
+              }
+            });
+          });
+        } catch (error) {
+          console.error('Error loading agents:', error);
+          agentsTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: red;">שגיאה בטעינת סוכנים: ${error.message}</td></tr>`;
+        }
+      }
+      
+      // Load registration requests
+      async function loadRegistrationRequests() {
+        const registrationTableBody = document.getElementById('registration-table-body');
+        
+        registrationTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">טוען בקשות הרשמה...</td></tr>';
+        
+        try {
+          const requestsSnapshot = await db.collection('registrationRequests')
+            .orderBy('createdAt', 'desc')
+            .get();
+          
+          if (requestsSnapshot.empty) {
+            registrationTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">אין בקשות הרשמה</td></tr>';
+            return;
+          }
+          
+          registrationTableBody.innerHTML = '';
+          
+          requestsSnapshot.forEach(doc => {
+            const requestData = doc.data();
+            
+            // Format role
+            let roleText = '';
+            switch (requestData.requestedRole) {
+              case USER_ROLES.ADMIN:
+                roleText = 'מנהל';
+                break;
+              case USER_ROLES.AGENT:
+                roleText = 'סוכן';
+                break;
+              case USER_ROLES.CLIENT:
+                roleText = 'לקוח';
+                break;
+              default:
+                roleText = requestData.requestedRole || '';
+            }
+            
+            // Format status
+            let statusText = '';
+            let statusClass = '';
+            switch (requestData.status) {
+              case 'approved':
+                statusText = 'אושר';
+                statusClass = 'badge-success';
+                break;
+              case 'rejected':
+                statusText = 'נדחה';
+                statusClass = 'badge-danger';
+                break;
+              case 'pending':
+              default:
+                statusText = 'ממתין';
+                statusClass = 'badge-warning';
+            }
+            
+            // Format date
+            let dateText = '';
+            if (requestData.createdAt) {
+              const date = requestData.createdAt.toDate();
+              dateText = new Date(date).toLocaleDateString('he-IL');
+            }
+            
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+              <td>${requestData.name || ''}</td>
+              <td>${requestData.email || ''}</td>
+              <td>${roleText}</td>
+              <td><span class="badge ${statusClass}">${statusText}</span></td>
+              <td>${dateText}</td>
+              <td>
+                ${requestData.status === 'pending' ? `
+                  <button class="btn btn-success approve-request-btn" data-id="${doc.id}">אשר</button>
+                  <button class="btn btn-danger reject-request-btn" data-id="${doc.id}">דחה</button>
+                ` : ''}
+              </td>
+            `;
+            
+            registrationTableBody.appendChild(row);
+          });
+          
+          // Add approve click handlers
+          document.querySelectorAll('.approve-request-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const requestId = btn.dataset.id;
+              
+              try {
+                const requestDoc = await db.collection('registrationRequests').doc(requestId).get();
+                
+                if (requestDoc.exists) {
+                  const requestData = requestDoc.data();
+                  
+                  if (confirm(`האם לאשר את בקשת ההרשמה של ${requestData.name} (${requestData.email})?`)) {
+                    // Create user in Firebase Authentication
+                    const userCredential = await firebase.auth().createUserWithEmailAndPassword(
+                      requestData.email, 
+                      requestData.password
+                    );
+                    const newUser = userCredential.user;
+                    
+                    // Create user document in Firestore
+                    await db.collection('users').doc(newUser.uid).set({
+                      email: requestData.email,
+                      role: requestData.requestedRole,
+                      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    // Create additional documents based on role
+                    if (requestData.requestedRole === USER_ROLES.CLIENT) {
+                      await db.collection('clients').doc(newUser.uid).set({
+                        email: requestData.email,
+                        allowedBrands: [],
+                        likes: [],
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                      });
+                    } else if (requestData.requestedRole === USER_ROLES.AGENT) {
+                      await db.collection('agents').doc(newUser.uid).set({
+                        email: requestData.email,
+                        clients: [],
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                      });
+                      
+                      // Agents also get a client record for their own likes
+                      await db.collection('clients').doc(newUser.uid).set({
+                        email: requestData.email,
+                        allowedBrands: [],
+                        likes: [],
+                        agentId: newUser.uid, // Agents are their own agents
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                      });
+                    }
+                    
+                    // Update request status
+                    await db.collection('registrationRequests').doc(requestId).update({
+                      status: 'approved',
+                      approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                      approvedBy: auth.currentUser.uid
+                    });
+                    
+                    alert(`בקשת ההרשמה אושרה ונוצר משתמש: ${requestData.email}`);
+                    loadRegistrationRequests();
+                  }
+                }
+              } catch (error) {
+                console.error('Error approving registration request:', error);
+                alert(`שגיאה באישור בקשת הרשמה: ${error.message}`);
+              }
+            });
+          });
+          
+          // Add reject click handlers
+          document.querySelectorAll('.reject-request-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const requestId = btn.dataset.id;
+              
+              try {
+                const requestDoc = await db.collection('registrationRequests').doc(requestId).get();
+                
+                if (requestDoc.exists) {
+                  const requestData = requestDoc.data();
+                  
+                  if (confirm(`האם לדחות את בקשת ההרשמה של ${requestData.name} (${requestData.email})?`)) {
+                    // Update request status
+                    await db.collection('registrationRequests').doc(requestId).update({
+                      status: 'rejected',
+                      rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                      rejectedBy: auth.currentUser.uid
+                    });
+                    
+                    alert(`בקשת ההרשמה נדחתה`);
+                    loadRegistrationRequests();
+                  }
+                }
+              } catch (error) {
+                console.error('Error rejecting registration request:', error);
+                alert(`שגיאה בדחיית בקשת הרשמה: ${error.message}`);
+              }
+            });
+          });
+        } catch (error) {
+          console.error('Error loading registration requests:', error);
+          registrationTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">שגיאה בטעינת בקשות הרשמה: ${error.message}</td></tr>`;
+        }
+      }
+      
+      // Load likes
+      async function loadLikes() {
+        const likesDashboard = document.getElementById('likes-dashboard');
+        
+        if (!likesDashboard) {
+          console.error('Likes dashboard element not found');
+          return;
+        }
+        
+        likesDashboard.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">טוען מועדפים...</div>';
+        
+        // Ensure client filter is populated
+        await loadClientsForLikesFilter();
+        
+        // After populating, get the values
+        const clientFilter = document.getElementById('likes-client-filter')?.value || '';
+        const agentFilter = document.getElementById('likes-agent-filter')?.value || '';
+        
+        try {
+          // Build query based on filters
+          let clientsQuery = db.collection('clients');
+          
+          if (agentFilter) {
+            clientsQuery = clientsQuery.where('agentId', '==', agentFilter);
+          }
+          
+          if (clientFilter) {
+            // Specific client filter
+            clientsQuery = db.collection('clients').where(firebase.firestore.FieldPath.documentId(), '==', clientFilter);
+          }
+          
+          const clientsSnapshot = await clientsQuery.get();
+          
+          if (clientsSnapshot.empty) {
+            likesDashboard.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">לא נמצאו לקוחות</div>';
+            return;
+          }
+          
+          // Get all liked products
+          const allLikes = [];
+          const clientsMap = {};
+          
+          clientsSnapshot.forEach(doc => {
+            const clientData = doc.data();
+            const likes = clientData.likes || [];
+            
+            clientsMap[doc.id] = clientData.email || 'Unknown';
+            
+            likes.forEach(barcode => {
+              allLikes.push({
+                barcode,
+                clientId: doc.id,
+                clientEmail: clientData.email || 'Unknown'
+              });
+            });
+          });
+          
+          if (allLikes.length === 0) {
+            likesDashboard.innerHTML = '<div style="text-align: center; grid-column: 1 / -1;">לא נמצאו מוצרים מועדפים</div>';
+            return;
+          }
+          
+          // Clear dashboard
+          likesDashboard.innerHTML = '';
+          
+          // Group likes by barcode
+          const groupedLikes = {};
+          
+          allLikes.forEach(like => {
+            if (!groupedLikes[like.barcode]) {
+              groupedLikes[like.barcode] = {
+                barcode: like.barcode,
+                clients: []
+              };
+            }
+            
+            groupedLikes[like.barcode].clients.push({
+              id: like.clientId,
+              email: like.clientEmail
+            });
+          });
+          
+          // Create product cards
+          Object.values(groupedLikes).forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'like-card';
+            
+            card.innerHTML = `
+              <img src="tl/${product.barcode}.jpg" alt="Product" class="like-image" onerror="if(this.src.includes('tl/')){ this.src='media/${product.barcode}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.style.opacity='0.5'; }">
+              <div class="like-info">
+                <div class="like-title">מק"ט: ${product.barcode}</div>
+                <div class="like-details">מספר לקוחות: ${product.clients.length}</div>
+                <div class="like-client">${product.clients.map(c => c.email).join(', ')}</div>
+              </div>
+            `;
+            
+            likesDashboard.appendChild(card);
+          });
+        } catch (error) {
+          console.error('Error loading likes:', error);
+          likesDashboard.innerHTML = `<div style="text-align: center; grid-column: 1 / -1; color: red;">שגיאה בטעינת מועדפים: ${error.message}</div>`;
+        }
+      }
+      
+      // Load agents for select
+      async function loadAgentsForSelect() {
+        const agentSelect = document.getElementById('client-agent');
+        const likesAgentFilter = document.getElementById('likes-agent-filter');
+        
+        try {
+          // Clear agent select except first option
+          agentSelect.innerHTML = '<option value="">-- ללא סוכן --</option>';
+          
+          // Clear likes agent filter except first option
+          likesAgentFilter.innerHTML = '<option value="">כל הסוכנים</option>';
+          
+          const agentsSnapshot = await db.collection('users')
+            .where('role', '==', USER_ROLES.AGENT)
+            .get();
+          
+          if (agentsSnapshot.empty) {
+            return;
+          }
+          
+          agentsSnapshot.forEach(doc => {
+            const agentData = doc.data();
+            
+            // Add to agent select
+            const option = document.createElement('option');
+            option.value = doc.id;
+            option.textContent = agentData.email || doc.id;
+            agentSelect.appendChild(option);
+            
+            // Add to likes agent filter
+            const filterOption = document.createElement('option');
+            filterOption.value = doc.id;
+            filterOption.textContent = agentData.email || doc.id;
+            likesAgentFilter.appendChild(filterOption);
+          });
+        } catch (error) {
+          console.error('Error loading agents for select:', error);
+        }
+      }
+      
+      // Load brands for multiselect from all API sources
+      async function loadBrandsForMultiselect() {
+        // These elements may not exist anymore, so check before accessing
+        const brandsCheckboxList = document.getElementById('brands-checkbox-list');
+        const brandsFilter = document.getElementById('brands-filter');
+        const selectAllCheckbox = document.getElementById('select-all-brands');
+        
+        // First load clients for likes filter (which still exists)
+        try {
+          await loadClientsForLikesFilter();
+        } catch (error) {
+          console.error('Error loading clients for likes filter:', error);
+        }
+        
+        // If the multiselect elements don't exist, return early
+        if (!brandsCheckboxList || !brandsFilter || !selectAllCheckbox) {
+          console.log('Multiselect elements not found, skipping brands load');
+          return;
+        }
+        
+        // Show loading state
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'multiselect-loading';
+        loadingDiv.innerHTML = '<div class="spinner"></div> טוען לקוחות...';
+        loadingDiv.style.gridColumn = '1 / -1';
+        loadingDiv.style.textAlign = 'center';
+        loadingDiv.style.padding = '20px';
+        
+        // Clear existing content except filter and select all
+        const existingFilter = brandsCheckboxList.querySelector('.multiselect-filter');
+        const existingSelectAll = brandsCheckboxList.querySelector('.multiselect-select-all');
+        brandsCheckboxList.innerHTML = '';
+        brandsCheckboxList.appendChild(existingFilter);
+        brandsCheckboxList.appendChild(existingSelectAll);
+        brandsCheckboxList.appendChild(loadingDiv);
+        
+        try {
+          // Define all CSV URLs
+          const CSV_URLS = {
+            brands: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbLyJcDTPOjBtcGOSKUXYuKn5U8_sRF_KOSgFwiyPoeO3YazAxOhXXVCSK7M94-yxyO7j1fr5J3ou_/pub?output=csv',
+            alcohol: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGNZzh1kbP8nYSiVNDDsd198zJoo6725-WKPz7YUE-lVWXkdjn0r97SJAEOttnLoqAH5PSJRbDbRiB/pub?output=csv',
+            wine: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRkUmKUxQGkMSoLEhfkgdXBU6KGDDea6Z8crHPVeFEsYajhCUmSQevyTL_9WucAyhw2UnDfoFQXURCB/pub?output=csv',
+            beer: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGFPOHiYkWGPDASiBePqXkbxoikcLYiFAz1RobyVTlX2-dj71jMSCCFLgrNXOjFpOZYwS7MHCD6IrU/pub?output=csv',
+            food: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5zrZyn-cmKHuk3H-nI4QG9NDJFvB-q3MjjdIUuQfk_lhtQPzTeovn_kAz46o2PnuH_aZ8Mq1zteFD/pub?output=csv',
+            whiskey: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSnSgqeW3W-2vKiqPwsBLpOE9vamrHELbgZCNHDYv6bGGYPnkhp44KzYvbly7qCLq3E_Rgu2VyYKMGY/pub?output=csv'
+          };
+          
+          // Function to extract client column names from CSV
+          const extractClientColumns = async (url) => {
+            try {
+              const response = await fetch(url);
+              
+              if (!response.ok) {
+                console.warn(`Error loading CSV from ${url}:`, response.status);
+                return [];
+              }
+              
+              const text = await response.text();
+              const lines = text.split('\n');
+              
+              if (lines.length === 0) {
+                return [];
+              }
+              
+              // Get header row and find columns that could be client names
+              const headers = lines[0].split(',');
+              
+              // For each product row, check if any column contains "TRUE" values
+              // These are likely client columns
+              const clientColumns = new Set();
+              
+              for (let i = 1; i < Math.min(lines.length, 20); i++) { // Check first 20 rows at most
+                if (!lines[i].trim()) continue;
+                
+                const values = lines[i].split(',');
+                
+                headers.forEach((header, index) => {
+                  const value = values[index];
+                  if (value && (value.trim().toUpperCase() === 'TRUE' || value.trim().toUpperCase() === '"TRUE"')) {
+                    clientColumns.add(header.trim().replace(/^"|"$/g, ''));
+                  }
+                });
+              }
+              
+              return Array.from(clientColumns);
+            } catch (error) {
+              console.warn(`Error extracting client columns from ${url}:`, error);
+              return [];
+            }
+          };
+          
+          // Collect client names from the main brands CSV
+          let allBrands = new Set();
+          
+          // Step 1: Start with the primary brands list
+          try {
+            const response = await fetch(CSV_URLS.brands);
+            
+            if (response.ok) {
+              const text = await response.text();
+              const brands = text.split('\n')
+                .filter(line => line.trim())
+                .map(line => line.trim());
+              
+              brands.forEach(brand => allBrands.add(brand));
+            }
+          } catch (error) {
+            console.warn('Error loading primary brands list:', error);
+          }
+          
+          // Step 2: Extract client columns from all product CSVs
+          const productCSVs = ['alcohol', 'wine', 'beer', 'food', 'whiskey'];
+          const extractPromises = productCSVs.map(key => extractClientColumns(CSV_URLS[key]));
+          const clientColumnsArrays = await Promise.all(extractPromises);
+          
+          // Combine all client columns from all CSVs
+          clientColumnsArrays.forEach(columns => {
+            columns.forEach(column => allBrands.add(column));
+          });
+          
+          // Convert Set to sorted array
+          const sortedBrands = Array.from(allBrands).sort((a, b) => 
+            a.localeCompare(b, 'he-IL')
+          );
+          
+          if (sortedBrands.length === 0) {
+            brandsCheckboxList.removeChild(loadingDiv);
+            const noDataDiv = document.createElement('div');
+            noDataDiv.style.gridColumn = '1 / -1';
+            noDataDiv.style.textAlign = 'center';
+            noDataDiv.textContent = 'לא נמצאו לקוחות';
+            brandsCheckboxList.appendChild(noDataDiv);
+            return;
+          }
+          
+          // Remove loading indicator
+          brandsCheckboxList.removeChild(loadingDiv);
+          
+          // Add brands as checkboxes
+          sortedBrands.forEach(brand => {
+            const option = document.createElement('div');
+            option.className = 'multiselect-option';
+            
+            const id = `brand-${brand.replace(/[^a-zA-Z0-9א-ת]/g, '-')}`;
+            
+            option.innerHTML = `
+              <input type="checkbox" class="multiselect-checkbox" value="${brand}" id="${id}">
+              <label for="${id}" title="${brand}">${brand}</label>
+            `;
+            
+            brandsCheckboxList.appendChild(option);
+          });
+          
+          // Add filter functionality
+          brandsFilter.addEventListener('input', () => {
+            const filterValue = brandsFilter.value.toLowerCase();
+            
+            document.querySelectorAll('.multiselect-option').forEach(option => {
+              if (option.closest('.multiselect-select-all')) return; // Skip select all row
+              
+              const label = option.querySelector('label');
+              const brandName = label.textContent.toLowerCase();
+              
+              if (brandName.includes(filterValue)) {
+                option.style.display = '';
+              } else {
+                option.style.display = 'none';
+              }
+            });
+          });
+          
+          // Add select all functionality
+          selectAllCheckbox.addEventListener('change', () => {
+            const isChecked = selectAllCheckbox.checked;
+            
+            // Only affect visible checkboxes (respecting filter)
+            document.querySelectorAll('.multiselect-option:not([style*="display: none"]) .multiselect-checkbox').forEach(checkbox => {
+              checkbox.checked = isChecked;
+            });
+          });
+          
+          // Update select all state when individual checkboxes change
+          document.querySelectorAll('.multiselect-checkbox').forEach(checkbox => {
+            if (checkbox.id === 'select-all-brands') return; // Skip select all checkbox
+            
+            checkbox.addEventListener('change', updateSelectAllState);
+          });
+          
+          // Function to update select all checkbox state
+          function updateSelectAllState() {
+            const visibleCheckboxes = Array.from(
+              document.querySelectorAll('.multiselect-option:not([style*="display: none"]) .multiselect-checkbox')
+            ).filter(cb => cb.id !== 'select-all-brands');
+            
+            const allChecked = visibleCheckboxes.every(cb => cb.checked);
+            const someChecked = visibleCheckboxes.some(cb => cb.checked);
+            
+            selectAllCheckbox.checked = allChecked;
+            selectAllCheckbox.indeterminate = someChecked && !allChecked;
+          }
+          
+          // Client loading is now handled by loadClientsForLikesFilter() function
+        } catch (error) {
+          console.error('Error loading brands for multiselect:', error);
+          brandsDropdown.innerHTML = '<div class="multiselect-option">שגיאה בטעינת לקוחות</div>';
+        }
+      }
+      
+      // Load agents for user form
+      async function loadAgentsForUserForm() {
+        const agentSelect = document.getElementById('user-agent');
+        if (!agentSelect) return;
+        
+        // Keep only the first option (empty)
+        agentSelect.innerHTML = '<option value="">-- ללא סוכן --</option>';
+        
+        try {
+          const agentsSnapshot = await db.collection('users')
+            .where('role', '==', USER_ROLES.AGENT)
+            .get();
+          
+          if (agentsSnapshot.empty) {
+            return;
+          }
+          
+          const agentsData = [];
+          
+          agentsSnapshot.forEach(doc => {
+            const agentData = doc.data();
+            agentsData.push({
+              id: doc.id,
+              email: agentData.email || doc.id
+            });
+          });
+          
+          // Sort by email
+          agentsData.sort((a, b) => a.email.localeCompare(b.email));
+          
+          // Add options to select
+          agentsData.forEach(agent => {
+            const option = document.createElement('option');
+            option.value = agent.id;
+            option.textContent = agent.email;
+            agentSelect.appendChild(option);
+          });
+          
+        } catch (error) {
+          console.error('Error loading agents for user form:', error);
+        }
+      }
+      
+      // Load clients for likes filter
+      async function loadClientsForLikesFilter() {
+        const likesClientFilter = document.getElementById('likes-client-filter');
+        if (!likesClientFilter) {
+          console.log('Likes client filter element not found');
+          return;
+        }
+        
+        likesClientFilter.innerHTML = '<option value="">כל הלקוחות</option>';
+        
+        try {
+          const clientsSnapshot = await db.collection('clients').get();
+          
+          if (!clientsSnapshot.empty) {
+            const clientsData = [];
+            
+            for (const doc of clientsSnapshot.docs) {
+              const clientData = doc.data();
+              
+              // Get user info
+              let userEmail = clientData.email || '';
+              
+              // If no email, try to get from users collection
+              if (!userEmail) {
+                try {
+                  const userDoc = await db.collection('users').doc(doc.id).get();
+                  if (userDoc.exists) {
+                    userEmail = userDoc.data().email || '';
+                  }
+                } catch (userError) {
+                  console.error('Error getting user data:', userError);
+                }
+              }
+              
+              if (userEmail) {
+                clientsData.push({
+                  id: doc.id,
+                  email: userEmail
+                });
+              }
+            }
+            
+            // Sort by email
+            clientsData.sort((a, b) => a.email.localeCompare(b.email));
+            
+            // Add to select
+            clientsData.forEach(client => {
+              const option = document.createElement('option');
+              option.value = client.id;
+              option.textContent = client.email;
+              likesClientFilter.appendChild(option);
+            });
+            
+            console.log('Loaded', clientsData.length, 'clients for likes filter');
+          } else {
+            console.log('No clients found');
+          }
+        } catch (error) {
+          console.error('Error loading clients for likes filter:', error);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
