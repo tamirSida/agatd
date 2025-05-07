@@ -103,6 +103,8 @@
     .form-row {
       display: flex;
       margin-bottom: 15px;
+      width: 100%;
+      flex-wrap: wrap;
     }
     
     .form-group {
@@ -126,6 +128,37 @@
       padding: 8px;
       border: 1px solid #ddd;
       border-radius: 4px;
+      max-width: 100%;
+      text-overflow: ellipsis;
+    }
+    
+    /* Ensure dropdowns have proper width and text handling */
+    select {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      min-width: 200px;
+      max-width: 100%;
+      direction: rtl;
+      text-align: right;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+      background-repeat: no-repeat;
+      background-position: left 5px center;
+      background-size: 16px;
+      padding-left: 25px;
+    }
+    
+    /* Fix for agent assignment row specific alignment */
+    #agent-assignment-row .form-group {
+      width: 100%;
+    }
+    
+    #user-agent {
+      width: 100%;
     }
     
     .form-actions {
@@ -461,9 +494,9 @@
               </div>
             </div>
             <div class="form-row" id="agent-assignment-row" style="display: none;">
-              <div class="form-group">
+              <div class="form-group" style="width: 100%;">
                 <label for="user-agent">סוכן מטפל</label>
-                <select id="user-agent">
+                <select id="user-agent" style="width: 100%;">
                   <option value="">-- ללא סוכן --</option>
                   <!-- Will be populated by JavaScript -->
                 </select>
@@ -780,11 +813,17 @@
         const roleSelect = document.getElementById('user-role');
         const agentAssignmentRow = document.getElementById('agent-assignment-row');
         
+        // Load agents only once at initialization
+        let agentsLoaded = false;
+        
         roleSelect.addEventListener('change', function() {
           if (this.value === 'client') {
             agentAssignmentRow.style.display = '';
-            // Load agents into the dropdown
-            loadAgentsForUserForm();
+            // Load agents into the dropdown if not already loaded
+            if (!agentsLoaded) {
+              loadAgentsForUserForm();
+              agentsLoaded = true;
+            }
           } else {
             agentAssignmentRow.style.display = 'none';
           }
@@ -793,15 +832,15 @@
         // Show agent selection row initially if client role is selected by default
         if (roleSelect.value === 'client') {
           agentAssignmentRow.style.display = '';
-          // Load agents into the dropdown
-          loadAgentsForUserForm();
         }
         
         // Load initial data for active tab
         const activeTab = document.querySelector('.admin-tab.active').dataset.tab;
         if (activeTab === 'users') {
           loadUsers();
-          loadAgentsForUserForm(); // Pre-load agents for the form
+          // Pre-load agents for the form once
+          loadAgentsForUserForm();
+          agentsLoaded = true;
         } else if (activeTab === 'clients') {
           loadClients();
           loadAgentsForSelect();
@@ -2152,7 +2191,9 @@
         const agentSelect = document.getElementById('user-agent');
         if (!agentSelect) return;
         
-        // Keep only the first option (empty)
+        console.log('Loading agents for user form');
+        
+        // Reset dropdown content
         agentSelect.innerHTML = '<option value="">-- ללא סוכן --</option>';
         
         try {
@@ -2161,6 +2202,7 @@
             .get();
           
           if (agentsSnapshot.empty) {
+            console.log('No agents found');
             return;
           }
           
@@ -2177,11 +2219,26 @@
           // Sort by email
           agentsData.sort((a, b) => a.email.localeCompare(b.email));
           
+          console.log(`Found ${agentsData.length} agents`);
+          
           // Add options to select
           agentsData.forEach(agent => {
             const option = document.createElement('option');
             option.value = agent.id;
-            option.textContent = agent.email;
+            
+            // For very long email addresses, truncate for display
+            const emailText = agent.email;
+            const maxLength = 30;
+            
+            if (emailText.length > maxLength) {
+              const firstPart = emailText.substring(0, 15);
+              const lastPart = emailText.substring(emailText.length - 15);
+              option.textContent = `${firstPart}...${lastPart}`;
+              option.title = emailText; // Show full email on hover
+            } else {
+              option.textContent = emailText;
+            }
+            
             agentSelect.appendChild(option);
           });
           
