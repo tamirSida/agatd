@@ -790,6 +790,13 @@
           }
         });
         
+        // Show agent selection row initially if client role is selected by default
+        if (roleSelect.value === 'client') {
+          agentAssignmentRow.style.display = '';
+          // Load agents into the dropdown
+          loadAgentsForUserForm();
+        }
+        
         // Load initial data for active tab
         const activeTab = document.querySelector('.admin-tab.active').dataset.tab;
         if (activeTab === 'users') {
@@ -816,75 +823,176 @@
           const role = document.getElementById('user-role').value;
           
           try {
-            // Create user in Firebase Authentication
-            const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-            const newUser = userCredential.user;
-            
-            // Create user document in Firestore
-            await db.collection('users').doc(newUser.uid).set({
-              email: email,
-              role: role,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            // Create additional documents based on role
+            // Validate that clients have an agent assigned
             if (role === USER_ROLES.CLIENT) {
-              // Check if an agent was selected
               const selectedAgentId = document.getElementById('user-agent').value;
-              
-              // Create client document with or without agent
-              const clientData = {
-                email: email,
-                allowedBrands: [],
-                likes: [],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              };
-              
-              // Add agent ID if one was selected
-              if (selectedAgentId) {
-                clientData.agentId = selectedAgentId;
-                
-                // Also update the agent's client list
-                await db.collection('agents').doc(selectedAgentId).update({
-                  clients: firebase.firestore.FieldValue.arrayUnion(newUser.uid)
-                }).catch(error => {
-                  console.error('Error updating agent\'s client list:', error);
-                  // Continue even if this fails
-                });
+              if (!selectedAgentId) {
+                alert('חובה לבחור סוכן עבור לקוח חדש');
+                return;
               }
-              
-              await db.collection('clients').doc(newUser.uid).set(clientData);
-            } else if (role === USER_ROLES.AGENT) {
-              await db.collection('agents').doc(newUser.uid).set({
-                email: email,
-                clients: [],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-              
-              // Agents also get a client record for their own likes
-              await db.collection('clients').doc(newUser.uid).set({
-                email: email,
-                allowedBrands: [],
-                likes: [],
-                agentId: newUser.uid, // Agents are their own agents
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-            } else if (role === USER_ROLES.ADMIN) {
-              // Admins also get a client record for their own likes
-              await db.collection('clients').doc(newUser.uid).set({
-                email: email,
-                allowedBrands: [],
-                likes: [],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
             }
             
-            alert(`נוצר משתמש חדש: ${email}`);
-            document.getElementById('add-user-form').reset();
-            loadUsers();
+            // Show loading indicator
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.textContent;
+            submitButton.innerHTML = '<span class="spinner"></span> יוצר משתמש...';
+            submitButton.disabled = true;
+            
+            // Create new user - we'll create the user using the Admin SDK
+            let newUserCredential = null;
+            let newUserUid = '';
+            
+            try {
+              // Create new user using Firebase Auth REST API
+              // Store the current user for re-authentication
+              const adminUser = auth.currentUser;
+              
+              if (!adminUser) {
+                alert('אתה לא מחובר כמנהל. אנא התחבר מחדש.');
+                window.location.href = 'login.html';
+                return;
+              }
+              
+              // Get a fresh ID token for the admin
+              const adminIdToken = await adminUser.getIdToken(true);
+              
+              // Use the Firebase Auth REST API to create a new user without affecting the current session
+              const createUserEndpoint = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseConfig.apiKey}`;
+              const response = await fetch(createUserEndpoint, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  email: email,
+                  password: password,
+                  returnSecureToken: true
+                })
+              });
+              
+              const responseData = await response.json();
+              
+              if (response.ok) {
+                newUserUid = responseData.localId;
+                console.log('Created new user with UID:', newUserUid);
+              } else {
+                throw new Error(responseData.error?.message || 'שגיאה ביצירת משתמש');
+              }
+            } catch (authError) {
+              console.error('Authentication error during user creation:', authError);
+              alert(`שגיאה ביצירת משתמש: ${authError.message}`);
+              
+              // Reset button state
+              submitButton.innerHTML = originalButtonText;
+              submitButton.disabled = false;
+              return;
+            }
+            
+            if (!newUserUid) {
+              alert('שגיאה ביצירת משתמש - לא התקבל מזהה משתמש');
+              
+              // Reset button state
+              submitButton.innerHTML = originalButtonText;
+              submitButton.disabled = false;
+              return;
+            }
+            
+            try {
+              // Create all necessary Firestore documents based on user role
+              // 1. First create the base user document
+              console.log('Creating user document in Firestore with ID:', newUserUid);
+              await db.collection('users').doc(newUserUid).set({
+                email: email,
+                role: role,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              console.log('User document created successfully in Firestore');
+              
+              // 2. Create additional documents based on role
+              if (role === USER_ROLES.CLIENT) {
+                // Client role - must have an agent
+                const selectedAgentId = document.getElementById('user-agent').value;
+                
+                // Create client document with agent
+                const clientData = {
+                  email: email,
+                  allowedBrands: [],
+                  likes: [],
+                  agentId: selectedAgentId,
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                // Create client document first
+                console.log('Creating client document with ID:', newUserUid);
+                await db.collection('clients').doc(newUserUid).set(clientData);
+                console.log('Client document created successfully');
+                
+                // Then update agent's client list
+                console.log('Updating agent document with ID:', selectedAgentId);
+                await db.collection('agents').doc(selectedAgentId).update({
+                  clients: firebase.firestore.FieldValue.arrayUnion(newUserUid)
+                });
+                console.log('Agent document updated successfully');
+              } else if (role === USER_ROLES.AGENT) {
+                // Agent role - create agent document
+                console.log('Creating agent document with ID:', newUserUid);
+                await db.collection('agents').doc(newUserUid).set({
+                  email: email,
+                  clients: [],
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('Agent document created successfully');
+                
+                // Agents also get a client record for their own likes
+                console.log('Creating client document for agent with ID:', newUserUid);
+                await db.collection('clients').doc(newUserUid).set({
+                  email: email,
+                  allowedBrands: [],
+                  likes: [],
+                  agentId: newUserUid, // Agents are their own agents
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('Client document for agent created successfully');
+              } else if (role === USER_ROLES.ADMIN) {
+                // Admin role - create client record for likes
+                console.log('Creating client document for admin with ID:', newUserUid);
+                await db.collection('clients').doc(newUserUid).set({
+                  email: email,
+                  allowedBrands: [],
+                  likes: [],
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('Client document for admin created successfully');
+              }
+              
+              // Reset form and show success message
+              document.getElementById('add-user-form').reset();
+              alert(`המשתמש ${email} נוצר בהצלחה!`);
+              
+              // Reset button state
+              submitButton.innerHTML = originalButtonText;
+              submitButton.disabled = false;
+              
+              // Refresh user list
+              loadUsers();
+            } catch (firestoreError) {
+              console.error('Error creating Firestore documents:', firestoreError);
+              alert(`המשתמש נוצר באימות Firebase, אך התרחשה שגיאה ביצירת המסמכים ב-Firestore: ${firestoreError.message}`);
+              
+              // Reset button state
+              submitButton.innerHTML = originalButtonText;
+              submitButton.disabled = false;
+            }
           } catch (error) {
-            console.error('Error creating user:', error);
+            console.error('Error in user creation process:', error);
             alert(`שגיאה ביצירת משתמש: ${error.message}`);
+            
+            // Reset button state if it exists
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            if (submitButton) {
+              submitButton.innerHTML = originalButtonText || 'הוסף משתמש';
+              submitButton.disabled = false;
+            }
           }
         });
         
@@ -2136,6 +2244,576 @@
           }
         } catch (error) {
           console.error('Error loading clients for likes filter:', error);
+        }
+      }
+      
+      // Load agents for recovery form
+      async function loadAgentsForRecoveryForm() {
+        const missingUserAgent = document.getElementById('missing-user-agent');
+        if (!missingUserAgent) return;
+        
+        // Keep only the first option (empty)
+        missingUserAgent.innerHTML = '<option value="">-- ללא סוכן --</option>';
+        
+        try {
+          const agentsSnapshot = await db.collection('users')
+            .where('role', '==', USER_ROLES.AGENT)
+            .get();
+          
+          if (agentsSnapshot.empty) {
+            return;
+          }
+          
+          const agentsData = [];
+          
+          agentsSnapshot.forEach(doc => {
+            const agentData = doc.data();
+            agentsData.push({
+              id: doc.id,
+              email: agentData.email || doc.id
+            });
+          });
+          
+          // Sort by email
+          agentsData.sort((a, b) => a.email.localeCompare(b.email));
+          
+          // Add options to select
+          agentsData.forEach(agent => {
+            const option = document.createElement('option');
+            option.value = agent.id;
+            option.textContent = agent.email;
+            missingUserAgent.appendChild(option);
+          });
+          
+        } catch (error) {
+          console.error('Error loading agents for recovery form:', error);
+        }
+      }
+      
+      // Setup recovery functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        // Check if elements exist (they might not be loaded yet when this runs)
+        const checkBtn = document.getElementById('check-missing-user-btn');
+        const recoverBtn = document.getElementById('recover-missing-user-btn');
+        const scanBtn = document.getElementById('scan-all-users-btn');
+        
+        if (checkBtn) {
+          checkBtn.addEventListener('click', checkMissingUser);
+        }
+        
+        if (recoverBtn) {
+          recoverBtn.addEventListener('click', recoverMissingUser);
+        }
+        
+        if (scanBtn) {
+          scanBtn.addEventListener('click', scanAllUsers);
+        }
+      });
+      
+      // Function to check if a user exists in Auth but not in Firestore
+      async function checkMissingUser() {
+        const email = document.getElementById('missing-user-email').value;
+        const resultsDiv = document.getElementById('recovery-results');
+        const statusDiv = document.getElementById('recovery-status');
+        const recoverBtn = document.getElementById('recover-missing-user-btn');
+        
+        if (!email) {
+          alert('נא להזין אימייל לבדיקה');
+          return;
+        }
+        
+        statusDiv.style.display = 'block';
+        resultsDiv.innerHTML = '<div style="text-align: center;"><div class="spinner"></div> בודק משתמש...</div>';
+        recoverBtn.disabled = true;
+        
+        try {
+          // First check if user exists in Authentication
+          const signInMethods = await firebase.auth().fetchSignInMethodsForEmail(email);
+          const userExistsInAuth = signInMethods && signInMethods.length > 0;
+          
+          if (!userExistsInAuth) {
+            resultsDiv.innerHTML = `<p style="color: red;">המשתמש ${email} לא נמצא במערכת האימות.</p>`;
+            return;
+          }
+          
+          // Check if user exists in Firestore users collection
+          const usersSnapshot = await db.collection('users')
+            .where('email', '==', email)
+            .get();
+          
+          const userExistsInFirestore = !usersSnapshot.empty;
+          let userId = null;
+          
+          if (userExistsInFirestore) {
+            userId = usersSnapshot.docs[0].id;
+            
+            // Check if user has the corresponding role-specific documents
+            const userDoc = usersSnapshot.docs[0];
+            const userData = userDoc.data();
+            const userRole = userData.role;
+            
+            if (userRole === USER_ROLES.CLIENT) {
+              const clientDoc = await db.collection('clients').doc(userId).get();
+              if (clientDoc.exists) {
+                resultsDiv.innerHTML = `
+                  <p style="color: green;">המשתמש ${email} קיים במערכת האימות ובמסד הנתונים.</p>
+                  <p>תפקיד: לקוח</p>
+                  <p>כל המסמכים הנדרשים קיימים.</p>
+                `;
+                return;
+              } else {
+                resultsDiv.innerHTML = `
+                  <p style="color: orange;">המשתמש ${email} קיים במערכת האימות ובאוסף 'users', אך מסמך הלקוח שלו חסר.</p>
+                  <p>תפקיד: לקוח</p>
+                  <p>נדרש להוסיף מסמך לקוח.</p>
+                `;
+                recoverBtn.disabled = false;
+                window.missingUserData = {
+                  email,
+                  userId,
+                  role: userRole
+                };
+                return;
+              }
+            } else if (userRole === USER_ROLES.AGENT) {
+              const agentDoc = await db.collection('agents').doc(userId).get();
+              const clientDoc = await db.collection('clients').doc(userId).get();
+              
+              if (agentDoc.exists && clientDoc.exists) {
+                resultsDiv.innerHTML = `
+                  <p style="color: green;">המשתמש ${email} קיים במערכת האימות ובמסד הנתונים.</p>
+                  <p>תפקיד: סוכן</p>
+                  <p>כל המסמכים הנדרשים קיימים.</p>
+                `;
+                return;
+              } else {
+                resultsDiv.innerHTML = `
+                  <p style="color: orange;">המשתמש ${email} קיים במערכת האימות ובאוסף 'users', אך ${!agentDoc.exists ? 'מסמך הסוכן' : 'מסמך הלקוח'} שלו חסר.</p>
+                  <p>תפקיד: סוכן</p>
+                  <p>נדרש להוסיף מסמכים חסרים.</p>
+                `;
+                recoverBtn.disabled = false;
+                window.missingUserData = {
+                  email,
+                  userId,
+                  role: userRole
+                };
+                return;
+              }
+            } else if (userRole === USER_ROLES.ADMIN) {
+              const clientDoc = await db.collection('clients').doc(userId).get();
+              
+              if (clientDoc.exists) {
+                resultsDiv.innerHTML = `
+                  <p style="color: green;">המשתמש ${email} קיים במערכת האימות ובמסד הנתונים.</p>
+                  <p>תפקיד: מנהל</p>
+                  <p>כל המסמכים הנדרשים קיימים.</p>
+                `;
+                return;
+              } else {
+                resultsDiv.innerHTML = `
+                  <p style="color: orange;">המשתמש ${email} קיים במערכת האימות ובאוסף 'users', אך מסמך הלקוח שלו חסר.</p>
+                  <p>תפקיד: מנהל</p>
+                  <p>נדרש להוסיף מסמך לקוח.</p>
+                `;
+                recoverBtn.disabled = false;
+                window.missingUserData = {
+                  email,
+                  userId,
+                  role: userRole
+                };
+                return;
+              }
+            }
+          } else {
+            // User exists in Auth but not in Firestore
+            resultsDiv.innerHTML = `
+              <p style="color: red;">המשתמש ${email} קיים במערכת האימות אך לא במסד הנתונים!</p>
+              <p>נדרש לשחזר את כל המסמכים.</p>
+            `;
+            recoverBtn.disabled = false;
+            
+            // Need to get the UID from auth somehow - cannot directly with client SDK
+            // We'll set a flag to create new documents during recovery
+            window.missingUserData = {
+              email,
+              userId: null, // Will create a new one during recovery
+              role: document.getElementById('missing-user-role').value
+            };
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking missing user:', error);
+          resultsDiv.innerHTML = `<p style="color: red;">שגיאה בבדיקת המשתמש: ${error.message}</p>`;
+        }
+      }
+      
+      // Function to recover a missing user
+      async function recoverMissingUser() {
+        const resultsDiv = document.getElementById('recovery-results');
+        const recoverBtn = document.getElementById('recover-missing-user-btn');
+        const missingUserRole = document.getElementById('missing-user-role').value;
+        const missingUserEmail = document.getElementById('missing-user-email').value;
+        
+        if (!window.missingUserData) {
+          alert('נא לבצע בדיקת משתמש תחילה');
+          return;
+        }
+        
+        recoverBtn.disabled = true;
+        resultsDiv.innerHTML = '<div style="text-align: center;"><div class="spinner"></div> משחזר משתמש...</div>';
+        
+        try {
+          const {email, userId, role} = window.missingUserData;
+          let actualUserId = userId;
+          
+          // If no userId, we need to find or create it
+          if (!actualUserId) {
+            // Try to find user by email first
+            const usersSnapshot = await db.collection('users')
+              .where('email', '==', email)
+              .get();
+            
+            if (!usersSnapshot.empty) {
+              actualUserId = usersSnapshot.docs[0].id;
+            } else {
+              // Create a new user document with a custom ID (not ideal but workable)
+              // In a real system with Admin SDK, we'd get the actual UID from Auth
+              actualUserId = db.collection('users').doc().id;
+              
+              // Create the user document first
+              await db.collection('users').doc(actualUserId).set({
+                email: email,
+                role: missingUserRole,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }
+          }
+          
+          // Create role-specific documents
+          if (missingUserRole === USER_ROLES.CLIENT) {
+            // Check if a client document already exists
+            const clientDoc = await db.collection('clients').doc(actualUserId).get();
+            
+            if (!clientDoc.exists) {
+              // Need to create a client document
+              const selectedAgentId = document.getElementById('missing-user-agent').value;
+              
+              if (!selectedAgentId && missingUserRole === USER_ROLES.CLIENT) {
+                alert('נא לבחור סוכן עבור הלקוח');
+                recoverBtn.disabled = false;
+                return;
+              }
+              
+              // Create client document
+              const clientData = {
+                email: email,
+                allowedBrands: [],
+                likes: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              };
+              
+              if (selectedAgentId) {
+                clientData.agentId = selectedAgentId;
+                
+                // Update agent's client list
+                await db.collection('agents').doc(selectedAgentId).update({
+                  clients: firebase.firestore.FieldValue.arrayUnion(actualUserId)
+                }).catch(error => {
+                  console.error('Error updating agent\'s client list:', error);
+                });
+              }
+              
+              await db.collection('clients').doc(actualUserId).set(clientData);
+              
+              resultsDiv.innerHTML = `
+                <p style="color: green;">המשתמש ${email} שוחזר בהצלחה!</p>
+                <p>נוצר מסמך לקוח חדש.</p>
+              `;
+            } else {
+              resultsDiv.innerHTML = `
+                <p style="color: green;">מסמך הלקוח של ${email} כבר קיים.</p>
+              `;
+            }
+          } else if (missingUserRole === USER_ROLES.AGENT) {
+            // Check if agent document exists
+            const agentDoc = await db.collection('agents').doc(actualUserId).get();
+            
+            if (!agentDoc.exists) {
+              // Create agent document
+              await db.collection('agents').doc(actualUserId).set({
+                email: email,
+                clients: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }
+            
+            // Check if client document exists for this agent
+            const clientDoc = await db.collection('clients').doc(actualUserId).get();
+            
+            if (!clientDoc.exists) {
+              // Create client document for agent
+              await db.collection('clients').doc(actualUserId).set({
+                email: email,
+                allowedBrands: [],
+                likes: [],
+                agentId: actualUserId, // Agents are their own agents
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }
+            
+            resultsDiv.innerHTML = `
+              <p style="color: green;">המשתמש ${email} שוחזר בהצלחה!</p>
+              <p>נוצרו כל המסמכים הנדרשים לסוכן.</p>
+            `;
+          } else if (missingUserRole === USER_ROLES.ADMIN) {
+            // Check if client document exists for admin
+            const clientDoc = await db.collection('clients').doc(actualUserId).get();
+            
+            if (!clientDoc.exists) {
+              // Create client document for admin
+              await db.collection('clients').doc(actualUserId).set({
+                email: email,
+                allowedBrands: [],
+                likes: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }
+            
+            resultsDiv.innerHTML = `
+              <p style="color: green;">המשתמש ${email} שוחזר בהצלחה!</p>
+              <p>נוצרו כל המסמכים הנדרשים למנהל.</p>
+            `;
+          }
+          
+          // Clear the recovery data
+          window.missingUserData = null;
+          recoverBtn.disabled = true;
+        } catch (error) {
+          console.error('Error recovering user:', error);
+          resultsDiv.innerHTML = `<p style="color: red;">שגיאה בשחזור המשתמש: ${error.message}</p>`;
+          recoverBtn.disabled = false;
+        }
+      }
+      
+      // Function to scan all users
+      async function scanAllUsers() {
+        const missingUsersList = document.getElementById('missing-users-list');
+        const scanResults = document.getElementById('scan-results');
+        
+        scanResults.style.display = 'block';
+        missingUsersList.innerHTML = '<div style="text-align: center;"><div class="spinner"></div> סורק משתמשים...</div>';
+        
+        try {
+          // We can't directly get all auth users from client SDK
+          // Instead, let's look for inconsistent user records
+          
+          // Get all users from the users collection
+          const usersSnapshot = await db.collection('users').get();
+          
+          if (usersSnapshot.empty) {
+            missingUsersList.innerHTML = '<p>לא נמצאו משתמשים במסד הנתונים.</p>';
+            return;
+          }
+          
+          const missingDocs = [];
+          
+          // Check each user for missing documents
+          for (const doc of usersSnapshot.docs) {
+            const userData = doc.data();
+            const userRole = userData.role;
+            const userEmail = userData.email;
+            
+            // Check for role-specific documents
+            if (userRole === USER_ROLES.CLIENT) {
+              const clientDoc = await db.collection('clients').doc(doc.id).get();
+              if (!clientDoc.exists) {
+                missingDocs.push({
+                  email: userEmail,
+                  id: doc.id,
+                  role: userRole,
+                  missing: 'מסמך לקוח'
+                });
+              }
+            } else if (userRole === USER_ROLES.AGENT) {
+              const agentDoc = await db.collection('agents').doc(doc.id).get();
+              const clientDoc = await db.collection('clients').doc(doc.id).get();
+              
+              if (!agentDoc.exists) {
+                missingDocs.push({
+                  email: userEmail,
+                  id: doc.id,
+                  role: userRole,
+                  missing: 'מסמך סוכן'
+                });
+              }
+              
+              if (!clientDoc.exists) {
+                missingDocs.push({
+                  email: userEmail,
+                  id: doc.id,
+                  role: userRole,
+                  missing: 'מסמך לקוח (לסוכן)'
+                });
+              }
+            } else if (userRole === USER_ROLES.ADMIN) {
+              const clientDoc = await db.collection('clients').doc(doc.id).get();
+              
+              if (!clientDoc.exists) {
+                missingDocs.push({
+                  email: userEmail,
+                  id: doc.id,
+                  role: userRole,
+                  missing: 'מסמך לקוח (למנהל)'
+                });
+              }
+            }
+          }
+          
+          // Display results
+          if (missingDocs.length === 0) {
+            missingUsersList.innerHTML = '<p style="color: green;">לא נמצאו משתמשים עם מסמכים חסרים!</p>';
+          } else {
+            let html = `<p style="color: orange;">נמצאו ${missingDocs.length} משתמשים עם מסמכים חסרים:</p>`;
+            html += '<ul>';
+            
+            missingDocs.forEach(user => {
+              html += `<li>
+                ${user.email} (${getRoleDisplayName(user.role)}) - חסר ${user.missing}
+                <button class="btn btn-sm btn-info recover-specific-user-btn" 
+                  data-id="${user.id}" 
+                  data-email="${user.email}" 
+                  data-role="${user.role}">
+                  שחזר
+                </button>
+              </li>`;
+            });
+            
+            html += '</ul>';
+            missingUsersList.innerHTML = html;
+            
+            // Add recovery buttons
+            document.querySelectorAll('.recover-specific-user-btn').forEach(btn => {
+              btn.addEventListener('click', async () => {
+                const userId = btn.dataset.id;
+                const userEmail = btn.dataset.email;
+                const userRole = btn.dataset.role;
+                
+                try {
+                  await recoverSpecificUser(userId, userEmail, userRole);
+                  btn.disabled = true;
+                  btn.textContent = 'שוחזר';
+                  btn.classList.remove('btn-info');
+                  btn.classList.add('btn-success');
+                } catch (error) {
+                  console.error('Error recovering specific user:', error);
+                  alert(`שגיאה בשחזור המשתמש: ${error.message}`);
+                }
+              });
+            });
+          }
+        } catch (error) {
+          console.error('Error scanning users:', error);
+          missingUsersList.innerHTML = `<p style="color: red;">שגיאה בסריקת משתמשים: ${error.message}</p>`;
+        }
+      }
+      
+      // Helper function to recover a specific user
+      async function recoverSpecificUser(userId, email, role) {
+        // Create the missing documents based on role
+        if (role === USER_ROLES.CLIENT) {
+          // Check if client document exists
+          const clientDoc = await db.collection('clients').doc(userId).get();
+          
+          if (!clientDoc.exists) {
+            // Need to find an agent
+            const firstAgentSnapshot = await db.collection('users')
+              .where('role', '==', USER_ROLES.AGENT)
+              .limit(1)
+              .get();
+            
+            let agentId = null;
+            
+            if (!firstAgentSnapshot.empty) {
+              agentId = firstAgentSnapshot.docs[0].id;
+            }
+            
+            // Create client document
+            const clientData = {
+              email: email,
+              allowedBrands: [],
+              likes: [],
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            if (agentId) {
+              clientData.agentId = agentId;
+              
+              // Update agent's client list
+              await db.collection('agents').doc(agentId).update({
+                clients: firebase.firestore.FieldValue.arrayUnion(userId)
+              }).catch(error => {
+                console.error('Error updating agent\'s client list:', error);
+              });
+            }
+            
+            await db.collection('clients').doc(userId).set(clientData);
+          }
+        } else if (role === USER_ROLES.AGENT) {
+          // Check if agent document exists
+          const agentDoc = await db.collection('agents').doc(userId).get();
+          
+          if (!agentDoc.exists) {
+            // Create agent document
+            await db.collection('agents').doc(userId).set({
+              email: email,
+              clients: [],
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+          
+          // Check if client document exists
+          const clientDoc = await db.collection('clients').doc(userId).get();
+          
+          if (!clientDoc.exists) {
+            // Create client document
+            await db.collection('clients').doc(userId).set({
+              email: email,
+              allowedBrands: [],
+              likes: [],
+              agentId: userId, // Agents are their own agents
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        } else if (role === USER_ROLES.ADMIN) {
+          // Check if client document exists
+          const clientDoc = await db.collection('clients').doc(userId).get();
+          
+          if (!clientDoc.exists) {
+            // Create client document
+            await db.collection('clients').doc(userId).set({
+              email: email,
+              allowedBrands: [],
+              likes: [],
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        }
+        
+        return true;
+      }
+      
+      // Helper function to get role display name
+      function getRoleDisplayName(role) {
+        switch (role) {
+          case USER_ROLES.ADMIN:
+            return 'מנהל';
+          case USER_ROLES.AGENT:
+            return 'סוכן';
+          case USER_ROLES.CLIENT:
+            return 'לקוח';
+          default:
+            return role;
         }
       }
     });
