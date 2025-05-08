@@ -21,6 +21,9 @@ All data is loaded directly from Google Sheets URLs without any local file depen
 - `admin.html` - Admin dashboard for user management
 - `agent.html` - Agent dashboard for client monitoring
 - `favorites.html` - Client's saved/liked products page
+- `shopping-cart.html` - Client's shopping cart for managing orders
+- `orders-admin.html` - Admin dashboard for order management
+- `orders-agent.html` - Agent dashboard for viewing client orders
 - `firebase-config.js` - Firebase configuration with environment variable support
 - `firestore.rules` - Firestore security rules
 - `netlify.toml` - Netlify deployment configuration
@@ -46,9 +49,11 @@ All data is loaded directly from Google Sheets URLs without any local file depen
 5. **Responsive Design**: Works well on mobile and desktop devices
 6. **User Authentication**: Login system with role-based access
 7. **Like Feature**: Heart icon to mark favorite products with Firebase storage
-8. **Admin Panel**: User management, client assignments, and view restrictions
-9. **Agent Dashboard**: Monitor clients and view their liked products
-10. **Client Restrictions**: Limit client views to specific brands only
+8. **Shopping Cart**: Clients can add products to cart with quantity selection
+9. **Order System**: Clients can submit orders to agents through the shopping cart
+10. **Admin Panel**: User management, client assignments, and view restrictions
+11. **Agent Dashboard**: Monitor clients, view their liked products and orders
+12. **Client Restrictions**: Limit client views to specific brands only
 
 ## User Roles and Permissions
 The system has three user roles:
@@ -76,6 +81,8 @@ The system has three user roles:
    - Can view the main product catalog
    - Can view only products that match their allowed brands (if restrictions are set)
    - Can like products by clicking heart icons
+   - Can add products to shopping cart with quantity selection
+   - Can send orders to their assigned agent
    - Can view their favorites page with all liked products
    - Can remove products from their favorites
    - Cannot access admin or agent dashboards
@@ -124,6 +131,9 @@ The system has three user roles:
      - `email`: string (user's email)
      - `allowedBrands`: array (brands the client is allowed to see)
      - `likes`: array (empty, will contain product barcodes)
+     - `cart`: array (empty, will contain cart items)
+     - `lastOrderId`: string (optional, ID of last submitted order)
+     - `lastOrderDate`: timestamp (optional, date of last order)
      - `agentId`: string (optional, ID of assigned agent)
      - `createdAt`: timestamp
 
@@ -150,6 +160,7 @@ Each product card displays the following information, with different field mappi
 8. **Description**: From `תאור` or `תיאור פריט`
 9. **Availability**: If a client is selected, shows availability status
 10. **Like Button**: Heart icon to mark products as favorites (requires login)
+11. **Cart Button**: Shopping cart icon to add products to cart with quantity selection (requires login)
 
 ## Technical Implementation Notes
 
@@ -209,9 +220,28 @@ The client filter loads directly from the Google Sheets URL and populates a drop
 - Heart icons only visible to client users (hidden for admin/agent)
 - Clients can view their favorites on a dedicated page
 - Clients can remove items from favorites
+- Clients can add products to cart directly from favorites page
 - Agents can view their clients' liked products in their dashboard
 - Agents can filter liked products by specific client
 - Admins can view all liked products across the system
+
+### Shopping Cart System
+- Cart items are stored in Firestore for each client
+- Quantity selection modal appears when adding items to cart
+- Cart items can be added from catalog, product modal, or favorites page
+- Clients can view their cart with item quantities on a dedicated page
+- Clients can modify quantities or remove items from cart
+- Clients can add notes to their order before submitting
+- Orders are submitted to the client's assigned agent
+- Cart is cleared after order submission
+
+### Order Management System
+- Orders are stored in Firestore with client, agent, and product information
+- Each order has a status (pending, processing, completed, cancelled)
+- Agents can view orders from their assigned clients
+- Agents can update order status and add notes
+- Admins can view all orders across the system
+- Admins can filter orders by client, agent, status, or date
 
 ### Deployment
 - Ready for Netlify deployment with proper configuration

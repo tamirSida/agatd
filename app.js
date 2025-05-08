@@ -1603,6 +1603,114 @@ function openProductModal(product) {
       heartIcon.textContent = '♡';
     }
   }
+  
+  // Add cart button to modal if user is client
+  if (showHeartButton) {
+    let modalCartButton = document.querySelector('.modal-cart-button');
+    if (!modalCartButton) {
+      modalCartButton = document.createElement('button');
+      modalCartButton.className = 'modal-cart-button';
+      modalCartButton.innerHTML = `<i class="cart-icon">🛒</i>`;
+      modalCartButton.dataset.barcode = barcode || '';
+      modalCartButton.dataset.productName = modalTitle.textContent;
+      modalCartButton.dataset.price = product['מחיר'] || '0';
+      modalCartButton.style.position = 'absolute';
+      modalCartButton.style.right = '40px';
+      modalCartButton.style.top = '10px';
+      modalCartButton.style.background = 'white';
+      modalCartButton.style.border = 'none';
+      modalCartButton.style.borderRadius = '50%';
+      modalCartButton.style.width = '36px';
+      modalCartButton.style.height = '36px';
+      modalCartButton.style.display = 'flex';
+      modalCartButton.style.alignItems = 'center';
+      modalCartButton.style.justifyContent = 'center';
+      modalCartButton.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+      modalCartButton.style.cursor = 'pointer';
+      modalCartButton.style.zIndex = '10';
+      
+      document.querySelector('.modal-header').appendChild(modalCartButton);
+      
+      // Add event listener to cart button
+      modalCartButton.addEventListener('click', async function() {
+        // Check if user is logged in
+        if (!auth.currentUser) {
+          alert('עליך להתחבר כדי להוסיף מוצרים לעגלה');
+          window.location.href = 'login.html';
+          return;
+        }
+        
+        const barcode = this.dataset.barcode;
+        const productName = this.dataset.productName;
+        const price = this.dataset.price;
+        
+        if (!barcode) {
+          console.error('No barcode found for product');
+          return;
+        }
+        
+        // Show quantity prompt modal
+        const quantity = await showQuantityPrompt(productName);
+        
+        // If quantity is undefined or null, it means the user cancelled
+        if (quantity === undefined || quantity === null) {
+          return;
+        }
+        
+        try {
+          // Add to cart in Firebase with selected quantity
+          const success = await addToCart({
+            barcode: barcode,
+            name: productName,
+            מחיר: price,
+            category: currentFilters.tab
+          }, quantity);
+          
+          if (success) {
+            // Close modal
+            closeProductModal();
+            
+            // Show success message
+            const toastMessage = document.createElement('div');
+            toastMessage.className = 'toast-message';
+            toastMessage.textContent = `${quantity} יחידות נוספו לעגלה בהצלחה`;
+            document.body.appendChild(toastMessage);
+            
+            // Update cart count in header if exists
+            updateCartCount();
+            
+            // Animate toast message
+            setTimeout(() => {
+              toastMessage.classList.add('show');
+              
+              setTimeout(() => {
+                toastMessage.classList.remove('show');
+                setTimeout(() => {
+                  document.body.removeChild(toastMessage);
+                }, 300);
+              }, 2000);
+            }, 100);
+          } else {
+            console.error('Failed to add product to cart');
+          }
+        } catch (error) {
+          console.error('Error adding to cart:', error);
+          alert('שגיאה בהוספת המוצר לעגלה. אנא נסה שוב מאוחר יותר.');
+        }
+      });
+    } else {
+      // Update existing cart button
+      modalCartButton.dataset.barcode = barcode || '';
+      modalCartButton.dataset.productName = modalTitle.textContent;
+      modalCartButton.dataset.price = product['מחיר'] || '0';
+    }
+  } else {
+    // Remove cart button if exists and user is not a client
+    const modalCartButton = document.querySelector('.modal-cart-button');
+    if (modalCartButton) {
+      modalCartButton.remove();
+    }
+  }
 
   // Show modal
   modal.style.display = 'block';
