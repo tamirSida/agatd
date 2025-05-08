@@ -110,12 +110,17 @@
     }
     
     .quantity-input {
-      width: 40px;
+      display: none; /* Hide the number input */
+    }
+    
+    .quantity-display {
+      min-width: 40px;
       height: 30px;
+      line-height: 30px;
       text-align: center;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      margin: 0 5px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin: 0 10px;
     }
     
     .remove-btn {
@@ -373,11 +378,12 @@
         font-size: 1.4rem;
       }
       
-      .quantity-input {
-        width: 50px;
+      .quantity-display {
+        min-width: 50px;
         height: 36px;
-        font-size: 1.2rem;
-        margin: 0 8px;
+        line-height: 36px;
+        font-size: 1.3rem;
+        margin: 0 10px;
       }
       
       .cart-item-quantity {
@@ -584,7 +590,7 @@
               <div class="cart-item-actions">
                 <div class="quantity-control">
                   <button class="quantity-btn decrease" data-barcode="${item.barcode}">-</button>
-                  <input type="number" class="quantity-input" value="${item.quantity}" min="1" data-barcode="${item.barcode}">
+                  <span class="quantity-display">${item.quantity}</span>
                   <button class="quantity-btn increase" data-barcode="${item.barcode}">+</button>
                 </div>
                 <button class="remove-btn" data-barcode="${item.barcode}">הסר</button>
@@ -607,6 +613,7 @@
             const barcode = this.dataset.barcode;
             const item = cartItems.find(item => item.barcode === barcode);
             if (item && item.quantity > 1) {
+              // Update the quantity in Firebase
               updateItemQuantity(barcode, item.quantity - 1);
             }
           });
@@ -617,38 +624,13 @@
             const barcode = this.dataset.barcode;
             const item = cartItems.find(item => item.barcode === barcode);
             if (item) {
+              // Update the quantity in Firebase
               updateItemQuantity(barcode, item.quantity + 1);
             }
           });
         });
         
-        document.querySelectorAll('.quantity-input').forEach(function(input) {
-          // Focus and blur events to handle the mobile keyboard closing issues
-          input.addEventListener('focus', function() {
-            this.select(); // Select all text when focused for better UX
-          });
-          
-          input.addEventListener('blur', function() {
-            const barcode = this.dataset.barcode;
-            const newQuantity = parseInt(this.value, 10);
-            if (!isNaN(newQuantity) && newQuantity >= 1) {
-              updateItemQuantity(barcode, newQuantity);
-            } else {
-              // Reset to previous value if invalid
-              const item = cartItems.find(item => item.barcode === barcode);
-              if (item) {
-                this.value = item.quantity;
-              }
-            }
-          });
-          
-          // Handle enter key
-          input.addEventListener('keyup', function(e) {
-            if (e.key === 'Enter') {
-              this.blur(); // Trigger the blur event which updates the quantity
-            }
-          });
-        });
+        // Remove quantity input event listeners since we're now using buttons only
         
         document.querySelectorAll('.remove-btn').forEach(btn => {
           btn.addEventListener('click', () => {
