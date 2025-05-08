@@ -289,6 +289,11 @@ async function init() {
 
     // Add event listeners
     setupEventListeners();
+    
+    // Update cart count if user is client
+    if (window.userRole === USER_ROLES.CLIENT) {
+      updateCartCount();
+    }
   } catch (error) {
     console.error('Error loading products:', error);
     productsContainer.innerHTML = '<p style="text-align: center; color: red;">Error loading products. Please try again later.</p>';
@@ -1106,14 +1111,19 @@ function createProductCard(product) {
     priceHtml = `<span class="price available">זמין</span>`;
   }
 
-  // Only show heart button for client users
-  const showHeartButton = window.userRole === USER_ROLES.CLIENT;
+  // Only show client-specific buttons for client users
+  const showClientButtons = window.userRole === USER_ROLES.CLIENT;
   
   card.innerHTML = `
     <div class="product-image">
       <img src="${imageUrl}" alt="${productName}" onerror="if(this.src.includes('tl/')){ this.src='media/${barcode || ''}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.nextElementSibling.style.display='block'; }">
       <div class="image-not-found">image not found</div>
-      ${showHeartButton ? `<button class="heart-button" data-barcode="${barcode || ''}"><i class="heart-icon">♡</i></button>` : ''}
+      ${showClientButtons ? 
+        `<div class="product-buttons">
+          <button class="heart-button" data-barcode="${barcode || ''}"><i class="heart-icon">♡</i></button>
+          <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}"><i class="cart-icon">🛒</i></button>
+        </div>` 
+        : ''}
     </div>
     <div class="product-info">
       <h3>${productName}</h3>
@@ -1143,8 +1153,13 @@ function createProductCard(product) {
 
   // Add click event to open modal
   card.addEventListener('click', (e) => {
-    // Don't open modal if heart button was clicked
-    if (e.target.closest('.heart-button') || e.target.classList.contains('heart-icon')) {
+    // Don't open modal if heart button or cart button was clicked
+    if (
+      e.target.closest('.heart-button') || 
+      e.target.classList.contains('heart-icon') ||
+      e.target.closest('.cart-button') || 
+      e.target.classList.contains('cart-icon')
+    ) {
       e.stopPropagation();
       return;
     }
@@ -1153,7 +1168,7 @@ function createProductCard(product) {
 
   // Add heart button click event - only for client users
   const heartButton = card.querySelector('.heart-button');
-  if (heartButton && showHeartButton) {
+  if (heartButton && showClientButtons) {
     heartButton.addEventListener('click', async (e) => {
       e.stopPropagation(); // Prevent modal from opening
       
@@ -1210,6 +1225,76 @@ function createProductCard(product) {
       } catch (error) {
         console.error('Error toggling like:', error);
         alert('שגיאה בסימון המוצר כמועדף. אנא נסה שוב מאוחר יותר.');
+      }
+    });
+  }
+  
+  // Add cart button click event - only for client users
+  const cartButton = card.querySelector('.cart-button');
+  if (cartButton && showClientButtons) {
+    cartButton.addEventListener('click', async (e) => {
+      e.stopPropagation(); // Prevent modal from opening
+      
+      // Check if user is logged in
+      if (!auth.currentUser) {
+        alert('עליך להתחבר כדי להוסיף מוצרים לעגלה');
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      const barcode = cartButton.dataset.barcode;
+      const productName = cartButton.dataset.productName;
+      const price = cartButton.dataset.price;
+      
+      if (!barcode) {
+        console.error('No barcode found for product');
+        return;
+      }
+      
+      // Show quantity prompt modal
+      const quantity = await showQuantityPrompt(productName);
+      
+      // If quantity is undefined or null, it means the user cancelled
+      if (quantity === undefined || quantity === null) {
+        return;
+      }
+      
+      try {
+        // Add to cart in Firebase with selected quantity
+        const success = await addToCart({
+          barcode: barcode,
+          name: productName,
+          מחיר: price,
+          category: currentFilters.tab
+        }, quantity);
+        
+        if (success) {
+          // Show success message
+          const toastMessage = document.createElement('div');
+          toastMessage.className = 'toast-message';
+          toastMessage.textContent = `${quantity} יחידות נוספו לעגלה בהצלחה`;
+          document.body.appendChild(toastMessage);
+          
+          // Update cart count in header if exists
+          updateCartCount();
+          
+          // Animate toast message
+          setTimeout(() => {
+            toastMessage.classList.add('show');
+            
+            setTimeout(() => {
+              toastMessage.classList.remove('show');
+              setTimeout(() => {
+                document.body.removeChild(toastMessage);
+              }, 300);
+            }, 2000);
+          }, 100);
+        } else {
+          console.error('Failed to add product to cart');
+        }
+      } catch (error) {
+        console.error('Error adding to cart:', error);
+        alert('שגיאה בהוספת המוצר לעגלה. אנא נסה שוב מאוחר יותר.');
       }
     });
   }
@@ -1584,6 +1669,236 @@ function switchTab(tabName) {
 function performSearch() {
   currentFilters.search = searchInput.value;
   displayProducts();
+}
+
+// Show quantity prompt modal for adding product to cart
+async function showQuantityPrompt(productName) {
+  return new Promise((resolve) => {
+    // Create modal elements
+    const modal = document.createElement('div');
+    modal.className = 'quantity-modal';
+    modal.style.position = 'fixed';
+    modal.style.zIndex = '1000';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    modal.style.display = 'flex';
+    modal.style.justifyContent = 'center';
+    modal.style.alignItems = 'center';
+    
+    const modalContent = document.createElement('div');
+    modalContent.className = 'quantity-modal-content';
+    modalContent.style.backgroundColor = '#fff';
+    modalContent.style.padding = '20px';
+    modalContent.style.borderRadius = '8px';
+    modalContent.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
+    modalContent.style.maxWidth = '90%';
+    modalContent.style.width = '400px';
+    modalContent.style.textAlign = 'center';
+    
+    // Product name header
+    const header = document.createElement('h3');
+    header.textContent = productName;
+    header.style.margin = '0 0 15px 0';
+    
+    // Title
+    const title = document.createElement('p');
+    title.textContent = 'בחר כמות להוספה לעגלה:';
+    title.style.marginBottom = '15px';
+    
+    // Quantity control
+    const quantityControl = document.createElement('div');
+    quantityControl.style.display = 'flex';
+    quantityControl.style.justifyContent = 'center';
+    quantityControl.style.alignItems = 'center';
+    quantityControl.style.marginBottom = '20px';
+    
+    const decreaseBtn = document.createElement('button');
+    decreaseBtn.textContent = '-';
+    decreaseBtn.style.width = '40px';
+    decreaseBtn.style.height = '40px';
+    decreaseBtn.style.fontSize = '20px';
+    decreaseBtn.style.backgroundColor = '#f1f1f1';
+    decreaseBtn.style.border = 'none';
+    decreaseBtn.style.borderRadius = '50%';
+    decreaseBtn.style.cursor = 'pointer';
+    
+    const quantityInput = document.createElement('input');
+    quantityInput.type = 'number';
+    quantityInput.min = '1';
+    quantityInput.value = '1';
+    quantityInput.style.width = '60px';
+    quantityInput.style.height = '40px';
+    quantityInput.style.margin = '0 10px';
+    quantityInput.style.textAlign = 'center';
+    quantityInput.style.fontSize = '18px';
+    quantityInput.style.border = '1px solid #ddd';
+    quantityInput.style.borderRadius = '4px';
+    
+    const increaseBtn = document.createElement('button');
+    increaseBtn.textContent = '+';
+    increaseBtn.style.width = '40px';
+    increaseBtn.style.height = '40px';
+    increaseBtn.style.fontSize = '20px';
+    increaseBtn.style.backgroundColor = '#f1f1f1';
+    increaseBtn.style.border = 'none';
+    increaseBtn.style.borderRadius = '50%';
+    increaseBtn.style.cursor = 'pointer';
+    
+    // Buttons
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.style.display = 'flex';
+    buttonsContainer.style.justifyContent = 'space-between';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'ביטול';
+    cancelBtn.style.padding = '10px 20px';
+    cancelBtn.style.backgroundColor = '#95a5a6';
+    cancelBtn.style.color = 'white';
+    cancelBtn.style.border = 'none';
+    cancelBtn.style.borderRadius = '4px';
+    cancelBtn.style.cursor = 'pointer';
+    cancelBtn.style.fontSize = '16px';
+    
+    const addBtn = document.createElement('button');
+    addBtn.textContent = 'הוסף לעגלה';
+    addBtn.style.padding = '10px 20px';
+    addBtn.style.backgroundColor = '#27ae60';
+    addBtn.style.color = 'white';
+    addBtn.style.border = 'none';
+    addBtn.style.borderRadius = '4px';
+    addBtn.style.cursor = 'pointer';
+    addBtn.style.fontSize = '16px';
+    
+    // Assemble modal
+    quantityControl.appendChild(decreaseBtn);
+    quantityControl.appendChild(quantityInput);
+    quantityControl.appendChild(increaseBtn);
+    
+    buttonsContainer.appendChild(cancelBtn);
+    buttonsContainer.appendChild(addBtn);
+    
+    modalContent.appendChild(header);
+    modalContent.appendChild(title);
+    modalContent.appendChild(quantityControl);
+    modalContent.appendChild(buttonsContainer);
+    
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    decreaseBtn.addEventListener('click', () => {
+      const currentValue = parseInt(quantityInput.value);
+      if (currentValue > 1) {
+        quantityInput.value = (currentValue - 1).toString();
+      }
+    });
+    
+    increaseBtn.addEventListener('click', () => {
+      const currentValue = parseInt(quantityInput.value);
+      quantityInput.value = (currentValue + 1).toString();
+    });
+    
+    quantityInput.addEventListener('input', () => {
+      const value = parseInt(quantityInput.value);
+      if (isNaN(value) || value < 1) {
+        quantityInput.value = '1';
+      }
+    });
+    
+    // Handle input focus for mobile keyboards
+    quantityInput.addEventListener('focus', function() {
+      this.select();
+    });
+    
+    quantityInput.addEventListener('blur', function() {
+      const value = parseInt(this.value);
+      if (isNaN(value) || value < 1) {
+        this.value = '1';
+      }
+    });
+    
+    cancelBtn.addEventListener('click', () => {
+      document.body.removeChild(modal);
+      resolve(null); // Cancel
+    });
+    
+    addBtn.addEventListener('click', () => {
+      const quantity = parseInt(quantityInput.value);
+      document.body.removeChild(modal);
+      resolve(quantity);
+    });
+    
+    // Close modal by clicking outside
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+        resolve(null); // Cancel
+      }
+    });
+  });
+}
+
+// Update cart count in header
+async function updateCartCount() {
+  // Check if the cart count badge exists
+  let cartCountBadge = document.getElementById('cart-count-badge');
+  
+  // If there's no badge yet, create one
+  if (!cartCountBadge) {
+    // Find the header element
+    const header = document.querySelector('header');
+    if (!header) return;
+    
+    // Check if auth container exists
+    const authContainer = header.querySelector('.auth-container');
+    if (!authContainer) return;
+    
+    // Create cart button if it doesn't exist
+    let cartButton = document.getElementById('cart-button-header');
+    if (!cartButton) {
+      cartButton = document.createElement('button');
+      cartButton.id = 'cart-button-header';
+      cartButton.className = 'cart-button-header';
+      cartButton.innerHTML = '🛒 עגלת קניות';
+      cartButton.addEventListener('click', () => {
+        window.location.href = 'shopping-cart.html';
+      });
+      
+      // Add cart count badge
+      cartCountBadge = document.createElement('span');
+      cartCountBadge.id = 'cart-count-badge';
+      cartCountBadge.className = 'cart-count-badge';
+      cartCountBadge.textContent = '0';
+      
+      // Insert after favorites button if it exists, otherwise before logout button
+      const favoritesButton = authContainer.querySelector('#favorites-button');
+      if (favoritesButton) {
+        authContainer.insertBefore(cartButton, favoritesButton.nextSibling);
+      } else {
+        const logoutButton = authContainer.querySelector('#logout-button');
+        if (logoutButton) {
+          authContainer.insertBefore(cartButton, logoutButton);
+        } else {
+          authContainer.appendChild(cartButton);
+        }
+      }
+    }
+  }
+  
+  // Get cart count
+  if (auth.currentUser) {
+    const cart = await getUserCart();
+    const count = cart.length;
+    
+    // Update badge
+    if (cartCountBadge) {
+      cartCountBadge.textContent = count.toString();
+      cartCountBadge.style.display = count > 0 ? 'flex' : 'none';
+    }
+  }
 }
 
 // Setup event listeners

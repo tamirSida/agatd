@@ -96,6 +96,7 @@
       <button class="admin-button" id="admin-button">ניהול</button>
       <button class="agent-button" id="agent-button">דאשבורד סוכן</button>
       <button class="favorites-button" id="favorites-button" style="display: none; background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 10px;">מועדפים</button>
+      <button class="cart-button-header" id="cart-button-header" style="display: none; background-color: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 10px;">🛒 עגלת קניות</button>
       <button class="logout-button" id="logout-button">התנתק</button>
       <button class="auth-button" id="login-button">התחבר</button>
     </div>
@@ -219,6 +220,12 @@
         window.location.href = 'favorites.html';
       });
       
+      // Handle shopping cart button click
+      const cartButton = document.getElementById('cart-button-header');
+      cartButton.addEventListener('click', () => {
+        window.location.href = 'shopping-cart.html';
+      });
+      
       // Handle logout button click
       logoutButton.addEventListener('click', async () => {
         try {
@@ -275,8 +282,9 @@
                   });
                 }
               } else if (userData.role === USER_ROLES.CLIENT) {
-                // Show favorites button for clients
+                // Show favorites and shopping cart buttons for clients
                 document.getElementById('favorites-button').style.display = 'block';
+                document.getElementById('cart-button-header').style.display = 'block';
                 
                 // Hide client filter only for client users
                 const brandFilterContainer = document.querySelector('#brand-filter').closest('.filter-group');

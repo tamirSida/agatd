@@ -153,3 +153,242 @@ const toggleProductLike = async (barcode) => {
     return false;
   }
 };
+
+// Shopping Cart Functions
+
+// Add item to cart
+const addToCart = async (product, quantity = 1) => {
+  const user = auth.currentUser;
+  if (!user) return false;
+  
+  try {
+    const clientRef = db.collection('clients').doc(user.uid);
+    const clientDoc = await clientRef.get();
+    
+    if (!clientDoc.exists) {
+      console.error('Client document does not exist');
+      return false;
+    }
+    
+    // Initialize cart if it doesn't exist
+    let cart = clientDoc.data().cart || [];
+    
+    // Check if product already exists in cart
+    const existingProductIndex = cart.findIndex(item => item.barcode === product.barcode);
+    
+    if (existingProductIndex !== -1) {
+      // Update quantity if product already exists
+      cart[existingProductIndex].quantity += quantity;
+    } else {
+      // Get current timestamp for client-side use
+      const now = new Date();
+      
+      // Add new product to cart
+      cart.push({
+        barcode: product.barcode,
+        name: product.name || product['שם פריט אוטומטי'] || product['תיאור פריט'] || 'Unknown Product',
+        price: product.price || product['מחיר'] || 0,
+        quantity: quantity,
+        category: product.category || '',
+        image: `tl/${product.barcode}.jpg`, // Image path
+        addedAt: now.toISOString() // Use ISO string format instead of server timestamp
+      });
+    }
+    
+    // Update cart in Firestore
+    await clientRef.update({ cart });
+    return true;
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    return false;
+  }
+};
+
+// Update cart item quantity
+const updateCartItemQuantity = async (barcode, quantity) => {
+  const user = auth.currentUser;
+  if (!user) return false;
+  
+  try {
+    const clientRef = db.collection('clients').doc(user.uid);
+    const clientDoc = await clientRef.get();
+    
+    if (!clientDoc.exists) {
+      console.error('Client document does not exist');
+      return false;
+    }
+    
+    let cart = clientDoc.data().cart || [];
+    const itemIndex = cart.findIndex(item => item.barcode === barcode);
+    
+    if (itemIndex === -1) {
+      console.error('Product not found in cart');
+      return false;
+    }
+    
+    if (quantity <= 0) {
+      // Remove item if quantity is 0 or negative
+      cart.splice(itemIndex, 1);
+    } else {
+      // Update quantity
+      cart[itemIndex].quantity = quantity;
+    }
+    
+    // Update cart in Firestore
+    await clientRef.update({ cart });
+    return true;
+  } catch (error) {
+    console.error('Error updating cart item quantity:', error);
+    return false;
+  }
+};
+
+// Remove item from cart
+const removeFromCart = async (barcode) => {
+  const user = auth.currentUser;
+  if (!user) return false;
+  
+  try {
+    const clientRef = db.collection('clients').doc(user.uid);
+    const clientDoc = await clientRef.get();
+    
+    if (!clientDoc.exists) {
+      console.error('Client document does not exist');
+      return false;
+    }
+    
+    let cart = clientDoc.data().cart || [];
+    const updatedCart = cart.filter(item => item.barcode !== barcode);
+    
+    // Update cart in Firestore
+    await clientRef.update({ cart: updatedCart });
+    return true;
+  } catch (error) {
+    console.error('Error removing from cart:', error);
+    return false;
+  }
+};
+
+// Get user's cart
+const getUserCart = async () => {
+  const user = auth.currentUser;
+  if (!user) return [];
+  
+  try {
+    const clientDoc = await db.collection('clients').doc(user.uid).get();
+    if (clientDoc.exists) {
+      return clientDoc.data().cart || [];
+    }
+    return [];
+  } catch (error) {
+    console.error('Error getting user cart:', error);
+    return [];
+  }
+};
+
+// Submit order to agent
+const submitOrder = async (notes = '') => {
+  const user = auth.currentUser;
+  if (!user) return false;
+  
+  try {
+    const clientRef = db.collection('clients').doc(user.uid);
+    const clientDoc = await clientRef.get();
+    
+    if (!clientDoc.exists) {
+      console.error('Client document does not exist');
+      return false;
+    }
+    
+    const clientData = clientDoc.data();
+    const cart = clientData.cart || [];
+    
+    if (cart.length === 0) {
+      console.error('Cannot submit empty cart');
+      return false;
+    }
+    
+    // Make a deep copy of the cart array to avoid modifying the original reference
+    const cartCopy = JSON.parse(JSON.stringify(cart));
+    
+    // Create an order
+    const order = {
+      clientId: user.uid,
+      clientEmail: user.email,
+      agentId: clientData.agentId || null,
+      items: cartCopy, // Use the copied cart items
+      notes: notes,
+      status: 'pending', // pending, processing, completed, cancelled
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // Add order to orders collection
+    const orderRef = await db.collection('orders').add(order);
+    
+    // Clear user's cart
+    await clientRef.update({ 
+      cart: [],
+      lastOrderId: orderRef.id,
+      lastOrderDate: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    return orderRef.id;
+  } catch (error) {
+    console.error('Error submitting order:', error);
+    return false;
+  }
+};
+
+// Get client orders (for agent/admin)
+const getClientOrders = async (clientId) => {
+  try {
+    const ordersSnapshot = await db.collection('orders')
+      .where('clientId', '==', clientId)
+      .orderBy('createdAt', 'desc')
+      .get();
+    
+    return ordersSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error getting client orders:', error);
+    return [];
+  }
+};
+
+// Get agent's clients' orders
+const getAgentOrders = async (agentId) => {
+  try {
+    const ordersSnapshot = await db.collection('orders')
+      .where('agentId', '==', agentId)
+      .orderBy('createdAt', 'desc')
+      .get();
+    
+    return ordersSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error getting agent orders:', error);
+    return [];
+  }
+};
+
+// Get all orders (admin only)
+const getAllOrders = async () => {
+  try {
+    const ordersSnapshot = await db.collection('orders')
+      .orderBy('createdAt', 'desc')
+      .get();
+    
+    return ordersSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error getting all orders:', error);
+    return [];
+  }
+};

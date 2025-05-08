@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>הזמנות לקוחות - AGAT&D</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="images/logo.png" type="image/png">
+  <style>
+    /* Orders Agent styles */
+    .orders-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .orders-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .orders-title {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+    
+    .orders-filter {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .orders-filter select {
+      min-width: 200px;
+    }
+    
+    .order-card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .order-card:hover {
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    .order-header {
+      padding: 15px 20px;
+      background-color: #f9f9f9;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .order-id {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    
+    .order-date {
+      color: #777;
+      font-size: 0.9rem;
+    }
+    
+    .order-client {
+      padding: 10px 20px;
+      background-color: #f2f2f2;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .order-client-email {
+      font-weight: bold;
+    }
+    
+    .order-status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      margin-right: 10px;
+      text-align: center;
+    }
+    
+    .order-status.pending {
+      background-color: #f39c12;
+      color: white;
+    }
+    
+    .order-status.processing {
+      background-color: #3498db;
+      color: white;
+    }
+    
+    .order-status.completed {
+      background-color: #27ae60;
+      color: white;
+    }
+    
+    .order-status.cancelled {
+      background-color: #e74c3c;
+      color: white;
+    }
+    
+    .order-details {
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .order-items {
+      margin-top: 15px;
+    }
+    
+    .order-item {
+      display: flex;
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+    }
+    
+    .order-item:last-child {
+      border-bottom: none;
+    }
+    
+    .order-item-image {
+      width: 60px;
+      height: 60px;
+      margin-left: 15px;
+      object-fit: contain;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+    
+    .order-item-details {
+      flex-grow: 1;
+    }
+    
+    .order-item-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .order-item-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: #777;
+    }
+    
+    .order-item-price {
+      color: #3498db;
+      font-weight: bold;
+    }
+    
+    .order-footer {
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #f9f9f9;
+    }
+    
+    .order-actions button {
+      margin-right: 10px;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    
+    .view-details-btn {
+      background-color: #3498db;
+      color: white;
+    }
+    
+    .export-btn {
+      background-color: #27ae60;
+      color: white;
+    }
+    
+    .update-status-dropdown {
+      padding: 5px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-left: 10px;
+    }
+    
+    .order-notes {
+      padding: 15px 20px;
+      background-color: #f9f9f9;
+      border-bottom: 1px solid #eee;
+      font-style: italic;
+    }
+    
+    /* Modal styles */
+    .order-details-modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .order-modal-content {
+      background-color: #fff;
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 800px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .order-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .order-modal-title {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    
+    .close-modal {
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    
+    .order-modal-items table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    
+    .order-modal-items th, .order-modal-items td {
+      padding: 10px;
+      text-align: right;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .order-modal-items th {
+      background-color: #f9f9f9;
+    }
+    
+    .order-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    
+    .order-modal-footer button {
+      margin-right: 10px;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      flex-direction: column;
+    }
+    
+    .loading-spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .no-orders {
+      text-align: center;
+      padding: 30px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+    
+    /* Auth styles */
+    .auth-container {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .auth-button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .auth-button:hover {
+      background-color: #2980b9;
+    }
+    
+    .user-info {
+      margin-right: 10px;
+      display: none;
+    }
+    
+    .logout-button {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 10px;
+      display: none;
+    }
+    
+    /* Navigation */
+    .agent-nav {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .agent-nav-btn {
+      padding: 8px 15px;
+      background-color: #f1f1f1;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    
+    .agent-nav-btn:hover {
+      background-color: #e1e1e1;
+    }
+    
+    .agent-nav-btn.active {
+      background-color: #f39c12;
+      color: white;
+    }
+    
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .order-header, .order-footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .order-date, .order-actions {
+        margin-top: 10px;
+      }
+      
+      .order-actions button {
+        margin-top: 5px;
+      }
+      
+      .order-modal-content {
+        width: 95%;
+        margin: 10% auto;
+      }
+      
+      .orders-filter {
+        flex-direction: column;
+      }
+      
+      .orders-filter select {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="images/logo.png" alt="Logo" class="company-logo">
+    </div>
+    <div class="auth-container">
+      <div class="user-info" id="user-info"></div>
+      <button class="logout-button" id="logout-button">התנתק</button>
+      <button class="auth-button" id="login-button">התחבר</button>
+    </div>
+    <h1>הזמנות הלקוחות שלי</h1>
+    
+    <div class="agent-nav">
+      <a href="agent.html" class="agent-nav-btn">לקוחות שלי</a>
+      <a href="orders-agent.html" class="agent-nav-btn active">הזמנות</a>
+      <a href="index.html" class="agent-nav-btn">חזרה לקטלוג</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="orders-container">
+      <div class="orders-header">
+        <h2 class="orders-title">הזמנות הלקוחות</h2>
+      </div>
+      
+      <div class="orders-filter">
+        <select id="client-filter">
+          <option value="">כל הלקוחות שלי</option>
+          <!-- Will be populated dynamically -->
+        </select>
+        
+        <select id="status-filter">
+          <option value="">כל הסטטוסים</option>
+          <option value="pending">ממתין לטיפול</option>
+          <option value="processing">בטיפול</option>
+          <option value="completed">הושלם</option>
+          <option value="cancelled">בוטל</option>
+        </select>
+        
+        <select id="date-filter">
+          <option value="">כל התאריכים</option>
+          <option value="today">היום</option>
+          <option value="week">השבוע האחרון</option>
+          <option value="month">החודש האחרון</option>
+        </select>
+      </div>
+      
+      <div id="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>טוען הזמנות...</p>
+      </div>
+      
+      <div id="orders-list">
+        <!-- Orders will be populated here -->
+      </div>
+    </div>
+  </main>
+  
+  <!-- Order Details Modal -->
+  <div id="order-details-modal" class="order-details-modal">
+    <div class="order-modal-content">
+      <div class="order-modal-header">
+        <h2 class="order-modal-title">פרטי הזמנה</h2>
+        <span class="close-modal">&times;</span>
+      </div>
+      <div id="order-modal-body">
+        <!-- Order details will be populated here -->
+      </div>
+      <div class="order-modal-footer">
+        <button id="close-modal-btn">סגירה</button>
+        <button id="export-order-btn" class="export-btn">ייצוא ל-Excel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- Excel Export Library -->
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  
+  <!-- Config -->
+  <script src="firebase-config.js"></script>
+  
+  <!-- Agent Orders Scripts -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM elements
+      const userInfoElement = document.getElementById('user-info');
+      const loginButton = document.getElementById('login-button');
+      const logoutButton = document.getElementById('logout-button');
+      const clientFilter = document.getElementById('client-filter');
+      const statusFilter = document.getElementById('status-filter');
+      const dateFilter = document.getElementById('date-filter');
+      const ordersListElement = document.getElementById('orders-list');
+      const loadingElement = document.getElementById('loading');
+      const orderDetailsModal = document.getElementById('order-details-modal');
+      const closeModalBtn = document.querySelector('.close-modal');
+      const closeModalButtonBtn = document.getElementById('close-modal-btn');
+      const exportOrderBtn = document.getElementById('export-order-btn');
+      
+      // Store agent's ID and assigned clients
+      let agentId = null;
+      let assignedClients = [];
+      
+      // Store all orders
+      let allOrders = [];
+      let currentOrder = null;
+      
+      // Show loading
+      function showLoading() {
+        loadingElement.style.display = 'flex';
+        ordersListElement.style.display = 'none';
+      }
+      
+      // Hide loading
+      function hideLoading() {
+        loadingElement.style.display = 'none';
+        ordersListElement.style.display = 'block';
+      }
+      
+      // Format date
+      function formatDate(timestamp) {
+        if (!timestamp) return 'N/A';
+        
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return date.toLocaleDateString('he-IL', {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+      
+      // Load agent's assigned clients
+      async function loadAssignedClients() {
+        try {
+          // Get agent's assigned clients
+          const agentDoc = await db.collection('agents').doc(agentId).get();
+          if (agentDoc.exists) {
+            const agentData = agentDoc.data();
+            const clientIds = agentData.clients || [];
+            
+            // Get client details
+            const clientPromises = clientIds.map(async (clientId) => {
+              const userDoc = await db.collection('users').doc(clientId).get();
+              if (userDoc.exists && userDoc.data().role === USER_ROLES.CLIENT) {
+                return {
+                  id: clientId,
+                  email: userDoc.data().email
+                };
+              }
+              return null;
+            });
+            
+            // Wait for all client promises
+            const clients = await Promise.all(clientPromises);
+            assignedClients = clients.filter(client => client !== null);
+            
+            // Sort by email
+            assignedClients.sort((a, b) => a.email.localeCompare(b.email));
+            
+            // Add options to select
+            assignedClients.forEach(client => {
+              const option = document.createElement('option');
+              option.value = client.id;
+              option.textContent = client.email;
+              clientFilter.appendChild(option);
+            });
+          }
+        } catch (error) {
+          console.error('Error loading assigned clients:', error);
+        }
+      }
+      
+      // Load orders for agent
+      async function loadAgentOrders() {
+        showLoading();
+        
+        try {
+          // Get all orders for this agent
+          const ordersSnapshot = await getAgentOrders(agentId);
+          allOrders = ordersSnapshot;
+          
+          // Load assigned clients for filter
+          await loadAssignedClients();
+          
+          // Apply initial filters
+          applyFilters();
+        } catch (error) {
+          console.error('Error loading orders:', error);
+          ordersListElement.innerHTML = `
+            <div class="no-orders">
+              <h3>שגיאה בטעינת ההזמנות</h3>
+              <p>אירעה שגיאה בטעינת ההזמנות. אנא נסה שוב מאוחר יותר.</p>
+            </div>
+          `;
+        } finally {
+          hideLoading();
+        }
+      }
+      
+      // Apply filters
+      function applyFilters() {
+        const clientId = clientFilter.value;
+        const status = statusFilter.value;
+        const dateRange = dateFilter.value;
+        
+        // Filter orders
+        let filteredOrders = [...allOrders];
+        
+        // Apply client filter
+        if (clientId) {
+          filteredOrders = filteredOrders.filter(order => order.clientId === clientId);
+        }
+        
+        // Apply status filter
+        if (status) {
+          filteredOrders = filteredOrders.filter(order => order.status === status);
+        }
+        
+        // Apply date filter
+        if (dateRange) {
+          const now = new Date();
+          let startDate;
+          
+          if (dateRange === 'today') {
+            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          } else if (dateRange === 'week') {
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          } else if (dateRange === 'month') {
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          }
+          
+          filteredOrders = filteredOrders.filter(order => {
+            const orderDate = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+            return orderDate >= startDate;
+          });
+        }
+        
+        // Display filtered orders
+        displayOrders(filteredOrders);
+      }
+      
+      // Display orders
+      function displayOrders(orders) {
+        if (orders.length === 0) {
+          ordersListElement.innerHTML = `
+            <div class="no-orders">
+              <h3>לא נמצאו הזמנות</h3>
+              <p>לא נמצאו הזמנות התואמות את החיפוש שלך.</p>
+            </div>
+          `;
+          return;
+        }
+        
+        let ordersHTML = '';
+        
+        orders.forEach(order => {
+          const orderDate = formatDate(order.createdAt);
+          
+          // Get status label
+          let statusLabel = '';
+          let statusClass = '';
+          
+          switch (order.status) {
+            case 'pending':
+              statusLabel = 'ממתין לטיפול';
+              statusClass = 'pending';
+              break;
+            case 'processing':
+              statusLabel = 'בטיפול';
+              statusClass = 'processing';
+              break;
+            case 'completed':
+              statusLabel = 'הושלם';
+              statusClass = 'completed';
+              break;
+            case 'cancelled':
+              statusLabel = 'בוטל';
+              statusClass = 'cancelled';
+              break;
+            default:
+              statusLabel = 'לא ידוע';
+              statusClass = 'pending';
+          }
+          
+          // Calculate order total
+          const orderTotal = order.items.reduce((total, item) => {
+            return total + (parseFloat(item.price) || 0) * item.quantity;
+          }, 0);
+          
+          // Generate order items preview (up to 3 items)
+          const previewItems = order.items.slice(0, 3).map(item => {
+            return `
+              <div class="order-item">
+                <img src="tl/${item.barcode}.jpg" alt="${item.name}" class="order-item-image" onerror="this.src='images/logo.png';">
+                <div class="order-item-details">
+                  <div class="order-item-name">${item.name}</div>
+                  <div class="order-item-meta">
+                    <span>${item.quantity} יח'</span>
+                    <span class="order-item-price">${item.price ? item.price + ' ₪' : 'מחיר לא זמין'}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+          
+          // Show more message if there are more items
+          const moreItemsMessage = order.items.length > 3 ? 
+            `<div style="text-align: center; margin-top: 10px; color: #777;">+ ${order.items.length - 3} פריטים נוספים</div>` : '';
+          
+          // Generate order card HTML
+          ordersHTML += `
+            <div class="order-card" data-order-id="${order.id}">
+              <div class="order-header">
+                <div class="order-id">
+                  <span class="order-status ${statusClass}">${statusLabel}</span>
+                  הזמנה #${order.id.substring(0, 8)}...
+                </div>
+                <div class="order-date">${orderDate}</div>
+              </div>
+              <div class="order-client">
+                <div class="order-client-email">לקוח: ${order.clientEmail}</div>
+              </div>
+              ${order.notes ? `<div class="order-notes">הערות: ${order.notes}</div>` : ''}
+              <div class="order-details">
+                <div class="order-items">
+                  ${previewItems}
+                  ${moreItemsMessage}
+                </div>
+              </div>
+              <div class="order-footer">
+                <div class="order-total">סה"כ: ${orderTotal.toFixed(2)} ₪</div>
+                <div class="order-actions">
+                  <button class="view-details-btn" data-order-id="${order.id}">צפה בפרטים</button>
+                  <select class="update-status-dropdown" data-order-id="${order.id}">
+                    <option value="">עדכון סטטוס</option>
+                    <option value="pending" ${order.status === 'pending' ? 'disabled' : ''}>ממתין לטיפול</option>
+                    <option value="processing" ${order.status === 'processing' ? 'disabled' : ''}>בטיפול</option>
+                    <option value="completed" ${order.status === 'completed' ? 'disabled' : ''}>הושלם</option>
+                    <option value="cancelled" ${order.status === 'cancelled' ? 'disabled' : ''}>בוטל</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        
+        ordersListElement.innerHTML = ordersHTML;
+        
+        // Add event listeners to view details buttons
+        document.querySelectorAll('.view-details-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const orderId = btn.dataset.orderId;
+            openOrderDetailsModal(orderId);
+          });
+        });
+        
+        // Add event listeners to status update dropdowns
+        document.querySelectorAll('.update-status-dropdown').forEach(select => {
+          select.addEventListener('change', async () => {
+            if (!select.value) return;
+            
+            const orderId = select.dataset.orderId;
+            const newStatus = select.value;
+            
+            try {
+              // Update order status in Firestore
+              await db.collection('orders').doc(orderId).update({
+                status: newStatus,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              
+              // Update local data
+              const orderIndex = allOrders.findIndex(o => o.id === orderId);
+              if (orderIndex !== -1) {
+                allOrders[orderIndex].status = newStatus;
+              }
+              
+              // Refresh display
+              applyFilters();
+            } catch (error) {
+              console.error('Error updating order status:', error);
+              alert('שגיאה בעדכון סטטוס ההזמנה. אנא נסה שוב.');
+            } finally {
+              // Reset select
+              select.value = '';
+            }
+          });
+        });
+      }
+      
+      // Open order details modal
+      function openOrderDetailsModal(orderId) {
+        // Find order by ID
+        const order = allOrders.find(o => o.id === orderId);
+        if (!order) return;
+        
+        // Store current order for export
+        currentOrder = order;
+        
+        // Get order date
+        const orderDate = formatDate(order.createdAt);
+        
+        // Calculate order total
+        const orderTotal = order.items.reduce((total, item) => {
+          return total + (parseFloat(item.price) || 0) * item.quantity;
+        }, 0);
+        
+        // Get status label
+        let statusLabel = '';
+        let statusClass = '';
+        
+        switch (order.status) {
+          case 'pending':
+            statusLabel = 'ממתין לטיפול';
+            statusClass = 'pending';
+            break;
+          case 'processing':
+            statusLabel = 'בטיפול';
+            statusClass = 'processing';
+            break;
+          case 'completed':
+            statusLabel = 'הושלם';
+            statusClass = 'completed';
+            break;
+          case 'cancelled':
+            statusLabel = 'בוטל';
+            statusClass = 'cancelled';
+            break;
+          default:
+            statusLabel = 'לא ידוע';
+            statusClass = 'pending';
+        }
+        
+        // Generate order details HTML
+        const modalContent = `
+          <div class="order-details-info">
+            <p><strong>מספר הזמנה:</strong> ${order.id}</p>
+            <p><strong>תאריך:</strong> ${orderDate}</p>
+            <p><strong>לקוח:</strong> ${order.clientEmail}</p>
+            <p><strong>סטטוס:</strong> <span class="order-status ${statusClass}">${statusLabel}</span></p>
+            ${order.notes ? `<p><strong>הערות:</strong> ${order.notes}</p>` : ''}
+          </div>
+          <div class="order-modal-items">
+            <h3>פריטים בהזמנה</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>מק"ט</th>
+                  <th>תמונה</th>
+                  <th>שם פריט</th>
+                  <th>כמות</th>
+                  <th>מחיר יחידה</th>
+                  <th>סה"כ</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${order.items.map(item => {
+                  const itemTotal = (parseFloat(item.price) || 0) * item.quantity;
+                  return `
+                    <tr>
+                      <td>${item.barcode}</td>
+                      <td><img src="tl/${item.barcode}.jpg" alt="${item.name}" width="50" height="50" onerror="this.src='images/logo.png';"></td>
+                      <td>${item.name}</td>
+                      <td>${item.quantity}</td>
+                      <td>${item.price ? item.price + ' ₪' : 'N/A'}</td>
+                      <td>${itemTotal.toFixed(2)} ₪</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="5" style="text-align: left;"><strong>סכום כולל:</strong></td>
+                  <td><strong>${orderTotal.toFixed(2)} ₪</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        `;
+        
+        document.getElementById('order-modal-body').innerHTML = modalContent;
+        orderDetailsModal.style.display = 'block';
+      }
+      
+      // Close order details modal
+      function closeOrderDetailsModal() {
+        orderDetailsModal.style.display = 'none';
+      }
+      
+      // Export order to Excel
+      function exportOrderToExcel() {
+        if (!currentOrder) return;
+        
+        try {
+          // Create workbook
+          const wb = XLSX.utils.book_new();
+          
+          // Create main order info worksheet
+          const orderInfo = [
+            ['מספר הזמנה', currentOrder.id],
+            ['תאריך', formatDate(currentOrder.createdAt)],
+            ['לקוח', currentOrder.clientEmail],
+            ['סטטוס', currentOrder.status],
+            ['הערות', currentOrder.notes || '']
+          ];
+          
+          const wsInfo = XLSX.utils.aoa_to_sheet(orderInfo);
+          XLSX.utils.book_append_sheet(wb, wsInfo, 'פרטי הזמנה');
+          
+          // Create order items worksheet
+          const itemsHeaders = ['מק"ט', 'שם פריט', 'כמות', 'מחיר יחידה', 'סה"כ'];
+          const itemsData = currentOrder.items.map(item => {
+            const itemTotal = (parseFloat(item.price) || 0) * item.quantity;
+            return [
+              item.barcode,
+              item.name,
+              item.quantity,
+              parseFloat(item.price) || 0,
+              itemTotal
+            ];
+          });
+          
+          // Add total row
+          const orderTotal = currentOrder.items.reduce((total, item) => {
+            return total + (parseFloat(item.price) || 0) * item.quantity;
+          }, 0);
+          
+          itemsData.push(['', 'סכום כולל', '', '', orderTotal]);
+          
+          const wsItems = XLSX.utils.aoa_to_sheet([itemsHeaders, ...itemsData]);
+          XLSX.utils.book_append_sheet(wb, wsItems, 'פריטים');
+          
+          // Generate Excel file name
+          const fileName = `order_${currentOrder.id.substring(0, 8)}_${currentOrder.clientEmail.split('@')[0]}.xlsx`;
+          
+          // Export workbook to file
+          XLSX.writeFile(wb, fileName);
+        } catch (error) {
+          console.error('Error exporting to Excel:', error);
+          alert('שגיאה בייצוא לקובץ Excel. אנא נסה שוב.');
+        }
+      }
+      
+      // Add event listeners
+      clientFilter.addEventListener('change', applyFilters);
+      statusFilter.addEventListener('change', applyFilters);
+      dateFilter.addEventListener('change', applyFilters);
+      
+      closeModalBtn.addEventListener('click', closeOrderDetailsModal);
+      closeModalButtonBtn.addEventListener('click', closeOrderDetailsModal);
+      exportOrderBtn.addEventListener('click', exportOrderToExcel);
+      
+      // Handle login button click
+      loginButton.addEventListener('click', () => {
+        window.location.href = 'login.html';
+      });
+      
+      // Handle logout button click
+      logoutButton.addEventListener('click', async () => {
+        try {
+          await auth.signOut();
+          window.location.href = 'index.html';
+        } catch (error) {
+          console.error('Logout error:', error);
+        }
+      });
+      
+      // Listen for auth state changes
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          // User is signed in
+          userInfoElement.style.display = 'block';
+          userInfoElement.textContent = user.email;
+          
+          logoutButton.style.display = 'block';
+          loginButton.style.display = 'none';
+          
+          // Check if user is agent
+          const userRole = await getUserRole(user.uid);
+          
+          if (userRole === USER_ROLES.AGENT) {
+            // User is agent, set agent ID and load orders
+            agentId = user.uid;
+            loadAgentOrders();
+          } else {
+            // User is not agent, redirect to index
+            alert('רק סוכנים יכולים לגשת לדף זה');
+            window.location.href = 'index.html';
+          }
+        } else {
+          // User is signed out, redirect to login
+          window.location.href = 'login.html?redirect=orders-agent.html';
+        }
+      });
+      
+      // Close modal when clicking outside
+      window.addEventListener('click', (event) => {
+        if (event.target === orderDetailsModal) {
+          closeOrderDetailsModal();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

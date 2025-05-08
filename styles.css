@@ -626,11 +626,18 @@ select.has-value ~ .clear-filter {
 
 /* We no longer need the brand filter modal styling as we're using a dropdown */
 
-/* Heart button styles */
-.heart-button {
+/* Product buttons styles */
+.product-buttons {
   position: absolute;
   top: 10px;
   right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10;
+}
+
+.heart-button, .cart-button {
   background: white;
   border: none;
   border-radius: 50%;
@@ -642,14 +649,13 @@ select.has-value ~ .clear-filter {
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s ease;
-  z-index: 10;
 }
 
-.heart-button:hover {
+.heart-button:hover, .cart-button:hover {
   transform: scale(1.1);
 }
 
-.heart-icon {
+.heart-icon, .cart-icon {
   font-style: normal;
   font-size: 22px;
   color: #ccc;
@@ -662,6 +668,74 @@ select.has-value ~ .clear-filter {
 
 .heart-button.liked .heart-icon {
   color: #e74c3c;
+}
+
+.cart-button .cart-icon {
+  color: #27ae60;
+}
+
+.cart-button:hover .cart-icon {
+  color: #219955;
+}
+
+/* Shopping cart badge */
+.cart-count-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: #e74c3c;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Shopping cart button in header */
+.cart-button-header {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cart-button-header:hover {
+  background-color: #219955;
+}
+
+/* Toast message */
+.toast-message {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background-color: #27ae60;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 2000;
+  opacity: 0;
+  transition: all 0.3s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.toast-message.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
 }
 
 .modal-heart-button {

@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>עגלת קניות - AGAT&D</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="images/logo.png" type="image/png">
+  <style>
+    /* Cart styles */
+    .cart-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .cart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .cart-title {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+    
+    .cart-summary {
+      font-size: 1.2rem;
+    }
+    
+    .cart-items {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+      padding: 15px 0;
+      margin-bottom: 10px;
+    }
+    
+    .cart-item-details {
+      display: flex;
+      align-items: center;
+      flex: 1;
+    }
+    
+    .cart-item img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      margin-left: 15px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+    
+    .cart-item-info {
+      flex: 1;
+    }
+    
+    .cart-item-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .cart-item-quantity {
+      color: #555;
+      font-size: 0.95rem;
+      margin-top: 5px;
+    }
+    
+    .cart-item-actions {
+      display: flex;
+      align-items: center;
+    }
+    
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      margin-left: 15px;
+    }
+    
+    .quantity-btn {
+      background-color: #f1f1f1;
+      border: none;
+      color: #333;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .quantity-btn:hover {
+      background-color: #e1e1e1;
+    }
+    
+    .quantity-input {
+      width: 40px;
+      height: 30px;
+      text-align: center;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin: 0 5px;
+    }
+    
+    .remove-btn {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    
+    .remove-btn:hover {
+      background-color: #c0392b;
+    }
+    
+    .cart-empty {
+      text-align: center;
+      padding: 30px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+    
+    .cart-empty h3 {
+      margin-top: 0;
+    }
+    
+    .cart-empty a {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 15px;
+      background-color: #3498db;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    
+    .cart-totals {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+    
+    .cart-subtotal, .cart-total {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    
+    .cart-total {
+      font-weight: bold;
+      font-size: 1.2rem;
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+    }
+    
+    .cart-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    
+    .continue-shopping {
+      background-color: #95a5a6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .send-order {
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    
+    .send-order:hover {
+      background-color: #219955;
+    }
+    
+    .continue-shopping:hover {
+      background-color: #7f8c8d;
+    }
+    
+    /* Notes field */
+    .order-notes {
+      margin-top: 20px;
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    
+    .order-notes h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+    
+    .order-notes textarea {
+      width: 100%;
+      min-height: 80px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 8px;
+      font-family: inherit;
+      resize: vertical;
+    }
+    
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+      background-color: #fff;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 50%;
+      max-width: 500px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      position: relative;
+      text-align: center;
+    }
+    
+    .modal-content h2 {
+      margin-top: 0;
+      color: #27ae60;
+    }
+    
+    .modal-buttons {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    
+    .modal-button {
+      margin: 0 10px;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    
+    .modal-confirm {
+      background-color: #27ae60;
+      color: white;
+    }
+    
+    .modal-cancel {
+      background-color: #95a5a6;
+      color: white;
+    }
+    
+    /* Auth styles */
+    .auth-container {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .auth-button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .auth-button:hover {
+      background-color: #2980b9;
+    }
+    
+    .user-info {
+      margin-right: 10px;
+      display: none;
+    }
+    
+    .logout-button {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 10px;
+      display: none;
+    }
+    
+    /* Loading indicator */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 30px;
+    }
+    
+    .loading-spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .cart-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .cart-item-actions {
+        margin-top: 15px;
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      .quantity-control {
+        margin-left: 0;
+      }
+      
+      .quantity-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.4rem;
+      }
+      
+      .quantity-input {
+        width: 50px;
+        height: 36px;
+        font-size: 1.2rem;
+        margin: 0 8px;
+      }
+      
+      .cart-item-quantity {
+        font-size: 1.1rem;
+        margin-top: 8px;
+        font-weight: 500;
+      }
+      
+      .modal-content {
+        width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="images/logo.png" alt="Logo" class="company-logo">
+    </div>
+    <div class="auth-container">
+      <div class="user-info" id="user-info"></div>
+      <button class="favorites-button" id="favorites-button" style="display: none; background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 10px;">מועדפים</button>
+      <button class="logout-button" id="logout-button">התנתק</button>
+      <button class="auth-button" id="login-button">התחבר</button>
+    </div>
+    <h1>עגלת קניות</h1>
+  </header>
+
+  <main>
+    <div class="cart-container">
+      <div class="cart-header">
+        <h2 class="cart-title">עגלת הקניות שלי</h2>
+        <div class="cart-summary" id="cart-summary">0 מוצרים בעגלה</div>
+      </div>
+      
+      <div class="loading" id="cart-loading">
+        <div class="loading-spinner"></div>
+        <p>טוען את עגלת הקניות...</p>
+      </div>
+      
+      <div id="cart-content">
+        <!-- Cart items will be populated here -->
+      </div>
+      
+      <div class="order-notes">
+        <h3>הערות להזמנה</h3>
+        <textarea id="order-notes" placeholder="הוסף הערות לסוכן..."></textarea>
+      </div>
+      
+      <div class="cart-buttons">
+        <a href="index.html" class="continue-shopping">המשך קניות</a>
+        <button class="send-order" id="send-order-btn">שלח הזמנה לסוכן</button>
+      </div>
+    </div>
+  </main>
+  
+  <!-- Order Confirmation Modal -->
+  <div id="confirmation-modal" class="modal">
+    <div class="modal-content">
+      <h2>שליחת הזמנה</h2>
+      <p>האם אתה בטוח שברצונך לשלוח את ההזמנה לסוכן?</p>
+      <div class="modal-buttons">
+        <button class="modal-button modal-cancel" id="cancel-order-btn">ביטול</button>
+        <button class="modal-button modal-confirm" id="confirm-order-btn">שלח הזמנה</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Order Success Modal -->
+  <div id="success-modal" class="modal">
+    <div class="modal-content">
+      <h2>ההזמנה נשלחה בהצלחה!</h2>
+      <p>הזמנתך נשלחה לסוכן ותטופל בהקדם.</p>
+      <div class="modal-buttons">
+        <button class="modal-button modal-confirm" id="back-to-catalog-btn">חזרה לקטלוג</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  
+  <!-- Config -->
+  <script src="firebase-config.js"></script>
+  
+  <!-- Cart scripts -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM elements
+      const userInfoElement = document.getElementById('user-info');
+      const loginButton = document.getElementById('login-button');
+      const logoutButton = document.getElementById('logout-button');
+      const favoritesButton = document.getElementById('favorites-button');
+      const cartContentElement = document.getElementById('cart-content');
+      const cartSummaryElement = document.getElementById('cart-summary');
+      const loadingElement = document.getElementById('cart-loading');
+      const sendOrderBtn = document.getElementById('send-order-btn');
+      const orderNotesTextarea = document.getElementById('order-notes');
+      const confirmationModal = document.getElementById('confirmation-modal');
+      const successModal = document.getElementById('success-modal');
+      const cancelOrderBtn = document.getElementById('cancel-order-btn');
+      const confirmOrderBtn = document.getElementById('confirm-order-btn');
+      const backToCatalogBtn = document.getElementById('back-to-catalog-btn');
+      
+      // Cart data
+      let cartItems = [];
+      
+      // Show loading indicator
+      function showLoading() {
+        loadingElement.style.display = 'block';
+        cartContentElement.style.display = 'none';
+      }
+      
+      // Hide loading indicator
+      function hideLoading() {
+        loadingElement.style.display = 'none';
+        cartContentElement.style.display = 'block';
+      }
+      
+      // Calculate total item count
+      function calculateTotalItems() {
+        return cartItems.reduce((sum, item) => {
+          return sum + item.quantity;
+        }, 0);
+      }
+      
+      // Update cart item quantity
+      async function updateItemQuantity(barcode, quantity) {
+        try {
+          const success = await updateCartItemQuantity(barcode, quantity);
+          if (success) {
+            // Update local cart data
+            const itemIndex = cartItems.findIndex(item => item.barcode === barcode);
+            if (itemIndex !== -1) {
+              if (quantity <= 0) {
+                cartItems.splice(itemIndex, 1);
+              } else {
+                cartItems[itemIndex].quantity = quantity;
+              }
+            }
+            renderCart();
+          }
+        } catch (error) {
+          console.error('Error updating quantity:', error);
+          alert('שגיאה בעדכון כמות המוצר. אנא נסה שוב.');
+        }
+      }
+      
+      // Remove item from cart
+      async function removeCartItem(barcode) {
+        try {
+          const success = await removeFromCart(barcode);
+          if (success) {
+            // Update local cart data
+            cartItems = cartItems.filter(item => item.barcode !== barcode);
+            renderCart();
+          }
+        } catch (error) {
+          console.error('Error removing item:', error);
+          alert('שגיאה בהסרת המוצר מהעגלה. אנא נסה שוב.');
+        }
+      }
+      
+      // Render cart items
+      function renderCart() {
+        // Calculate total number of items (counting quantities)
+        const totalItems = calculateTotalItems();
+        
+        // Update cart summary
+        cartSummaryElement.textContent = `${totalItems} פריטים בעגלה (${cartItems.length} סוגי מוצרים)`;
+        
+        if (cartItems.length === 0) {
+          // Show empty cart message
+          cartContentElement.innerHTML = `
+            <div class="cart-empty">
+              <h3>עגלת הקניות שלך ריקה</h3>
+              <p>התחל לקנות ולהוסיף מוצרים לעגלה.</p>
+              <a href="index.html">חזרה לקטלוג</a>
+            </div>
+          `;
+          sendOrderBtn.disabled = true;
+          return;
+        }
+        
+        // Enable send order button
+        sendOrderBtn.disabled = false;
+        
+        // Generate cart HTML
+        let cartHTML = '<ul class="cart-items">';
+        
+        cartItems.forEach(item => {
+          
+          cartHTML += `
+            <li class="cart-item" data-barcode="${item.barcode}">
+              <div class="cart-item-details">
+                <img src="${item.image}" alt="${item.name}" onerror="this.src='images/logo.png';">
+                <div class="cart-item-info">
+                  <div class="cart-item-name">${item.name}</div>
+                  <div class="cart-item-quantity">כמות: ${item.quantity}</div>
+                </div>
+              </div>
+              <div class="cart-item-actions">
+                <div class="quantity-control">
+                  <button class="quantity-btn decrease" data-barcode="${item.barcode}">-</button>
+                  <input type="number" class="quantity-input" value="${item.quantity}" min="1" data-barcode="${item.barcode}">
+                  <button class="quantity-btn increase" data-barcode="${item.barcode}">+</button>
+                </div>
+                <button class="remove-btn" data-barcode="${item.barcode}">הסר</button>
+              </div>
+            </li>
+          `;
+        });
+        
+        cartHTML += '</ul>';
+        
+        // Add cart totals
+        cartHTML += `
+                  `;
+        
+        cartContentElement.innerHTML = cartHTML;
+        
+        // Add event listeners to quantity controls
+        document.querySelectorAll('.quantity-btn.decrease').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const barcode = this.dataset.barcode;
+            const item = cartItems.find(item => item.barcode === barcode);
+            if (item && item.quantity > 1) {
+              updateItemQuantity(barcode, item.quantity - 1);
+            }
+          });
+        });
+        
+        document.querySelectorAll('.quantity-btn.increase').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const barcode = this.dataset.barcode;
+            const item = cartItems.find(item => item.barcode === barcode);
+            if (item) {
+              updateItemQuantity(barcode, item.quantity + 1);
+            }
+          });
+        });
+        
+        document.querySelectorAll('.quantity-input').forEach(function(input) {
+          // Focus and blur events to handle the mobile keyboard closing issues
+          input.addEventListener('focus', function() {
+            this.select(); // Select all text when focused for better UX
+          });
+          
+          input.addEventListener('blur', function() {
+            const barcode = this.dataset.barcode;
+            const newQuantity = parseInt(this.value, 10);
+            if (!isNaN(newQuantity) && newQuantity >= 1) {
+              updateItemQuantity(barcode, newQuantity);
+            } else {
+              // Reset to previous value if invalid
+              const item = cartItems.find(item => item.barcode === barcode);
+              if (item) {
+                this.value = item.quantity;
+              }
+            }
+          });
+          
+          // Handle enter key
+          input.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+              this.blur(); // Trigger the blur event which updates the quantity
+            }
+          });
+        });
+        
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const barcode = btn.dataset.barcode;
+            removeCartItem(barcode);
+          });
+        });
+      }
+      
+      // Load cart from Firebase
+      async function loadCart() {
+        showLoading();
+        
+        try {
+          cartItems = await getUserCart();
+          console.log('Loaded cart:', cartItems);
+          renderCart();
+        } catch (error) {
+          console.error('Error loading cart:', error);
+          cartContentElement.innerHTML = `
+            <div class="cart-empty">
+              <h3>שגיאה בטעינת עגלת הקניות</h3>
+              <p>אירעה שגיאה בטעינת עגלת הקניות. אנא נסה שוב מאוחר יותר.</p>
+              <a href="index.html">חזרה לקטלוג</a>
+            </div>
+          `;
+        } finally {
+          hideLoading();
+        }
+      }
+      
+      // Send order to agent
+      async function sendOrder() {
+        if (cartItems.length === 0) {
+          alert('לא ניתן לשלוח עגלה ריקה');
+          return;
+        }
+        
+        // Get order notes
+        const notes = orderNotesTextarea.value.trim();
+        
+        try {
+          showLoading();
+          
+          // Submit order
+          const orderId = await submitOrder(notes);
+          
+          if (orderId) {
+            // Show success modal
+            successModal.style.display = 'block';
+            
+            // Clear cart
+            cartItems = [];
+            orderNotesTextarea.value = '';
+          } else {
+            alert('שגיאה בשליחת ההזמנה. אנא נסה שוב.');
+          }
+        } catch (error) {
+          console.error('Error sending order:', error);
+          alert('שגיאה בשליחת ההזמנה. אנא נסה שוב.');
+        } finally {
+          hideLoading();
+        }
+      }
+      
+      // Modal control functions
+      function openConfirmationModal() {
+        confirmationModal.style.display = 'block';
+      }
+      
+      function closeConfirmationModal() {
+        confirmationModal.style.display = 'none';
+      }
+      
+      function closeSuccessModal() {
+        successModal.style.display = 'none';
+      }
+      
+      // Add event listeners
+      sendOrderBtn.addEventListener('click', openConfirmationModal);
+      
+      cancelOrderBtn.addEventListener('click', closeConfirmationModal);
+      
+      confirmOrderBtn.addEventListener('click', () => {
+        closeConfirmationModal();
+        sendOrder();
+      });
+      
+      backToCatalogBtn.addEventListener('click', () => {
+        closeSuccessModal();
+        window.location.href = 'index.html';
+      });
+      
+      // Close modals when clicking outside
+      window.addEventListener('click', (event) => {
+        if (event.target === confirmationModal) {
+          closeConfirmationModal();
+        } else if (event.target === successModal) {
+          closeSuccessModal();
+        }
+      });
+      
+      // Handle login button click
+      loginButton.addEventListener('click', () => {
+        window.location.href = 'login.html';
+      });
+      
+      // Handle favorites button click
+      favoritesButton.addEventListener('click', () => {
+        window.location.href = 'favorites.html';
+      });
+      
+      // Handle logout button click
+      logoutButton.addEventListener('click', async () => {
+        try {
+          await auth.signOut();
+          window.location.href = 'index.html';
+        } catch (error) {
+          console.error('Logout error:', error);
+        }
+      });
+      
+      // Listen for auth state changes
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          // User is signed in
+          userInfoElement.style.display = 'block';
+          userInfoElement.textContent = user.email;
+          
+          logoutButton.style.display = 'block';
+          loginButton.style.display = 'none';
+          
+          // Get user role from Firestore
+          try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            
+            if (userDoc.exists) {
+              const userData = userDoc.data();
+              
+              // Check if user is a client
+              if (userData.role === USER_ROLES.CLIENT) {
+                // Load cart for client
+                loadCart();
+                
+                // Show favorites button
+                favoritesButton.style.display = 'block';
+              } else {
+                // Redirect non-client users back to index
+                alert('עגלת קניות זמינה ללקוחות בלבד');
+                window.location.href = 'index.html';
+              }
+              
+              // Store user role in window object for global access
+              window.userRole = userData.role;
+            }
+          } catch (error) {
+            console.error('Error getting user data:', error);
+          }
+        } else {
+          // User is signed out - redirect to login
+          window.location.href = 'login.html?redirect=shopping-cart.html';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
