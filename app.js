@@ -177,23 +177,13 @@ async function init() {
             console.warn(`Proxy fetch for ${name} failed:`, proxyError);
           }
           
-          // Fourth try: use fallback data from fallback-data.js
-          if (typeof fallbackData !== 'undefined' && fallbackData[name] && fallbackData[name].length > 0) {
-            console.log(`Using fallback data for ${name}`);
-            return fallbackData[name];
-          }
-          
           // If all else fails, return empty array
           console.error(`All fetch methods failed for ${name}`);
           return [];
         } catch (error) {
           console.error(`Failed to fetch ${name} data:`, error);
           
-          // Try using fallback data as last resort
-          if (typeof fallbackData !== 'undefined' && fallbackData[name] && fallbackData[name].length > 0) {
-            console.log(`Using fallback data for ${name} after error`);
-            return fallbackData[name];
-          }
+          // No more fallback data
           
           // Return empty array on complete failure
           return [];
@@ -243,38 +233,8 @@ async function init() {
                             beerProducts.length + foodProducts.length + whiskeyProducts.length;
       
       if (totalProducts === 0) {
-        console.error("Failed to load any product data, trying hardcoded fallback data");
-        
-        // Use the fallback data from the external file
-        try {
-          console.log("Using fallback data from external file as last resort");
-          
-          // Check if we have fallback data available
-          if (typeof fallbackData !== 'undefined') {
-            alcoholProducts = fallbackData.alcohol || [];
-            whiskeyProducts = fallbackData.whiskey || [];
-            wineProducts = fallbackData.wine || [];
-            beerProducts = fallbackData.beer || [];
-            foodProducts = fallbackData.food || [];
-          }
-          
-          // Make sure the brand filters work with the fallback data
-          if (brands && brands.length > 0) {
-            // Apply brands to all product categories
-            [alcoholProducts, whiskeyProducts, wineProducts, beerProducts, foodProducts].forEach(productArray => {
-              productArray.forEach(item => {
-                brands.forEach(brand => {
-                  item[brand] = 'TRUE'; // Make visible in all brand filters
-                });
-              });
-            });
-          }
-          
-          console.log("Using fallback data as last resort");
-        } catch (fallbackError) {
-          console.error("Even fallback data failed:", fallbackError);
-          throw new Error("Couldn't load any product data from any source");
-        }
+        console.error("Failed to load any product data");
+        throw new Error("Couldn't load any product data from any source");
       }
       
     } catch (fetchError) {
