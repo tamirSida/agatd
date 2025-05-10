@@ -1400,7 +1400,7 @@
         }
       }
       
-      // Load clients
+      // Load clients - only actual clients, not admins or agents
       async function loadClients() {
         const clientsTableBody = document.getElementById('clients-table-body');
         const clientSelect = document.getElementById('client-select');
@@ -1411,7 +1411,23 @@
           // Clear client select except first option
           clientSelect.innerHTML = '<option value="">-- בחר לקוח --</option>';
           
-          const clientsSnapshot = await db.collection('clients').get();
+          // First, get the list of users with the CLIENT role
+          const clientUsersSnapshot = await db.collection('users')
+            .where('role', '==', USER_ROLES.CLIENT)
+            .get();
+          
+          if (clientUsersSnapshot.empty) {
+            clientsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">אין לקוחות</td></tr>';
+            return;
+          }
+          
+          // Get list of client user IDs
+          const clientUserIds = clientUsersSnapshot.docs.map(doc => doc.id);
+          
+          // Now get the corresponding client records
+          const clientsSnapshot = await db.collection('clients')
+            .where(firebase.firestore.FieldPath.documentId(), 'in', clientUserIds)
+            .get();
           
           if (clientsSnapshot.empty) {
             clientsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">אין לקוחות</td></tr>';
@@ -1433,24 +1449,18 @@
           // Load clients with agent info
           const clientsData = [];
           
+          // Create a map of client user emails for quicker lookup
+          const clientEmailMap = {};
+          clientUsersSnapshot.forEach(doc => {
+            clientEmailMap[doc.id] = doc.data().email || '';
+          });
+          
           // Gather client data with related user info
           for (const doc of clientsSnapshot.docs) {
             const clientData = doc.data();
             
-            // Get user info
-            let userEmail = clientData.email || '';
-            
-            // If no email, try to get from users collection
-            if (!userEmail) {
-              try {
-                const userDoc = await db.collection('users').doc(doc.id).get();
-                if (userDoc.exists) {
-                  userEmail = userDoc.data().email || '';
-                }
-              } catch (userError) {
-                console.error('Error getting user data:', userError);
-              }
-            }
+            // Get user email from the map we created
+            let userEmail = clientEmailMap[doc.id] || clientData.email || '';
             
             let createdDate = '';
             if (clientData.createdAt) {
