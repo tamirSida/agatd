@@ -196,6 +196,23 @@
       margin-left: 10px;
     }
     
+    .delete-order-btn {
+      background-color: #fff;
+      color: #e74c3c;
+      border: 1px solid #e74c3c;
+      border-radius: 4px;
+      padding: 5px 10px;
+      margin-left: 5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 16px;
+    }
+    
+    .delete-order-btn:hover {
+      background-color: #e74c3c;
+      color: white;
+    }
+    
     .order-notes {
       padding: 15px 20px;
       background-color: #f9f9f9;
@@ -732,6 +749,7 @@
                     <option value="completed" ${order.status === 'completed' ? 'disabled' : ''}>הושלם</option>
                     <option value="cancelled" ${order.status === 'cancelled' ? 'disabled' : ''}>בוטל</option>
                   </select>
+                  <button class="delete-order-btn" data-order-id="${order.id}" title="מחק הזמנה">🗑️</button>
                 </div>
               </div>
             </div>
@@ -777,6 +795,37 @@
             } finally {
               // Reset select
               select.value = '';
+            }
+          });
+        });
+        
+        // Add event listeners to delete order buttons
+        document.querySelectorAll('.delete-order-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const orderId = btn.dataset.orderId;
+            
+            // Find order by ID to show details in confirmation
+            const order = allOrders.find(o => o.id === orderId);
+            if (!order) return;
+            
+            // Confirm before deletion
+            if (confirm(`האם אתה בטוח שברצונך למחוק את ההזמנה #${orderId.substring(0, 8)}... של ${order.clientEmail}? פעולה זו אינה ניתנת לביטול.`)) {
+              try {
+                // Delete the order document from Firestore
+                await db.collection('orders').doc(orderId).delete();
+                
+                // Remove from local data
+                allOrders = allOrders.filter(o => o.id !== orderId);
+                
+                // Show success message
+                alert('ההזמנה נמחקה בהצלחה');
+                
+                // Refresh display
+                applyFilters();
+              } catch (error) {
+                console.error('Error deleting order:', error);
+                alert('שגיאה במחיקת ההזמנה. אנא נסה שוב.');
+              }
             }
           });
         });

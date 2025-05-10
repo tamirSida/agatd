@@ -158,9 +158,10 @@ Each product card displays the following information, with different field mappi
 6. **Volume**: For beverages
 7. **Weight**: For food products
 8. **Description**: From `תאור` or `תיאור פריט`
-9. **Availability**: If a client is selected, shows availability status
-10. **Like Button**: Heart icon to mark products as favorites (requires login)
-11. **Cart Button**: Shopping cart icon to add products to cart with quantity selection (requires login)
+9. **Price**: Primarily from `מחירון` field (with ₪ symbol), or falls back to `מחיר` field if `מחירון` is not available
+10. **Availability**: If a client is selected, shows availability status
+11. **Like Button**: Heart icon to mark products as favorites (requires login)
+12. **Cart Button**: Shopping cart icon to add products to cart with quantity selection (requires login)
 
 ## Technical Implementation Notes
 
@@ -172,7 +173,7 @@ Each product card displays the following information, with different field mappi
 - Adds a retry button if data loading fails
 - No local fallbacks - fully depends on remote API endpoints
 
-### Recent Bug Fixes
+### Recent Bug Fixes and Improvements
 - Fixed client filter in admin panel to only show actual client users (not admins or agents)
   - Updated `loadClientsForLikesFilter()` function to first query users with CLIENT role
   - Previously all records in the 'clients' collection were shown (including admins/agents)
@@ -182,10 +183,19 @@ Each product card displays the following information, with different field mappi
   - Added explicit logging and proper promise handling for Firestore operations
   - Ensured all database documents are created properly before completion
   - Added proper error handling and visual feedback during user creation
-- Fixed agent dropdown in user creation form
-  - Resolved agent duplication issue with improved loading logic
-  - Fixed styling and alignment of dropdown elements
-  - Added truncation for long email addresses with hover tooltips
+  - Fixed admin and agent creation to avoid adding documents to clients collection
+- Improved order management
+  - Added order deletion capability for admins and agents with confirmation dialog
+  - Added stylized delete buttons to order cards for easy access
+  - Fixed database rules to maintain proper role-based document access
+- Added support for price list field (`מחירון`)
+  - Price list field is now displayed in product cards, modals, and shopping cart
+  - Styled differently to distinguish from regular price
+  - Prioritized over regular price field (`מחיר`) when available
+- Fixed touch support for smartphones
+  - Improved product card click handling with better touch events
+  - Added defensive null checks in modal opening to prevent errors
+  - Enhanced error handling with proper user feedback
 - Fixed favorites page (favorites.html) errors
   - Resolved reference errors by properly initializing DOM elements
   - Fixed function declaration conflicts with firebase-config.js
@@ -239,9 +249,11 @@ The client filter loads directly from the Google Sheets URL and populates a drop
 - Orders are stored in Firestore with client, agent, and product information
 - Each order has a status (pending, processing, completed, cancelled)
 - Agents can view orders from their assigned clients
-- Agents can update order status and add notes
+- Agents can update order status, add notes, or delete orders
 - Admins can view all orders across the system
 - Admins can filter orders by client, agent, status, or date
+- Both admins and agents can permanently delete orders with confirmation
+- Price list field (`מחירון`) is displayed throughout the order process
 
 ### Deployment
 - Ready for Netlify deployment with proper configuration
@@ -255,3 +267,49 @@ Product images are fetched using the barcode as the filename:
 1. First tries to load from `tl/[barcode].jpg`
 2. If not found, falls back to `media/[barcode].jpg`
 3. If still not found, falls back to `images/logo.png` and shows an "image not found" message
+
+### Database Structure
+The application uses the following collections in Firebase Firestore:
+
+1. **users**: Stores basic user information and role
+   - `email`: User's email address
+   - `role`: User role (admin, agent, or client)
+   - `createdAt`: Timestamp when user was created
+
+2. **clients**: Stores client-specific data
+   - `email`: Client's email address
+   - `agentId`: UID of assigned agent (if applicable)
+   - `allowedBrands`: Array of brand names client is allowed to see
+   - `likes`: Array of product barcodes the client has liked
+   - `cart`: Array of products in the client's shopping cart
+   - `lastOrderId`: ID of client's last order (if any)
+   - `lastOrderDate`: Timestamp of client's last order
+   - `createdAt`: Timestamp when client was created
+
+3. **agents**: Stores agent-specific data
+   - `email`: Agent's email address
+   - `clients`: Array of client UIDs assigned to this agent
+   - `createdAt`: Timestamp when agent was created
+
+4. **orders**: Stores order information
+   - `clientId`: UID of client who placed the order
+   - `clientEmail`: Email of client who placed the order
+   - `agentId`: UID of agent assigned to the client
+   - `items`: Array of product objects in the order (including price and מחירון fields)
+   - `notes`: Optional notes from the client
+   - `status`: Order status (pending, processing, completed, cancelled)
+   - `createdAt`: Timestamp when order was created
+   - `updatedAt`: Timestamp when order was last updated
+
+5. **registrationRequests**: Stores pending registration requests
+   - `email`: Requested email address
+   - `password`: Requested password
+   - `requestedRole`: Requested user role
+   - `status`: Request status (pending, approved, rejected)
+   - `createdAt`: Timestamp when request was created
+
+Security rules ensure that:
+- Clients can only access and modify their own data
+- Agents can view data for their assigned clients
+- Admins have full access to all collections
+- Order deletion is restricted to admins and agents
