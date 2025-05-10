@@ -188,6 +188,7 @@ const addToCart = async (product, quantity = 1) => {
         barcode: product.barcode,
         name: product.name || product['שם פריט אוטומטי'] || product['תיאור פריט'] || 'Unknown Product',
         price: product.price || product['מחיר'] || 0,
+        pricelist: product.מחירון || product['מחירון'] || null, // Include the pricelist field
         quantity: quantity,
         category: product.category || '',
         image: `tl/${product.barcode}.jpg`, // Image path

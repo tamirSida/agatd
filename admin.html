@@ -986,26 +986,11 @@
                 });
                 console.log('Agent document created successfully');
                 
-                // Agents also get a client record for their own likes
-                console.log('Creating client document for agent with ID:', newUserUid);
-                await db.collection('clients').doc(newUserUid).set({
-                  email: email,
-                  allowedBrands: [],
-                  likes: [],
-                  agentId: newUserUid, // Agents are their own agents
-                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                console.log('Client document for agent created successfully');
+                // We no longer create client records for agents to keep the collections properly separated
               } else if (role === USER_ROLES.ADMIN) {
-                // Admin role - create client record for likes
-                console.log('Creating client document for admin with ID:', newUserUid);
-                await db.collection('clients').doc(newUserUid).set({
-                  email: email,
-                  allowedBrands: [],
-                  likes: [],
-                  createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                console.log('Client document for admin created successfully');
+                // Admin role - no need to create client record
+                console.log('Admin user created successfully - skipping client document creation');
+                // We don't create a client document for admin users as they shouldn't appear in the clients list
               }
               
               // Reset form and show success message

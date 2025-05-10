@@ -317,21 +317,11 @@
             }
           } else {
             // User exists in Firebase Auth but not in Firestore
-            // Create a client record
-            await db.collection('users').doc(user.uid).set({
-              email: user.email,
-              role: USER_ROLES.CLIENT,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            await db.collection('clients').doc(user.uid).set({
-              email: user.email,
-              allowedBrands: [],
-              likes: [],
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            window.location.href = 'index.html';
+            // This could be a security issue - users should be properly set up
+            // Redirect to login page with error
+            alert('משתמש לא מורשה. אנא פנה למנהל המערכת.');
+            auth.signOut();
+            return;
           }
         } catch (error) {
           console.error('Login error:', error);
