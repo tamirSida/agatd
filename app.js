@@ -1228,10 +1228,12 @@ function createProductCard(product) {
         if (modalHeartButton && modalHeartButton.dataset.barcode === barcode) {
           if (isLiked) {
             modalHeartButton.classList.add('liked');
-            modalHeartButton.querySelector('.heart-icon').textContent = '♥';
+            const heartIcon = modalHeartButton.querySelector('.heart-icon');
+            if (heartIcon) heartIcon.textContent = '♥';
           } else {
             modalHeartButton.classList.remove('liked');
-            modalHeartButton.querySelector('.heart-icon').textContent = '♡';
+            const heartIcon = modalHeartButton.querySelector('.heart-icon');
+            if (heartIcon) heartIcon.textContent = '♡';
           }
         }
       } catch (error) {
@@ -1618,7 +1620,8 @@ function openProductModal(product) {
           const gridHeartButton = document.querySelector(`.heart-button[data-barcode="${barcode}"]`);
           if (gridHeartButton) {
             gridHeartButton.classList.add('liked');
-            gridHeartButton.querySelector('.heart-icon').textContent = '♥';
+            const heartIcon = gridHeartButton.querySelector('.heart-icon');
+            if (heartIcon) heartIcon.textContent = '♥';
           }
         } else {
           this.classList.remove('liked');
@@ -1633,7 +1636,8 @@ function openProductModal(product) {
           const gridHeartButton = document.querySelector(`.heart-button[data-barcode="${barcode}"]`);
           if (gridHeartButton) {
             gridHeartButton.classList.remove('liked');
-            gridHeartButton.querySelector('.heart-icon').textContent = '♡';
+            const heartIcon = gridHeartButton.querySelector('.heart-icon');
+            if (heartIcon) heartIcon.textContent = '♡';
           }
         }
       } catch (error) {
@@ -1641,16 +1645,18 @@ function openProductModal(product) {
         alert('שגיאה בסימון המוצר כמועדף. אנא נסה שוב מאוחר יותר.');
       }
     });
-  } else {
-    // Update existing heart button
+  } else if (modalHeartButton) {
+    // Update existing heart button if it exists
     modalHeartButton.dataset.barcode = barcode || '';
     const heartIcon = modalHeartButton.querySelector('.heart-icon');
-    if (isLiked) {
-      modalHeartButton.classList.add('liked');
-      heartIcon.textContent = '♥';
-    } else {
-      modalHeartButton.classList.remove('liked');
-      heartIcon.textContent = '♡';
+    if (heartIcon) {
+      if (isLiked) {
+        modalHeartButton.classList.add('liked');
+        heartIcon.textContent = '♥';
+      } else {
+        modalHeartButton.classList.remove('liked');
+        heartIcon.textContent = '♡';
+      }
     }
   }
   
@@ -1752,11 +1758,12 @@ function openProductModal(product) {
           alert('שגיאה בהוספת המוצר לעגלה. אנא נסה שוב מאוחר יותר.');
         }
       });
-    } else {
-      // Update existing cart button
+    } else if (modalCartButton) {
+      // Update existing cart button if it exists
       modalCartButton.dataset.barcode = barcode || '';
       modalCartButton.dataset.productName = modalTitle.textContent;
       modalCartButton.dataset.price = product['מחיר'] || '0';
+      modalCartButton.dataset.pricelist = product['מחירון'] || '';
     }
   } else {
     // Remove cart button if exists and user is not a client
