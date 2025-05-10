@@ -300,10 +300,10 @@ async function init() {
   }
 }
 
-// Load brands from local CSV file and populate the dropdown
+// Load brands directly from Google Sheets and populate the dropdown
 async function loadBrands() {
   try {
-    console.log('Loading brands from local file...');
+    console.log('Loading brands from Google Sheets...');
     
     // Add default option first
     const defaultOption = document.createElement('option');
@@ -311,21 +311,19 @@ async function loadBrands() {
     defaultOption.textContent = 'כל הלקוחות';
     brandFilter.appendChild(defaultOption);
     
+    // Try using direct fetch from Google Sheets
+    console.log('Trying direct fetch for brands from:', BRANDS_CSV_URL);
+    
     try {
-      // First try reading from local file
-      console.log('Trying to load brands from local file');
-      const response = await fetch('brands.csv');
+      const response = await fetchWithTimeout(BRANDS_CSV_URL, 10000);
       
       if (response.ok) {
         const text = await response.text();
-        console.log('Successfully loaded brands from local CSV');
+        console.log('Successfully loaded brands from Google Sheets');
         
         // Parse the CSV to extract brand names
         const lines = text.split('\n').filter(line => line.trim());
-        // Normalize brand names to handle encoding issues
-        brands = lines.map(line => {
-          return line.trim().normalize('NFKC').replace(/\s+/g, ' ');
-        });
+        brands = lines.map(line => line.trim().normalize('NFKC').replace(/\s+/g, ' '));
         console.log('Loaded brands:', brands.length);
         
         // Sort brands alphabetically
@@ -340,127 +338,114 @@ async function loadBrands() {
         });
         
         console.log('Brand dropdown populated with', sortedBrands.length, 'options');
+        return; // Successfully loaded brands
       } else {
-        // If local file fails, try the Google Sheets URL
-        throw new Error(`Local file not available. Status: ${response.status}`);
+        throw new Error(`HTTP status: ${response.status} ${response.statusText}`);
       }
-    } catch (localError) {
-      console.warn('Local brands file fetch failed:', localError);
+    } catch (directError) {
+      console.warn('Direct fetch for brands failed:', directError);
       
-      // Fallback to Google Sheets
+      // Second try: use XMLHttpRequest (works around some CORS issues)
       try {
-        // Try using direct fetch from Google Sheets
-        console.log('Trying direct fetch for brands from:', BRANDS_CSV_URL);
-        const response = await fetch(BRANDS_CSV_URL);
-        
-        if (response.ok) {
-          const text = await response.text();
-          console.log('Successfully loaded brands from Google Sheets');
+        console.log('Trying XMLHttpRequest for brands...');
+        const xhrResult = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', BRANDS_CSV_URL, true);
+          xhr.responseType = 'text';
           
-          // Parse the CSV to extract brand names
-          const lines = text.split('\n').filter(line => line.trim());
-          brands = lines.map(line => line.trim());
-          console.log('Loaded brands:', brands.length);
-          
-          // Sort brands alphabetically
-          const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
-          
-          // Add all brand options
-          sortedBrands.forEach(brand => {
-            const option = document.createElement('option');
-            option.value = brand;
-            option.textContent = brand;
-            brandFilter.appendChild(option);
-          });
-          
-          console.log('Brand dropdown populated with', sortedBrands.length, 'options');
-        } else {
-          throw new Error(`HTTP status: ${response.status} ${response.statusText}`);
-        }
-      } catch (directError) {
-        console.warn('Direct fetch for brands failed:', directError);
-        
-        // Second try: use XMLHttpRequest (works around some CORS issues)
-        try {
-          console.log('Trying XMLHttpRequest for brands...');
-          const xhrResult = await new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', BRANDS_CSV_URL, true);
-            xhr.responseType = 'text';
-            
-            xhr.onload = function() {
-              if (xhr.status === 200) {
-                resolve(xhr.responseText);
-              } else {
-                reject(new Error(`HTTP error: ${xhr.status}`));
-              }
-            };
-            
-            xhr.onerror = () => reject(new Error('Network error'));
-            xhr.ontimeout = () => reject(new Error('Timeout'));
-            xhr.timeout = 10000;
-            xhr.send();
-          });
-          
-          const lines = xhrResult.split('\n').filter(line => line.trim());
-          brands = lines.map(line => line.trim());
-          console.log('Loaded brands via XHR:', brands.length);
-          
-          // Sort and add to dropdown
-          const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
-          
-          sortedBrands.forEach(brand => {
-            const option = document.createElement('option');
-            option.value = brand;
-            option.textContent = brand;
-            brandFilter.appendChild(option);
-          });
-          
-          console.log('Brand dropdown populated with', sortedBrands.length, 'options');
-        } catch (xhrError) {
-          console.warn('XMLHttpRequest for brands failed:', xhrError);
-          
-          // Third try: use a PHP proxy if it exists
-          try {
-            console.log('Trying PHP proxy for brands...');
-            const proxyUrl = `proxy.php?url=${encodeURIComponent(BRANDS_CSV_URL)}`;
-            const proxyResponse = await fetch(proxyUrl);
-            
-            if (proxyResponse.ok) {
-              const text = await proxyResponse.text();
-              const lines = text.split('\n').filter(line => line.trim());
-              brands = lines.map(line => line.trim());
-              console.log('Loaded brands via proxy:', brands.length);
-              
-              // Sort and add to dropdown
-              const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
-              
-              sortedBrands.forEach(brand => {
-                const option = document.createElement('option');
-                option.value = brand;
-                option.textContent = brand;
-                brandFilter.appendChild(option);
-              });
-              
-              console.log('Brand dropdown populated with', sortedBrands.length, 'options via proxy');
+          xhr.onload = function() {
+            if (xhr.status === 200) {
+              resolve(xhr.responseText);
             } else {
-              throw new Error('Proxy request failed');
+              reject(new Error(`HTTP error: ${xhr.status}`));
             }
-          } catch (proxyError) {
-            console.warn('Proxy fetch for brands failed:', proxyError);
-            throw proxyError; // Let the outer catch handle it
+          };
+          
+          xhr.onerror = () => reject(new Error('Network error'));
+          xhr.ontimeout = () => reject(new Error('Timeout'));
+          xhr.timeout = 10000;
+          xhr.send();
+        });
+        
+        const lines = xhrResult.split('\n').filter(line => line.trim());
+        brands = lines.map(line => line.trim().normalize('NFKC').replace(/\s+/g, ' '));
+        console.log('Loaded brands via XHR:', brands.length);
+        
+        // Sort and add to dropdown
+        const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
+        
+        sortedBrands.forEach(brand => {
+          const option = document.createElement('option');
+          option.value = brand;
+          option.textContent = brand;
+          brandFilter.appendChild(option);
+        });
+        
+        console.log('Brand dropdown populated with', sortedBrands.length, 'options');
+        return; // Successfully loaded brands
+      } catch (xhrError) {
+        console.warn('XMLHttpRequest for brands failed:', xhrError);
+        
+        // Third try: use a PHP proxy if it exists
+        try {
+          console.log('Trying PHP proxy for brands...');
+          const proxyUrl = `proxy.php?url=${encodeURIComponent(BRANDS_CSV_URL)}`;
+          const proxyResponse = await fetch(proxyUrl);
+          
+          if (proxyResponse.ok) {
+            const text = await proxyResponse.text();
+            const lines = text.split('\n').filter(line => line.trim());
+            brands = lines.map(line => line.trim().normalize('NFKC').replace(/\s+/g, ' '));
+            console.log('Loaded brands via proxy:', brands.length);
+            
+            // Sort and add to dropdown
+            const sortedBrands = [...brands].sort((a, b) => a.localeCompare(b, 'he'));
+            
+            sortedBrands.forEach(brand => {
+              const option = document.createElement('option');
+              option.value = brand;
+              option.textContent = brand;
+              brandFilter.appendChild(option);
+            });
+            
+            console.log('Brand dropdown populated with', sortedBrands.length, 'options via proxy');
+            return; // Successfully loaded brands
+          } else {
+            throw new Error('Proxy request failed');
           }
+        } catch (proxyError) {
+          console.warn('Proxy fetch for brands failed:', proxyError);
+          throw proxyError; // Let the outer catch handle it
         }
       }
     }
   } catch (error) {
     console.error('Error loading brands:', error);
-    // Populate dropdown with empty message
+    // Show clear error message
     const errorOption = document.createElement('option');
     errorOption.value = '';
-    errorOption.textContent = 'שגיאה בטעינת לקוחות';
+    errorOption.textContent = 'שגיאה בטעינת לקוחות - נסה לרענן את הדף';
     errorOption.disabled = true;
     brandFilter.appendChild(errorOption);
+    
+    // Add retry button to header
+    const header = document.querySelector('header');
+    if (header) {
+      const retryButton = document.createElement('button');
+      retryButton.textContent = 'נסה לטעון לקוחות שוב';
+      retryButton.className = 'retry-button';
+      retryButton.style.margin = '10px auto';
+      retryButton.style.display = 'block';
+      retryButton.addEventListener('click', () => {
+        // Clear current options
+        while (brandFilter.options.length > 0) {
+          brandFilter.remove(0);
+        }
+        // Try loading again
+        loadBrands();
+      });
+      header.appendChild(retryButton);
+    }
     
     // Set empty brands array
     brands = [];
@@ -1151,8 +1136,8 @@ function createProductCard(product) {
     </div>
   `;
 
-  // Add click event to open modal
-  card.addEventListener('click', (e) => {
+  // Add click event to open modal with touchstart support for mobile
+  const handleCardClick = (e) => {
     // Don't open modal if heart button or cart button was clicked
     if (
       e.target.closest('.heart-button') || 
@@ -1163,8 +1148,18 @@ function createProductCard(product) {
       e.stopPropagation();
       return;
     }
+    
+    // Prevent default on touchstart to avoid conflicts with other touch events
+    if (e.type === 'touchstart') {
+      e.preventDefault();
+    }
+    
     openProductModal(product);
-  });
+  };
+  
+  // Add both click and touch events for better mobile support
+  card.addEventListener('click', handleCardClick);
+  card.addEventListener('touchstart', handleCardClick, { passive: false });
 
   // Add heart button click event - only for client users
   const heartButton = card.querySelector('.heart-button');
