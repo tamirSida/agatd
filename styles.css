@@ -459,6 +459,18 @@ select.has-value ~ .clear-filter {
   font-size: 16px;
 }
 
+.price.pricelist {
+  color: var(--success-color);
+  font-size: 17px;
+  position: relative;
+}
+
+.price-spec .price-value {
+  font-weight: 700;
+  color: var(--success-color);
+  font-size: 18px;
+}
+
 /* Modal */
 .modal {
   display: none;

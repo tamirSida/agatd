@@ -1086,9 +1086,13 @@ function createProductCard(product) {
 
   const countryCode = product['מדינה'] && countryToCode[product['מדינה']] ? countryToCode[product['מדינה']] : '';
   
-  // Get price if available
+  // Get price if available - prioritize מחירון field if available
   let priceHtml = '';
-  if (product['מחיר']) {
+  if (product['מחירון']) {
+    // Use the מחירון field which already includes the ₪ symbol
+    priceHtml = `<span class="price pricelist">${product['מחירון']}</span>`;
+  } else if (product['מחיר']) {
+    // Fallback to the existing מחיר field
     priceHtml = `<span class="price">${product['מחיר']} ₪</span>`;
   } else if (currentFilters.brand && product[currentFilters.brand] === 'TRUE') {
     // If a brand is selected and this product is TRUE for that brand, we could show specific pricing
@@ -1106,7 +1110,7 @@ function createProductCard(product) {
       ${showClientButtons ? 
         `<div class="product-buttons">
           <button class="heart-button" data-barcode="${barcode || ''}"><i class="heart-icon">♡</i></button>
-          <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}"><i class="cart-icon">🛒</i></button>
+          <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="cart-icon">🛒</i></button>
         </div>` 
         : ''}
     </div>
@@ -1154,12 +1158,25 @@ function createProductCard(product) {
       e.preventDefault();
     }
     
-    openProductModal(product);
+    // Log for debugging
+    console.log('Opening product modal for:', product['שם פריט אוטומטי'] || product['תיאור פריט']);
+    
+    try {
+      openProductModal(product);
+    } catch (error) {
+      console.error('Error opening product modal:', error);
+      alert('שגיאה בפתיחת מידע על המוצר. אנא נסה שוב מאוחר יותר.');
+    }
   };
   
   // Add both click and touch events for better mobile support
   card.addEventListener('click', handleCardClick);
-  card.addEventListener('touchstart', handleCardClick, { passive: false });
+  card.addEventListener('touchend', (e) => {
+    // Only trigger if it's a tap (not scroll or other gesture)
+    if (e.changedTouches && e.changedTouches.length === 1) {
+      handleCardClick(e);
+    }
+  }, { passive: false });
 
   // Add heart button click event - only for client users
   const heartButton = card.querySelector('.heart-button');
@@ -1239,12 +1256,15 @@ function createProductCard(product) {
       
       const barcode = cartButton.dataset.barcode;
       const productName = cartButton.dataset.productName;
-      const price = cartButton.dataset.price;
+      let price = cartButton.dataset.price;
       
       if (!barcode) {
         console.error('No barcode found for product');
         return;
       }
+      
+      // Get the מחירון value if available
+      const pricelist = product['מחירון'] || null;
       
       // Show quantity prompt modal
       const quantity = await showQuantityPrompt(productName);
@@ -1260,6 +1280,7 @@ function createProductCard(product) {
           barcode: barcode,
           name: productName,
           מחיר: price,
+          מחירון: pricelist, // Add the new מחירון field
           category: currentFilters.tab
         }, quantity);
         
@@ -1299,11 +1320,24 @@ function createProductCard(product) {
 
 // Open product modal
 function openProductModal(product) {
+  // Safety check for modal and other DOM elements
+  if (!modal || !modalTitle || !modalCompany || !modalDescription) {
+    console.error('Modal DOM elements not found', {
+      modal: !!modal,
+      modalTitle: !!modalTitle,
+      modalCompany: !!modalCompany,
+      modalDescription: !!modalDescription
+    });
+    return;
+  }
+  
+  console.log('Opening modal for product:', product);
+  
   const groupKey = getProductGroupKey(product);
-  const group = groupedProducts[groupKey];
+  const group = groupKey ? groupedProducts[groupKey] : null;
 
   // Get company/brand name
-  const company = product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || '';
+  const company = product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג'] || '';
 
   // Set modal content based on product type
   const productType = getCurrentProductCategory(product);
@@ -1449,12 +1483,33 @@ function openProductModal(product) {
   
   // Removed the brand display section entirely
 
+  // Add price information as top spec if available
+  if (product['מחירון']) {
+    const priceSpec = document.createElement('div');
+    priceSpec.className = 'spec-item price-spec';
+    priceSpec.innerHTML = `
+      <div class="spec-label"><strong>מחיר</strong>:</div>
+      <div class="spec-value price-value">${product['מחירון']}</div>
+    `;
+    modalSpecs.appendChild(priceSpec);
+  } else if (product['מחיר']) {
+    const priceSpec = document.createElement('div');
+    priceSpec.className = 'spec-item price-spec';
+    priceSpec.innerHTML = `
+      <div class="spec-label"><strong>מחיר</strong>:</div>
+      <div class="spec-value price-value">${product['מחיר']} ₪</div>
+    `;
+    modalSpecs.appendChild(priceSpec);
+  }
+
   // Add product specs
   for (const [key, value] of Object.entries(product)) {
     // Skip empty values, brands, and fields displayed elsewhere
     if (!value || 
         key === 'שם פריט אוטומטי' || 
         key === 'תאור' || 
+        key === 'מחירון' || // Already displayed in special section
+        key === 'מחיר' || // Already displayed in special section
         key === 'כשרות' || // Already displayed in special section
         key === 'כשר לפסח' || // Already included with kosher status
         key === 'כשרות לפסח' || // Alternate passover field name
@@ -1644,6 +1699,9 @@ function openProductModal(product) {
           return;
         }
         
+        // Get the מחירון value if available
+        const pricelist = product['מחירון'] || null;
+        
         // Show quantity prompt modal
         const quantity = await showQuantityPrompt(productName);
         
@@ -1658,6 +1716,7 @@ function openProductModal(product) {
             barcode: barcode,
             name: productName,
             מחיר: price,
+            מחירון: pricelist, // Add the new מחירון field
             category: currentFilters.tab
           }, quantity);
           
