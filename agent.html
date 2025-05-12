@@ -432,6 +432,127 @@
       color: #3498db;
       font-weight: bold;
     }
+
+    /* Notification Styles */
+    .notification-bell {
+      position: absolute;
+      top: 20px;
+      left: 200px;
+      display: flex;
+      align-items: center;
+    }
+
+    .notification-button {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      position: relative;
+      padding: 5px;
+    }
+
+    .notification-count {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background-color: #e74c3c;
+      color: white;
+      font-size: 12px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      font-weight: bold;
+    }
+
+    .notification-dropdown {
+      position: absolute;
+      top: 40px;
+      right: 0;
+      width: 300px;
+      max-height: 400px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      display: none;
+    }
+
+    .notification-dropdown.show {
+      display: block;
+    }
+
+    .notification-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .notification-header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .notification-header button {
+      background: none;
+      border: none;
+      color: #3498db;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .notification-list {
+      overflow-y: auto;
+      max-height: 350px;
+    }
+
+    .notification-item {
+      padding: 10px 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: flex-start;
+      cursor: pointer;
+    }
+
+    .notification-item:hover {
+      background-color: #f9f9f9;
+    }
+
+    .notification-item.unread {
+      background-color: #ecf0f1;
+    }
+
+    .notification-item .notification-content {
+      flex: 1;
+    }
+
+    .notification-item .notification-time {
+      font-size: 11px;
+      color: #7f8c8d;
+      margin-top: 5px;
+    }
+
+    .notification-item .notification-mark-read {
+      margin-right: 10px;
+      color: #3498db;
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .notification-bell {
+        left: 120px;
+      }
+
+      .notification-dropdown {
+        width: 280px;
+        right: -100px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -440,6 +561,21 @@
       <img src="images/logo.png" alt="Logo" class="company-logo">
     </div>
     <h1>דאשבורד סוכן</h1>
+    <div class="notification-bell">
+      <button id="notification-button" class="notification-button">
+        <span id="notification-icon">🔔</span>
+        <span id="notification-count" class="notification-count"></span>
+      </button>
+      <div id="notification-dropdown" class="notification-dropdown">
+        <div class="notification-header">
+          <h3>התראות</h3>
+          <button id="mark-all-read">סמן הכל כנקרא</button>
+        </div>
+        <div id="notification-list" class="notification-list">
+          <!-- Notifications will be populated here -->
+        </div>
+      </div>
+    </div>
   </header>
 
   <main>
@@ -1081,6 +1217,254 @@
           likesDashboard.innerHTML = `<div style="text-align: center; grid-column: 1 / -1; color: red;">שגיאה בטעינת מועדפים: ${error.message}</div>`;
         }
       }
+    });
+  </script>
+
+  <!-- Notification System Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Get DOM elements
+      const notificationButton = document.getElementById('notification-button');
+      const notificationCount = document.getElementById('notification-count');
+      const notificationDropdown = document.getElementById('notification-dropdown');
+      const notificationList = document.getElementById('notification-list');
+      const markAllReadButton = document.getElementById('mark-all-read');
+
+      // Notification data
+      let notifications = [];
+      let unreadCount = 0;
+
+      // Toggle notification dropdown
+      notificationButton.addEventListener('click', () => {
+        notificationDropdown.classList.toggle('show');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (event) => {
+        if (!notificationButton.contains(event.target) && !notificationDropdown.contains(event.target)) {
+          notificationDropdown.classList.remove('show');
+        }
+      });
+
+      // Mark all notifications as read
+      markAllReadButton.addEventListener('click', async () => {
+        try {
+          const user = auth.currentUser;
+          if (!user) return;
+
+          const batch = db.batch();
+
+          // Get all unread notifications
+          const unreadNotifications = await db.collection('notifications')
+            .where('recipientId', '==', user.uid)
+            .where('read', '==', false)
+            .get();
+
+          // Mark all as read in a batch
+          unreadNotifications.forEach(doc => {
+            batch.update(doc.ref, { read: true });
+          });
+
+          await batch.commit();
+
+          // Update UI
+          document.querySelectorAll('.notification-item.unread').forEach(item => {
+            item.classList.remove('unread');
+          });
+
+          unreadCount = 0;
+          updateNotificationCount();
+
+        } catch (error) {
+          console.error('Error marking all as read:', error);
+        }
+      });
+
+      // Update notification count badge
+      function updateNotificationCount() {
+        if (unreadCount > 0) {
+          notificationCount.textContent = unreadCount;
+          notificationCount.style.display = 'flex';
+        } else {
+          notificationCount.style.display = 'none';
+        }
+      }
+
+      // Format timestamp to relative time
+      function formatTimeAgo(timestamp) {
+        if (!timestamp) return '';
+
+        const now = new Date();
+        const date = timestamp.toDate();
+        const diffMs = now - date;
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHour = Math.floor(diffMin / 60);
+        const diffDay = Math.floor(diffHour / 24);
+
+        if (diffSec < 60) {
+          return 'כרגע';
+        } else if (diffMin < 60) {
+          return `לפני ${diffMin} דק'`;
+        } else if (diffHour < 24) {
+          return `לפני ${diffHour} שעות`;
+        } else if (diffDay < 7) {
+          return `לפני ${diffDay} ימים`;
+        } else {
+          return date.toLocaleDateString('he-IL');
+        }
+      }
+
+      // Create notification item element
+      function createNotificationItem(notification) {
+        const item = document.createElement('div');
+        item.className = `notification-item ${notification.read ? '' : 'unread'}`;
+        item.dataset.id = notification.id;
+
+        item.innerHTML = `
+          <div class="notification-content">
+            <div>${notification.message}</div>
+            <div class="notification-time">${formatTimeAgo(notification.createdAt)}</div>
+          </div>
+        `;
+
+        // Add click event for notification
+        item.addEventListener('click', async () => {
+          // Mark as read if unread
+          if (!notification.read) {
+            try {
+              await db.collection('notifications').doc(notification.id).update({
+                read: true
+              });
+
+              // Update UI
+              item.classList.remove('unread');
+              unreadCount--;
+              updateNotificationCount();
+
+            } catch (error) {
+              console.error('Error marking notification as read:', error);
+            }
+          }
+
+          // If it's an order notification, navigate to the orders page
+          if (notification.type === 'new_order' && notification.orderId) {
+            window.location.href = 'orders-agent.html';
+          }
+        });
+
+        return item;
+      }
+
+      // Load notifications from Firestore
+      async function loadNotifications() {
+        try {
+          const user = auth.currentUser;
+          if (!user) return;
+
+          // Clear previous notifications
+          notificationList.innerHTML = '';
+
+          // Get notifications for this user
+          const notificationsSnapshot = await db.collection('notifications')
+            .where('recipientId', '==', user.uid)
+            .orderBy('createdAt', 'desc')
+            .limit(20)
+            .get();
+
+          if (notificationsSnapshot.empty) {
+            notificationList.innerHTML = '<div class="notification-empty">אין התראות</div>';
+            unreadCount = 0;
+          } else {
+            notifications = [];
+            unreadCount = 0;
+
+            notificationsSnapshot.forEach(doc => {
+              const notification = {
+                id: doc.id,
+                ...doc.data()
+              };
+
+              notifications.push(notification);
+
+              // Count unread notifications
+              if (!notification.read) {
+                unreadCount++;
+              }
+
+              // Create and append notification item
+              const notificationItem = createNotificationItem(notification);
+              notificationList.appendChild(notificationItem);
+            });
+          }
+
+          // Update notification count
+          updateNotificationCount();
+
+        } catch (error) {
+          console.error('Error loading notifications:', error);
+          notificationList.innerHTML = '<div class="notification-error">שגיאה בטעינת התראות</div>';
+        }
+      }
+
+      // Listen for auth state changes
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          // Load notifications
+          loadNotifications();
+
+          // Set up real-time listener for new notifications
+          const unsubscribe = db.collection('notifications')
+            .where('recipientId', '==', user.uid)
+            .where('read', '==', false)
+            .onSnapshot(snapshot => {
+              // Check for added notifications
+              const changes = snapshot.docChanges();
+
+              let newNotifications = false;
+
+              changes.forEach(change => {
+                if (change.type === 'added') {
+                  newNotifications = true;
+                  unreadCount++;
+
+                  // Get the notification data
+                  const notification = {
+                    id: change.doc.id,
+                    ...change.doc.data()
+                  };
+
+                  // Add to the beginning of the list
+                  const notificationItem = createNotificationItem(notification);
+                  notificationList.insertBefore(notificationItem, notificationList.firstChild);
+
+                  // Remove empty notification message if present
+                  const emptyMessage = notificationList.querySelector('.notification-empty');
+                  if (emptyMessage) {
+                    notificationList.removeChild(emptyMessage);
+                  }
+                }
+              });
+
+              if (newNotifications) {
+                // Play notification sound
+                // const notificationSound = new Audio('path/to/notification-sound.mp3');
+                // notificationSound.play();
+
+                // Update notification count
+                updateNotificationCount();
+              }
+            });
+
+          // Store the unsubscribe function
+          window.notificationsUnsubscribe = unsubscribe;
+        } else {
+          // User is logged out, unsubscribe from notifications
+          if (window.notificationsUnsubscribe) {
+            window.notificationsUnsubscribe();
+          }
+        }
+      });
     });
   </script>
 </body>

@@ -668,20 +668,23 @@
           alert('לא ניתן לשלוח עגלה ריקה');
           return;
         }
-        
+
         // Get order notes
         const notes = orderNotesTextarea.value.trim();
-        
+
         try {
           showLoading();
-          
+
           // Submit order
           const orderId = await submitOrder(notes);
-          
+
           if (orderId) {
             // Show success modal
             successModal.style.display = 'block';
-            
+
+            // Create notification for agent and admin
+            await createOrderNotification(orderId);
+
             // Clear cart
             cartItems = [];
             orderNotesTextarea.value = '';
@@ -693,6 +696,64 @@
           alert('שגיאה בשליחת ההזמנה. אנא נסה שוב.');
         } finally {
           hideLoading();
+        }
+      }
+
+      // Create notification for agent and admin when order is placed
+      async function createOrderNotification(orderId) {
+        try {
+          // Get current user info
+          const currentUser = auth.currentUser;
+          if (!currentUser) return;
+
+          // Get client data to find assigned agent
+          const clientDoc = await db.collection('clients').doc(currentUser.uid).get();
+          if (!clientDoc.exists) return;
+
+          const clientData = clientDoc.data();
+          const agentId = clientData.agentId;
+
+          // Create notification data
+          const notificationData = {
+            type: 'new_order',
+            orderId: orderId,
+            clientId: currentUser.uid,
+            clientEmail: currentUser.email,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            read: false
+          };
+
+          // Create notification for the assigned agent
+          if (agentId) {
+            await db.collection('notifications').add({
+              ...notificationData,
+              recipientId: agentId,
+              message: `לקוח ${currentUser.email} שלח הזמנה חדשה`
+            });
+          }
+
+          // Create notification for all admin users
+          const adminsSnapshot = await db.collection('users').where('role', '==', USER_ROLES.ADMIN).get();
+
+          const adminNotificationPromises = [];
+          adminsSnapshot.forEach(doc => {
+            const adminId = doc.id;
+            adminNotificationPromises.push(
+              db.collection('notifications').add({
+                ...notificationData,
+                recipientId: adminId,
+                message: `לקוח ${currentUser.email} שלח הזמנה חדשה`
+              })
+            );
+          });
+
+          await Promise.all(adminNotificationPromises);
+
+          console.log('Order notifications created successfully');
+          return true;
+        } catch (error) {
+          console.error('Error creating order notifications:', error);
+          return false;
         }
       }
       

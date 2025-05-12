@@ -272,15 +272,14 @@ async function init() {
     // Populate filter options
     populateFilters();
 
-    // Always keep the brand filter visible for all tabs since it's now for clients
-    // Handle brand filter visibility based on user role
+    // Handle brand filter visibility based on user role - only show for admin and agent roles
     const brandFilterContainer = brandFilter.closest('.filter-group');
     if (brandFilterContainer) {
-      // Hide for CLIENT role users, show for all others
-      if (window.userRole === USER_ROLES.CLIENT) {
-        brandFilterContainer.style.display = 'none';
-      } else {
+      // Only show for ADMIN and AGENT role users, hide for all others
+      if (window.userRole === USER_ROLES.ADMIN || window.userRole === USER_ROLES.AGENT) {
         brandFilterContainer.style.display = '';
+      } else {
+        brandFilterContainer.style.display = 'none';
       }
     }
 
@@ -1140,27 +1139,22 @@ function createProductCard(product) {
     </div>
   `;
 
-  // Add click event to open modal with touchstart support for mobile
+  // Add click event to open modal with improved mobile support
   const handleCardClick = (e) => {
     // Don't open modal if heart button or cart button was clicked
     if (
-      e.target.closest('.heart-button') || 
+      e.target.closest('.heart-button') ||
       e.target.classList.contains('heart-icon') ||
-      e.target.closest('.cart-button') || 
+      e.target.closest('.cart-button') ||
       e.target.classList.contains('cart-icon')
     ) {
       e.stopPropagation();
       return;
     }
-    
-    // Prevent default on touchstart to avoid conflicts with other touch events
-    if (e.type === 'touchstart') {
-      e.preventDefault();
-    }
-    
+
     // Log for debugging
     console.log('Opening product modal for:', product['שם פריט אוטומטי'] || product['תיאור פריט']);
-    
+
     try {
       openProductModal(product);
     } catch (error) {
@@ -1168,15 +1162,30 @@ function createProductCard(product) {
       alert('שגיאה בפתיחת מידע על המוצר. אנא נסה שוב מאוחר יותר.');
     }
   };
-  
-  // Add both click and touch events for better mobile support
+
+  // Use only click event for desktop
   card.addEventListener('click', handleCardClick);
+
+  // Add touch variables to track touch on mobile
+  let touchStartY = 0;
+  let touchEndY = 0;
+  const minSwipeDistance = 10; // Minimum distance to consider a swipe vs a tap
+
+  // Track touch start position
+  card.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  // Only open modal on touchend if it's a tap (not a scroll)
   card.addEventListener('touchend', (e) => {
-    // Only trigger if it's a tap (not scroll or other gesture)
-    if (e.changedTouches && e.changedTouches.length === 1) {
+    touchEndY = e.changedTouches[0].clientY;
+    const touchDistance = Math.abs(touchEndY - touchStartY);
+
+    // Only count as a click if the user didn't scroll much
+    if (touchDistance < minSwipeDistance) {
       handleCardClick(e);
     }
-  }, { passive: false });
+  }, { passive: true });
 
   // Add heart button click event - only for client users
   const heartButton = card.querySelector('.heart-button');
@@ -1817,13 +1826,13 @@ function switchTab(tabName) {
   updateSelectStyling(brandGroupFilter);
   updateSelectStyling(kosherFilter);
 
-  // Only show brand filter for non-client users
+  // Only show brand filter for admin and agent roles
   const brandFilterContainer = brandFilter.closest('.filter-group');
   if (brandFilterContainer) {
-    if (window.userRole === USER_ROLES.CLIENT) {
-      brandFilterContainer.style.display = 'none';
-    } else {
+    if (window.userRole === USER_ROLES.ADMIN || window.userRole === USER_ROLES.AGENT) {
       brandFilterContainer.style.display = '';
+    } else {
+      brandFilterContainer.style.display = 'none';
     }
   }
 
