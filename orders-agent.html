@@ -491,6 +491,7 @@
       <div class="order-modal-footer">
         <button id="close-modal-btn">סגירה</button>
         <button id="export-order-btn" class="export-btn">ייצוא ל-Excel</button>
+        <button id="modal-delete-order-btn" style="background-color: #e74c3c; color: white; margin-right: 10px;">מחק הזמנה</button>
       </div>
     </div>
   </div>
@@ -860,9 +861,13 @@
         // Get order date
         const orderDate = formatDate(order.createdAt);
         
-        // Calculate order total
+        // Calculate order total - prioritize מחירון (pricelist) over price
         const orderTotal = order.items.reduce((total, item) => {
-          return total + (parseFloat(item.price) || 0) * item.quantity;
+          // Use pricelist if available, otherwise fall back to price
+          const unitPrice = (item.pricelist || item['מחירון']) ? 
+            parseFloat(item.pricelist || item['מחירון']) : 
+            parseFloat(item.price || 0);
+          return total + unitPrice * item.quantity;
         }, 0);
         
         // Get status label
@@ -915,14 +920,25 @@
               </thead>
               <tbody>
                 ${order.items.map(item => {
-                  const itemTotal = (parseFloat(item.price) || 0) * item.quantity;
+                  // Use pricelist if available, otherwise fall back to price
+                  const priceToUse = (item.pricelist || item['מחירון']) ? 
+                    parseFloat(item.pricelist || item['מחירון']) : 
+                    parseFloat(item.price || 0);
+                  const itemTotal = priceToUse * item.quantity;
+                  
+                  // Get both prices for display if available
+                  const priceListDisplay = item.pricelist || item['מחירון'] ? 
+                    `<span class="pricelist-value">${item.pricelist || item['מחירון']} ₪</span>` : '';
+                  const regularPriceDisplay = item.price ? 
+                    `<span class="regular-price">${item.price} ₪</span>` : 'N/A';
+                  
                   return `
                     <tr>
                       <td>${item.barcode}</td>
                       <td><img src="tl/${item.barcode}.jpg" alt="${item.name}" width="50" height="50" onerror="this.src='images/logo.png';"></td>
                       <td>${item.name}</td>
                       <td>${item.quantity}</td>
-                      <td>${item.price ? item.price + ' ₪' : 'N/A'}</td>
+                      <td>${priceListDisplay || regularPriceDisplay}</td>
                       <td>${itemTotal.toFixed(2)} ₪</td>
                     </tr>
                   `;
@@ -967,15 +983,27 @@
           const wsInfo = XLSX.utils.aoa_to_sheet(orderInfo);
           XLSX.utils.book_append_sheet(wb, wsInfo, 'פרטי הזמנה');
           
-          // Create order items worksheet
-          const itemsHeaders = ['מק"ט', 'שם פריט', 'כמות', 'מחיר יחידה', 'סה"כ'];
+          // Create order items worksheet with expanded headers
+          const itemsHeaders = ['מק"ט', 'שם פריט', 'קטגוריה', 'מותג/חברה', 'מחירון', 'מחיר יחידה', 'כמות', 'סה"כ'];
           const itemsData = currentOrder.items.map(item => {
             const itemTotal = (parseFloat(item.price) || 0) * item.quantity;
+            // Get price from correct field
+            const unitPrice = parseFloat(item.price) || 0;
+            // Get pricelist from correct field
+            const pricelist = item.pricelist || item['מחירון'] || '';
+            // Get category from item
+            const category = item.category || '';
+            // Get brand from item
+            const brand = item.brand || item['קבוצה / מותג'] || item['קבוצה / מותג אוטומטי'] || item['מותג'] || '';
+            
             return [
               item.barcode,
               item.name,
+              category,
+              brand,
+              pricelist,
+              unitPrice,
               item.quantity,
-              parseFloat(item.price) || 0,
               itemTotal
             ];
           });
@@ -985,7 +1013,7 @@
             return total + (parseFloat(item.price) || 0) * item.quantity;
           }, 0);
           
-          itemsData.push(['', 'סכום כולל', '', '', orderTotal]);
+          itemsData.push(['', 'סכום כולל', '', '', '', '', '', orderTotal]);
           
           const wsItems = XLSX.utils.aoa_to_sheet([itemsHeaders, ...itemsData]);
           XLSX.utils.book_append_sheet(wb, wsItems, 'פריטים');
@@ -1009,6 +1037,35 @@
       closeModalBtn.addEventListener('click', closeOrderDetailsModal);
       closeModalButtonBtn.addEventListener('click', closeOrderDetailsModal);
       exportOrderBtn.addEventListener('click', exportOrderToExcel);
+      
+      // Add delete order functionality in modal
+      const modalDeleteOrderBtn = document.getElementById('modal-delete-order-btn');
+      modalDeleteOrderBtn.addEventListener('click', async () => {
+        if (!currentOrder) return;
+        
+        // Confirm before deletion
+        if (confirm(`האם אתה בטוח שברצונך למחוק את ההזמנה #${currentOrder.id.substring(0, 8)}... של ${currentOrder.clientEmail}? פעולה זו אינה ניתנת לביטול.`)) {
+          try {
+            // Delete the order document from Firestore
+            await db.collection('orders').doc(currentOrder.id).delete();
+            
+            // Remove from local data
+            agentOrders = agentOrders.filter(o => o.id !== currentOrder.id);
+            
+            // Show success message
+            alert('ההזמנה נמחקה בהצלחה');
+            
+            // Close the modal
+            closeOrderDetailsModal();
+            
+            // Refresh display
+            renderOrders();
+          } catch (error) {
+            console.error('Error deleting order:', error);
+            alert('שגיאה במחיקת ההזמנה. אנא נסה שוב.');
+          }
+        }
+      });
       
       // Handle login button click
       loginButton.addEventListener('click', () => {
