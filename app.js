@@ -1090,9 +1090,9 @@ function createProductCard(product) {
   if (product['מחירון']) {
     // Use the מחירון field which already includes the ₪ symbol
     priceHtml = `<span class="price pricelist">${product['מחירון']}</span>`;
-  } else if (product['מחיר']) {
-    // Fallback to the existing מחיר field
-    priceHtml = `<span class="price">${product['מחיר']} ₪</span>`;
+  } else if (product['מחירון']) {
+    // Fallback to the existing מחירון field
+    priceHtml = `<span class="price">${product['מחירון']} ₪</span>`;
   } else if (currentFilters.brand && product[currentFilters.brand] === 'TRUE') {
     // If a brand is selected and this product is TRUE for that brand, we could show specific pricing
     // This is a placeholder for future pricing logic
@@ -1109,7 +1109,7 @@ function createProductCard(product) {
       ${showClientButtons ? 
         `<div class="product-buttons">
           <button class="heart-button" data-barcode="${barcode || ''}"><i class="heart-icon">♡</i></button>
-          <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="cart-icon">🛒</i></button>
+          <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחירון'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="cart-icon">🛒</i></button>
         </div>` 
         : ''}
     </div>
@@ -1290,8 +1290,8 @@ function createProductCard(product) {
         const success = await addToCart({
           barcode: barcode,
           name: productName,
-          מחיר: price,
-          מחירון: pricelist, // Add the new מחירון field
+          מחירון: price,
+          // Using only מחירון field
           category: currentFilters.tab
         }, quantity);
         
@@ -1503,12 +1503,12 @@ function openProductModal(product) {
       <div class="spec-value price-value">${product['מחירון']}</div>
     `;
     modalSpecs.appendChild(priceSpec);
-  } else if (product['מחיר']) {
+  } else if (product['מחירון']) {
     const priceSpec = document.createElement('div');
     priceSpec.className = 'spec-item price-spec';
     priceSpec.innerHTML = `
       <div class="spec-label"><strong>מחיר</strong>:</div>
-      <div class="spec-value price-value">${product['מחיר']} ₪</div>
+      <div class="spec-value price-value">${product['מחירון']} ₪</div>
     `;
     modalSpecs.appendChild(priceSpec);
   }
@@ -1678,7 +1678,7 @@ function openProductModal(product) {
       modalCartButton.innerHTML = `<i class="cart-icon">🛒</i>`;
       modalCartButton.dataset.barcode = barcode || '';
       modalCartButton.dataset.productName = modalTitle.textContent;
-      modalCartButton.dataset.price = product['מחיר'] || '0';
+      modalCartButton.dataset.price = product['מחירון'] || '0';
       modalCartButton.style.position = 'absolute';
       modalCartButton.style.right = '40px';
       modalCartButton.style.top = '10px';
@@ -1730,8 +1730,7 @@ function openProductModal(product) {
           const success = await addToCart({
             barcode: barcode,
             name: productName,
-            מחיר: price,
-            מחירון: pricelist, // Add the new מחירון field
+            מחירון: pricelist, // Using only מחירון field
             category: currentFilters.tab
           }, quantity);
           
@@ -1771,7 +1770,7 @@ function openProductModal(product) {
       // Update existing cart button if it exists
       modalCartButton.dataset.barcode = barcode || '';
       modalCartButton.dataset.productName = modalTitle.textContent;
-      modalCartButton.dataset.price = product['מחיר'] || '0';
+      modalCartButton.dataset.price = product['מחירון'] || '0';
       modalCartButton.dataset.pricelist = product['מחירון'] || '';
     }
   } else {
