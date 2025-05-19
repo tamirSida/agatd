@@ -96,6 +96,36 @@ temp/
 
 # Excluding setup scripts that might contain sensitive information
 setup-collections.js
+setup-notifications.js
+setup-notifications-secure.js
+check-notifications.html
+test-notifications.html
+
+# Debug and testing files
+debug.log
+test-*.js
+test-*.html
+*-debug.*
+
+# Backup files
+*-backup.*
+*-old.*
+*.bak
+*.backup
+
+# IDE specific files
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-*
+.project
+.classpath
+
+# Local development files
+local/
+dev/
+.dev/
+development/
 
 # Including documentation files
 !README.md
@@ -108,4 +138,6 @@ setup-collections.js
 !_headers
 !netlify.toml
 
+# Claude
 **/.claude/settings.local.json
+**/.claude/

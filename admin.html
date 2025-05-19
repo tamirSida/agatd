@@ -3154,29 +3154,43 @@
       async function loadNotifications() {
         try {
           const user = auth.currentUser;
-          if (!user) return;
+          if (!user) {
+            console.log('No user logged in');
+            return;
+          }
+
+          console.log('Loading notifications for user:', user.uid);
 
           // Clear previous notifications
-          notificationList.innerHTML = '';
+          notificationList.innerHTML = '<div style="text-align: center; padding: 10px;">טוען התראות...</div>';
 
           // Get notifications for this user
+          console.log('Executing query for notifications where recipientId =', user.uid);
           const notificationsSnapshot = await db.collection('notifications')
             .where('recipientId', '==', user.uid)
             .orderBy('createdAt', 'desc')
             .limit(20)
             .get();
 
+          console.log(`Query returned ${notificationsSnapshot.size} notifications`);
+
           if (notificationsSnapshot.empty) {
+            console.log('No notifications found');
             notificationList.innerHTML = '<div class="notification-empty">אין התראות</div>';
             unreadCount = 0;
           } else {
             notifications = [];
             unreadCount = 0;
+            notificationList.innerHTML = ''; // Clear loading message
 
             notificationsSnapshot.forEach(doc => {
+              console.log('Processing notification:', doc.id);
+              const notificationData = doc.data();
+              console.log('Notification data:', notificationData);
+              
               const notification = {
                 id: doc.id,
-                ...doc.data()
+                ...notificationData
               };
 
               notifications.push(notification);
@@ -3190,6 +3204,8 @@
               const notificationItem = createNotificationItem(notification);
               notificationList.appendChild(notificationItem);
             });
+            
+            console.log(`Processed ${notifications.length} notifications, ${unreadCount} unread`);
           }
 
           // Update notification count
@@ -3197,9 +3213,101 @@
 
         } catch (error) {
           console.error('Error loading notifications:', error);
-          notificationList.innerHTML = '<div class="notification-error">שגיאה בטעינת התראות</div>';
+          console.error('Error details:', error.code, error.message, error.details);
+          notificationList.innerHTML = `<div class="notification-error">שגיאה בטעינת התראות: ${error.message}</div>`;
+          
+          // Check if this is an indexing error
+          if (error.code === 'failed-precondition' || error.message.includes('index')) {
+            notificationList.innerHTML += `<div style="margin-top: 10px">
+              <p>נדרש אינדקס בפיירסטור. אנא צור את האינדקס הבא:</p>
+              <p>Collection: notifications</p>
+              <p>Fields: recipientId (ascending), createdAt (descending)</p>
+              <a href="https://console.firebase.google.com/project/agatd-e37c7/firestore/indexes" target="_blank">פתח הגדרות אינדקסים בפיירסטור</a>
+            </div>`;
+          }
         }
       }
+      
+      // Debug function to manually check for notifications
+      async function debugCheckNotifications() {
+        try {
+          const user = auth.currentUser;
+          if (!user) {
+            console.error('No user logged in');
+            return;
+          }
+          
+          console.log('Debug: Checking for notifications...');
+          
+          // Look at all notifications in the database to debug
+          const allNotificationsSnapshot = await db.collection('notifications').get();
+          console.log(`Debug: Found ${allNotificationsSnapshot.size} total notifications in the database`);
+          
+          // Log each notification
+          allNotificationsSnapshot.forEach(doc => {
+            const data = doc.data();
+            console.log(`Notification ${doc.id}:`, {
+              recipientId: data.recipientId,
+              message: data.message,
+              type: data.type,
+              read: data.read,
+              createdAt: data.createdAt ? data.createdAt.toDate() : null,
+              agentId: data.agentId,
+              senderId: data.senderId,
+              matches: data.recipientId === user.uid
+            });
+          });
+          
+          // Check specifically for admin notifications
+          const adminNotifications = await db.collection('notifications')
+            .where('recipientId', '==', user.uid)
+            .get();
+            
+          console.log(`Debug: Found ${adminNotifications.size} notifications specifically for this admin (${user.uid})`);
+          
+          // Refresh notifications display
+          loadNotifications();
+          
+          return {
+            totalNotifications: allNotificationsSnapshot.size,
+            adminNotifications: adminNotifications.size,
+            userId: user.uid
+          };
+        } catch (error) {
+          console.error('Debug error:', error);
+          return { error: error.message };
+        }
+      }
+      
+      // Add debug button
+      const addDebugButton = () => {
+        const debugButtonContainer = document.createElement('div');
+        debugButtonContainer.style.position = 'fixed';
+        debugButtonContainer.style.bottom = '10px';
+        debugButtonContainer.style.right = '10px';
+        debugButtonContainer.style.zIndex = '9999';
+        
+        const debugButton = document.createElement('button');
+        debugButton.textContent = 'בדוק התראות';
+        debugButton.style.padding = '8px 16px';
+        debugButton.style.backgroundColor = '#ff5722';
+        debugButton.style.color = 'white';
+        debugButton.style.border = 'none';
+        debugButton.style.borderRadius = '4px';
+        debugButton.style.cursor = 'pointer';
+        
+        debugButton.addEventListener('click', async () => {
+          console.log('Debug button clicked');
+          const results = await debugCheckNotifications();
+          alert(`בדיקת התראות: ${JSON.stringify(results, null, 2)}`);
+        });
+        
+        debugButtonContainer.appendChild(debugButton);
+        document.body.appendChild(debugButtonContainer);
+      };
+      
+      // Add debug button after page load
+      window.addEventListener('load', addDebugButton);
 
       // Listen for auth state changes
       auth.onAuthStateChanged(user => {

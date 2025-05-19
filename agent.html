@@ -1360,29 +1360,43 @@
       async function loadNotifications() {
         try {
           const user = auth.currentUser;
-          if (!user) return;
+          if (!user) {
+            console.log('No user logged in');
+            return;
+          }
+
+          console.log('Loading notifications for user:', user.uid);
 
           // Clear previous notifications
-          notificationList.innerHTML = '';
+          notificationList.innerHTML = '<div style="text-align: center; padding: 10px;">טוען התראות...</div>';
 
           // Get notifications for this user
+          console.log('Executing query for notifications where recipientId =', user.uid);
           const notificationsSnapshot = await db.collection('notifications')
             .where('recipientId', '==', user.uid)
             .orderBy('createdAt', 'desc')
             .limit(20)
             .get();
 
+          console.log(`Query returned ${notificationsSnapshot.size} notifications`);
+
           if (notificationsSnapshot.empty) {
+            console.log('No notifications found');
             notificationList.innerHTML = '<div class="notification-empty">אין התראות</div>';
             unreadCount = 0;
           } else {
             notifications = [];
             unreadCount = 0;
+            notificationList.innerHTML = ''; // Clear loading message
 
             notificationsSnapshot.forEach(doc => {
+              console.log('Processing notification:', doc.id);
+              const notificationData = doc.data();
+              console.log('Notification data:', notificationData);
+              
               const notification = {
                 id: doc.id,
-                ...doc.data()
+                ...notificationData
               };
 
               notifications.push(notification);
@@ -1396,6 +1410,8 @@
               const notificationItem = createNotificationItem(notification);
               notificationList.appendChild(notificationItem);
             });
+            
+            console.log(`Processed ${notifications.length} notifications, ${unreadCount} unread`);
           }
 
           // Update notification count
@@ -1403,7 +1419,18 @@
 
         } catch (error) {
           console.error('Error loading notifications:', error);
-          notificationList.innerHTML = '<div class="notification-error">שגיאה בטעינת התראות</div>';
+          console.error('Error details:', error.code, error.message, error.details);
+          notificationList.innerHTML = `<div class="notification-error">שגיאה בטעינת התראות: ${error.message}</div>`;
+          
+          // Check if this is an indexing error
+          if (error.code === 'failed-precondition' || error.message.includes('index')) {
+            notificationList.innerHTML += `<div style="margin-top: 10px">
+              <p>נדרש אינדקס בפיירסטור. אנא צור את האינדקס הבא:</p>
+              <p>Collection: notifications</p>
+              <p>Fields: recipientId (ascending), createdAt (descending)</p>
+              <a href="https://console.firebase.google.com/project/agatd-e37c7/firestore/indexes" target="_blank">פתח הגדרות אינדקסים בפיירסטור</a>
+            </div>`;
+          }
         }
       }
 

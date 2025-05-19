@@ -8,12 +8,12 @@
     "deploy": "netlify deploy --prod"
   },
   "dependencies": {
-    "firebase": "^8.10.1",
     "firebase-admin": "^11.10.1"
   },
   "devDependencies": {
-    "serve": "^14.2.1",
-    "netlify-cli": "^16.4.2"
+    "firebase": "^8.10.1",
+    "netlify-cli": "^16.4.2",
+    "serve": "^14.2.1"
   },
   "engines": {
     "node": ">=16"

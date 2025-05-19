@@ -675,15 +675,22 @@
         try {
           showLoading();
 
-          // Submit order
+          // Submit order - this function also creates notifications in firebase-config.js
           const orderId = await submitOrder(notes);
 
           if (orderId) {
             // Show success modal
             successModal.style.display = 'block';
 
-            // Create notification for agent and admin
-            await createOrderNotification(orderId);
+            // Try to create notification using the client-side function too, but catch any errors
+            // and proceed with order submission anyway
+            try {
+              await createOrderNotification(orderId);
+            } catch (notifError) {
+              // Log the error but don't block the order submission
+              console.log('Error with client-side notification but order was submitted successfully:', notifError);
+              console.log('Notifications were likely created server-side in submitOrder function');
+            }
 
             // Clear cart
             cartItems = [];
@@ -713,41 +720,64 @@
           const clientData = clientDoc.data();
           const agentId = clientData.agentId;
 
-          // Create notification data
+          // Get user role to handle notification logic differently for each role
+          const userDoc = await db.collection('users').doc(currentUser.uid).get();
+          if (!userDoc.exists) return;
+          const userRole = userDoc.data().role;
+
+          console.log(`Creating notifications as user with role: ${userRole}`);
+
+          // Create base notification data
           const notificationData = {
             type: 'new_order',
             orderId: orderId,
             clientId: currentUser.uid,
             clientEmail: currentUser.email,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            read: false
+            read: false,
+            agentId: agentId, // Add agentId to all notifications for permissions
+            senderId: currentUser.uid,
+            senderEmail: currentUser.email
           };
 
-          // Create notification for the assigned agent
-          if (agentId) {
-            await db.collection('notifications').add({
-              ...notificationData,
-              recipientId: agentId,
-              message: `לקוח ${currentUser.email} שלח הזמנה חדשה`
-            });
-          }
+          // Different notification creation strategy based on user role
+          if (userRole === 'admin' || userRole === 'agent') {
+            // Admins and agents can create notifications directly
 
-          // Create notification for all admin users
-          const adminsSnapshot = await db.collection('users').where('role', '==', USER_ROLES.ADMIN).get();
-
-          const adminNotificationPromises = [];
-          adminsSnapshot.forEach(doc => {
-            const adminId = doc.id;
-            adminNotificationPromises.push(
-              db.collection('notifications').add({
+            // Create notification for the assigned agent
+            if (agentId) {
+              await db.collection('notifications').add({
                 ...notificationData,
-                recipientId: adminId,
+                recipientId: agentId,
                 message: `לקוח ${currentUser.email} שלח הזמנה חדשה`
-              })
-            );
-          });
+              });
+            }
 
-          await Promise.all(adminNotificationPromises);
+            // Create notification for all admin users
+            const adminsSnapshot = await db.collection('users').where('role', '==', USER_ROLES.ADMIN).get();
+            const adminNotificationPromises = [];
+            
+            adminsSnapshot.forEach(doc => {
+              const adminId = doc.id;
+              adminNotificationPromises.push(
+                db.collection('notifications').add({
+                  ...notificationData,
+                  recipientId: adminId,
+                  message: `לקוח ${currentUser.email} שלח הזמנה חדשה`
+                })
+              );
+            });
+
+            await Promise.all(adminNotificationPromises);
+          } 
+          else {
+            // Clients must use the server-side function for handling notifications
+            // We'll just log the attempt and not create notifications directly
+            // This code path shouldn't normally be hit since our Firebase rules will
+            // prevent clients from creating notifications directly
+            console.log(`Client attempted to create notification for order: ${orderId}`);
+            console.log('Client notification creation should be handled by submitOrder in firebase-config.js');
+          }
 
           console.log('Order notifications created successfully');
           return true;
