@@ -1291,8 +1291,9 @@ function createProductCard(product) {
         const success = await addToCart({
           barcode: barcode,
           name: productName,
-          מחירון: price,
-          // Using only מחירון field
+          price: product['מחיר'] || 0,
+          מחירון: product['מחירון'] || price,
+          pricelist: product['מחירון'] || price,
           category: currentFilters.tab
         }, quantity);
         
@@ -1731,7 +1732,9 @@ function openProductModal(product) {
           const success = await addToCart({
             barcode: barcode,
             name: productName,
-            מחירון: pricelist, // Using only מחירון field
+            price: product['מחיר'] || 0,
+            מחירון: product['מחירון'] || pricelist,
+            pricelist: product['מחירון'] || pricelist,
             category: currentFilters.tab
           }, quantity);
           

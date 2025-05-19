@@ -173,9 +173,16 @@
     
     .cart-total {
       font-weight: bold;
-      font-size: 1.2rem;
+      font-size: 1.5rem;
       border-top: 1px solid #eee;
       padding-top: 10px;
+      color: #27ae60;
+    }
+    
+    .cart-item-price {
+      color: #27ae60;
+      font-weight: bold;
+      margin: 5px 0;
     }
     
     .cart-buttons {
@@ -577,6 +584,9 @@
         let cartHTML = '<ul class="cart-items">';
         
         cartItems.forEach(item => {
+          // Get the price to display (prioritize pricelist if available)
+          const itemPrice = item.pricelist || item.price || '0';
+          const priceDisplay = itemPrice.toString().includes('₪') ? itemPrice : `${itemPrice} ₪`;
           
           cartHTML += `
             <li class="cart-item" data-barcode="${item.barcode}">
@@ -584,6 +594,7 @@
                 <img src="${item.image}" alt="${item.name}" onerror="this.src='images/logo.png';">
                 <div class="cart-item-info">
                   <div class="cart-item-name">${item.name}</div>
+                  <div class="cart-item-price" style="color: #27ae60; font-weight: bold; margin: 5px 0;">${priceDisplay}</div>
                   <div class="cart-item-quantity">כמות: ${item.quantity}</div>
                 </div>
               </div>
@@ -601,9 +612,28 @@
         
         cartHTML += '</ul>';
         
+        // Calculate total price
+        const totalPrice = cartItems.reduce((sum, item) => {
+          // Get item price, prioritizing pricelist field if available
+          let itemPrice = item.pricelist || item.price || 0;
+          // If it's a string containing ₪, clean it
+          if (typeof itemPrice === 'string') {
+            itemPrice = itemPrice.replace('₪', '').trim();
+          }
+          // Convert to number for calculation
+          const numericPrice = parseFloat(itemPrice) || 0;
+          return sum + (numericPrice * item.quantity);
+        }, 0);
+        
         // Add cart totals
         cartHTML += `
-                  `;
+          <div class="cart-totals">
+            <div class="cart-total">
+              <div>סה"כ</div>
+              <div>${totalPrice.toFixed(2)} ₪</div>
+            </div>
+          </div>
+        `;
         
         cartContentElement.innerHTML = cartHTML;
         
