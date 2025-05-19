@@ -1,0 +1,2 @@
+ok now each csv got a new field called IsNew - if the row has TRUE the product is new - lets create a new page called מוצרים חדשים that displays all products that are new - also add filters - dont add teh לקוחות filter 
+    and also anyone can view thios page - make sure u integrate teh like and cart to this page
