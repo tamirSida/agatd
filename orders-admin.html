@@ -730,7 +730,7 @@
                 <div class="order-date">${orderDate}</div>
               </div>
               <div class="order-client">
-                <div class="order-client-email">לקוח: ${order.clientEmail}</div>
+                <div class="order-client-email">לקוח: ${order.clientName ? `${order.clientName} (${order.clientEmail})` : order.clientEmail}</div>
               </div>
               ${order.notes ? `<div class="order-notes">הערות: ${order.notes}</div>` : ''}
               <div class="order-details">
@@ -884,7 +884,7 @@
           <div class="order-details-info">
             <p><strong>מספר הזמנה:</strong> ${order.id}</p>
             <p><strong>תאריך:</strong> ${orderDate}</p>
-            <p><strong>לקוח:</strong> ${order.clientEmail}</p>
+            <p><strong>לקוח:</strong> ${order.clientName ? `${order.clientName} (${order.clientEmail})` : order.clientEmail}</p>
             <p><strong>סטטוס:</strong> <span class="order-status ${statusClass}">${statusLabel}</span></p>
             ${order.notes ? `<p><strong>הערות:</strong> ${order.notes}</p>` : ''}
           </div>
@@ -958,7 +958,7 @@
           const orderInfo = [
             ['מספר הזמנה', currentOrder.id],
             ['תאריך', formatDate(currentOrder.createdAt)],
-            ['לקוח', currentOrder.clientEmail],
+            ['לקוח', currentOrder.clientName ? `${currentOrder.clientName} (${currentOrder.clientEmail})` : currentOrder.clientEmail],
             ['סטטוס', currentOrder.status],
             ['הערות', currentOrder.notes || '']
           ];

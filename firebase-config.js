@@ -317,6 +317,7 @@ const submitOrder = async (notes = '') => {
     const order = {
       clientId: user.uid,
       clientEmail: user.email,
+      clientName: clientData.name || null, // Include client name if available
       agentId: clientData.agentId || null,
       items: cartCopy, // Use the copied cart items
       notes: notes,
@@ -351,7 +352,7 @@ const submitOrder = async (notes = '') => {
           await db.collection('notifications').add({
             ...notificationData,
             recipientId: clientData.agentId,
-            message: `הזמנה חדשה התקבלה מלקוח: ${user.email}`
+            message: `הזמנה חדשה התקבלה מלקוח: ${clientData.name ? `${clientData.name} (${user.email})` : user.email}`
           });
           console.log('Order notification created for agent successfully');
         } catch (agentNotifError) {
@@ -388,7 +389,7 @@ const submitOrder = async (notes = '') => {
                 const adminNotifPromise = db.collection('notifications').add({
                   ...notificationData,
                   recipientId: adminDoc.id,
-                  message: `הזמנה חדשה התקבלה מלקוח: ${user.email}`
+                  message: `הזמנה חדשה התקבלה מלקוח: ${clientData.name ? `${clientData.name} (${user.email})` : user.email}`
                 });
                 
                 adminPromises.push(adminNotifPromise);
@@ -454,7 +455,7 @@ const submitOrder = async (notes = '') => {
               const adminNotifPromise = db.collection('notifications').add({
                 ...notificationData,
                 recipientId: adminDoc.id,
-                message: `הזמנה חדשה התקבלה מלקוח: ${user.email} (ללא סוכן)`
+                message: `הזמנה חדשה התקבלה מלקוח: ${clientData.name ? `${clientData.name} (${user.email})` : user.email} (ללא סוכן)`
               });
               
               adminPromises.push(adminNotifPromise);
