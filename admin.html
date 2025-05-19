@@ -1521,12 +1521,23 @@
           // Get list of client user IDs
           const clientUserIds = clientUsersSnapshot.docs.map(doc => doc.id);
           
-          // Now get the corresponding client records
-          const clientsSnapshot = await db.collection('clients')
-            .where(firebase.firestore.FieldPath.documentId(), 'in', clientUserIds)
-            .get();
+          // Get the corresponding client records in batches (Firebase 'in' operator supports max 10 elements)
+          const clientDocs = [];
           
-          if (clientsSnapshot.empty) {
+          // Process in batches of 10
+          for (let i = 0; i < clientUserIds.length; i += 10) {
+            const batch = clientUserIds.slice(i, i + 10);
+            
+            // Query for this batch
+            const batchSnapshot = await db.collection('clients')
+              .where(firebase.firestore.FieldPath.documentId(), 'in', batch)
+              .get();
+              
+            // Add docs to our collection
+            clientDocs.push(...batchSnapshot.docs);
+          }
+          
+          if (clientDocs.length === 0) {
             clientsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">אין לקוחות</td></tr>';
             return;
           }
@@ -1553,7 +1564,7 @@
           });
           
           // Gather client data with related user info
-          for (const doc of clientsSnapshot.docs) {
+          for (const doc of clientDocs) {
             const clientData = doc.data();
             
             // Get user email from the map we created
