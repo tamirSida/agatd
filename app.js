@@ -14,8 +14,16 @@ let currentFilters = {
   tab: 'all',
   brand: '', // Client filter
   brandGroup: '', // Generic brand/group filter for all categories
-  kosher: '' // Kosher filter added back
+  kosher: '', // Kosher filter 
+  isNew: false // Filter for new products
 };
+
+// Detect if we're on the new products page
+const isNewProductsPage = window.location.pathname.includes('new-products.html');
+// Set isNew filter if we're on the new products page
+if (isNewProductsPage) {
+  currentFilters.isNew = true;
+}
 
 // DOM elements
 const countryFilter = document.getElementById('country-filter');
@@ -532,7 +540,7 @@ function groupProductsByName() {
 }
 
 // Populate filter dropdowns
-function populateFilters() {
+function populateFilters(excludeFilter = '') {
   // Clear existing options except the default ones
   countryFilter.innerHTML = '<option value="">כל הארצות</option>';
   
@@ -553,7 +561,16 @@ function populateFilters() {
   }
   
   // Get products based on current tab
-  const products = getProductsByTab();
+  let products = getProductsByTab();
+  
+  // If any filters are applied, filter products for dynamic filters
+  if (currentFilters.country || currentFilters.category || 
+      currentFilters.brandGroup || currentFilters.kosher || 
+      currentFilters.search) {
+    
+    // Apply current filters excluding the one being updated
+    products = getDynamicallyFilteredProducts(products, excludeFilter);
+  }
 
   // Get unique countries and categories
   const countries = [...new Set(products.filter(p => p['מדינה']).map(p => p['מדינה']))];
@@ -570,15 +587,29 @@ function populateFilters() {
     // For whiskey, use 'מותג'
     brandGroups = [...new Set(products.filter(p => p['מותג']).map(p => p['מותג']))];
   } else if (currentFilters.tab === 'all') {
-    // For "all" tab, combine brand groups from all product types
-    const wineGroups = [...new Set(wineProducts.filter(p => p['קבוצה / מותג']).map(p => p['קבוצה / מותג']))];
-    const whiskeyGroups = [...new Set(whiskeyProducts.filter(p => p['מותג']).map(p => p['מותג']))];
-    const alcoholGroups = [...new Set(alcoholProducts.filter(p => p['קבוצה / מותג אוטומטי']).map(p => p['קבוצה / מותג אוטומטי']))];
-    const beerGroups = [...new Set(beerProducts.filter(p => p['קבוצה / מותג אוטומטי']).map(p => p['קבוצה / מותג אוטומטי']))];
-    const foodGroups = [...new Set(foodProducts.filter(p => p['קבוצה / מותג אוטומטי']).map(p => p['קבוצה / מותג אוטומטי']))];
-    
-    // Combine all groups
-    brandGroups = [...new Set([...wineGroups, ...whiskeyGroups, ...alcoholGroups, ...beerGroups, ...foodGroups])];
+    // For dynamic filters, use the filtered products
+    if (currentFilters.country || currentFilters.category || 
+        currentFilters.brandGroup || currentFilters.kosher || 
+        currentFilters.search) {
+      
+      // For filtered view, extract brand groups from the filtered products
+      const filteredWineGroups = [...new Set(products.filter(p => p['קבוצה / מותג']).map(p => p['קבוצה / מותג']))];
+      const filteredWhiskeyGroups = [...new Set(products.filter(p => p['מותג']).map(p => p['מותג']))];
+      const filteredOtherGroups = [...new Set(products.filter(p => p['קבוצה / מותג אוטומטי']).map(p => p['קבוצה / מותג אוטומטי']))];
+      
+      // Combine all groups from filtered products
+      brandGroups = [...new Set([...filteredWineGroups, ...filteredWhiskeyGroups, ...filteredOtherGroups])];
+    } else {
+      // If no filters applied, use all products as before
+      const wineGroups = [...new Set(wineProducts.filter(p => p['קבוצה / מותג']).map(p => p['קבוצה / מותג']))];
+      const whiskeyGroups = [...new Set(whiskeyProducts.filter(p => p['מותג']).map(p => p['מותג']))];
+      const alcoholGroups = [...new Set(alcoholProducts.filter(p => p['קבוצה / מותג אוטומטי']).map(p => p['קבוצה / מותג אוטומטי']))];
+      const beerGroups = [...new Set(beerProducts.filter(p => p['קבוצה / מותג אוטומטי']).map(p => p['קבוצה / מותג אוטומטי']))];
+      const foodGroups = [...new Set(foodProducts.filter(p => p['קבוצה / מותג אוטומטי']).map(p => p['קבוצה / מותג אוטומטי']))];
+      
+      // Combine all groups
+      brandGroups = [...new Set([...wineGroups, ...whiskeyGroups, ...alcoholGroups, ...beerGroups, ...foodGroups])];
+    }
   } else {
     // For alcohol, beer, food tabs, use 'קבוצה / מותג אוטומטי'
     brandGroups = [...new Set(products.filter(p => p['קבוצה / מותג אוטומטי']).map(p => p['קבוצה / מותג אוטומטי']))];
@@ -594,6 +625,12 @@ function populateFilters() {
     const option = document.createElement('option');
     option.value = country;
     option.textContent = country;
+    
+    // Preserve current selection if it exists in the filtered results
+    if (country === currentFilters.country) {
+      option.selected = true;
+    }
+    
     countryFilter.appendChild(option);
   });
 
@@ -602,6 +639,12 @@ function populateFilters() {
     const option = document.createElement('option');
     option.value = category;
     option.textContent = category;
+    
+    // Preserve current selection if it exists in the filtered results
+    if (category === currentFilters.category) {
+      option.selected = true;
+    }
+    
     categoryFilter.appendChild(option);
   });
   
@@ -617,6 +660,12 @@ function populateFilters() {
       const option = document.createElement('option');
       option.value = group;
       option.textContent = group;
+      
+      // Preserve current selection if it exists in the filtered results
+      if (group === currentFilters.brandGroup) {
+        option.selected = true;
+      }
+      
       brandGroupFilter.appendChild(option);
     }
   });
@@ -637,6 +686,102 @@ function populateFilters() {
   updateSelectStyling(brandFilter);
   updateSelectStyling(brandGroupFilter);
   updateSelectStyling(kosherFilter);
+}
+
+// Helper function to get filtered products for dynamic filters
+function getDynamicallyFilteredProducts(products, excludeFilter) {
+  return products.filter(product => {
+    // Country filter - skip if this is the filter being updated
+    if (excludeFilter !== 'country-filter' && currentFilters.country && product['מדינה'] !== currentFilters.country) {
+      return false;
+    }
+
+    // Category filter - skip if this is the filter being updated
+    if (excludeFilter !== 'category-filter' && currentFilters.category) {
+      const productCategory = product['קטגוריה אוטומטי'] || product['קטגוריה'];
+      if (productCategory !== currentFilters.category) {
+        return false;
+      }
+    }
+
+    // Brand Group filter - skip if this is the filter being updated
+    if (excludeFilter !== 'brand-group-filter' && currentFilters.brandGroup) {
+      let productType = '';
+      if (whiskeyProducts.includes(product)) {
+        productType = 'whiskey';
+      } else if (wineProducts.includes(product)) {
+        productType = 'wine';
+      } else if (beerProducts.includes(product)) {
+        productType = 'beer';
+      } else if (foodProducts.includes(product)) {
+        productType = 'food';
+      } else if (alcoholProducts.includes(product)) {
+        productType = 'alcohol';
+      }
+      
+      let productBrandGroup = '';
+      
+      // Get brand/group value based on product type
+      if (productType === 'wine') {
+        productBrandGroup = product['קבוצה / מותג'] || '';
+      } else if (productType === 'whiskey') {
+        productBrandGroup = product['מותג'] || '';
+      } else {
+        // For alcohol, beer, food, and all others
+        productBrandGroup = product['קבוצה / מותג אוטומטי'] || '';
+      }
+      
+      if (productBrandGroup !== currentFilters.brandGroup) {
+        return false;
+      }
+    }
+    
+    // Kosher filter - skip if this is the filter being updated
+    if (excludeFilter !== 'kosher-filter' && currentFilters.kosher && currentFilters.tab !== 'whiskey') {
+      if (!product['כשרות']) {
+        return false;
+      }
+      
+      const kosherValue = product['כשרות'].toString().toLowerCase();
+      
+      if (currentFilters.kosher === 'true') {
+        // Filter for kosher products
+        if (kosherValue !== 'true' && kosherValue !== 'כן' && kosherValue !== 'כשר') {
+          return false;
+        }
+      } else if (currentFilters.kosher === 'false') {
+        // Filter for non-kosher products
+        if (kosherValue !== 'false' && kosherValue !== 'לא' && kosherValue !== 'לא כשר') {
+          return false;
+        }
+      }
+    }
+
+    // Search filter - skip if this is the filter being updated
+    if (excludeFilter !== 'search-input' && currentFilters.search) {
+      const searchLower = currentFilters.search.toLowerCase();
+      const nameMatch = product['שם פריט אוטומטי'] && product['שם פריט אוטומטי'].toLowerCase().includes(searchLower);
+      const descMatch = product['תאור'] && product['תאור'].toLowerCase().includes(searchLower);
+      const companyMatch = (product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג']) &&
+          (product.company || product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג']).toLowerCase().includes(searchLower);
+      const barcodeMatch = product['ברקוד'] && product['ברקוד'].toLowerCase().includes(searchLower);
+
+      if (!(nameMatch || descMatch || companyMatch || barcodeMatch)) {
+        return false;
+      }
+    }
+    
+    // Filter by "IsNew" for new products page - always apply this if it's set
+    if (currentFilters.isNew) {
+      // Check for "IsNew" field - could be in different formats
+      const isNewValue = product['IsNew'] || product['חדש'] || product['מוצר חדש'];
+      if (!isNewValue || isNewValue.toString().toUpperCase() !== 'TRUE') {
+        return false;
+      }
+    }
+    
+    return true;
+  });
 }
 
 // Update select styling based on selection
@@ -794,6 +939,15 @@ function getFilteredProducts() {
       const barcodeMatch = product['ברקוד'] && product['ברקוד'].toLowerCase().includes(searchLower);
 
       if (!(nameMatch || descMatch || companyMatch || barcodeMatch)) {
+        return false;
+      }
+    }
+    
+    // Filter by "IsNew" for new products page
+    if (currentFilters.isNew) {
+      // Check for "IsNew" field - could be in different formats
+      const isNewValue = product['IsNew'] || product['חדש'] || product['מוצר חדש'];
+      if (!isNewValue || isNewValue.toString().toUpperCase() !== 'TRUE') {
         return false;
       }
     }
@@ -1849,6 +2003,8 @@ function switchTab(tabName) {
 // Perform search (triggered by button click)
 function performSearch() {
   currentFilters.search = searchInput.value;
+  // Update filters based on search results
+  populateFilters('search-input');
   displayProducts();
 }
 
@@ -2104,30 +2260,40 @@ function setupEventListeners() {
   countryFilter.addEventListener('change', function() {
     currentFilters.country = this.value;
     updateSelectStyling(this);
+    // Repopulate other filters based on this selection
+    populateFilters('country-filter');
     displayProducts();
   });
 
   categoryFilter.addEventListener('change', function() {
     currentFilters.category = this.value;
     updateSelectStyling(this);
+    // Repopulate other filters based on this selection
+    populateFilters('category-filter');
     displayProducts();
   });
   
   brandFilter.addEventListener('change', function() {
     currentFilters.brand = this.value;
     updateSelectStyling(this);
+    // Repopulate other filters based on this selection
+    populateFilters('brand-filter');
     displayProducts();
   });
   
   brandGroupFilter.addEventListener('change', function() {
     currentFilters.brandGroup = this.value;
     updateSelectStyling(this);
+    // Repopulate other filters based on this selection
+    populateFilters('brand-group-filter');
     displayProducts();
   });
   
   kosherFilter.addEventListener('change', function() {
     currentFilters.kosher = this.value;
     updateSelectStyling(this);
+    // Repopulate other filters based on this selection
+    populateFilters('kosher-filter');
     displayProducts();
   });
 
@@ -2148,6 +2314,8 @@ function setupEventListeners() {
 
     this.debounceTimer = setTimeout(() => {
       currentFilters.search = value;
+      // Update filters based on search results
+      populateFilters('search-input');
       displayProducts();
     }, 300);
   });
@@ -2183,6 +2351,8 @@ function setupEventListeners() {
     countryFilter.value = '';
     currentFilters.country = '';
     updateSelectStyling(countryFilter);
+    // Repopulate other filters
+    populateFilters('country-filter');
     displayProducts();
   });
 
@@ -2190,6 +2360,8 @@ function setupEventListeners() {
     categoryFilter.value = '';
     currentFilters.category = '';
     updateSelectStyling(categoryFilter);
+    // Repopulate other filters
+    populateFilters('category-filter');
     displayProducts();
   });
 
@@ -2197,6 +2369,8 @@ function setupEventListeners() {
     brandFilter.value = '';
     currentFilters.brand = '';
     updateSelectStyling(brandFilter);
+    // Repopulate other filters
+    populateFilters('brand-filter');
     displayProducts();
   });
   
@@ -2204,6 +2378,8 @@ function setupEventListeners() {
     brandGroupFilter.value = '';
     currentFilters.brandGroup = '';
     updateSelectStyling(brandGroupFilter);
+    // Repopulate other filters
+    populateFilters('brand-group-filter');
     displayProducts();
   });
 
@@ -2211,6 +2387,8 @@ function setupEventListeners() {
     kosherFilter.value = '';
     currentFilters.kosher = '';
     updateSelectStyling(kosherFilter);
+    // Repopulate other filters
+    populateFilters('kosher-filter');
     displayProducts();
   });
 }
