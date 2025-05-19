@@ -102,10 +102,11 @@ service cloud.firestore {
                       (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
                       (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
                        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agent')) ||
-                      // Clients can create notifications only when the clientId in notification matches their uid
+                      // Clients can create notifications for any recipient when it's related to their own order
                       (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
                        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'client' &&
                        request.resource.data.clientId == request.auth.uid &&
+                       request.resource.data.senderId == request.auth.uid &&
                        request.resource.data.type == 'new_order')
                     );
       

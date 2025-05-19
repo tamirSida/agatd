@@ -704,32 +704,42 @@
 
         try {
           showLoading();
+          console.log('Sending order...');
 
-          // Submit order - this function also creates notifications in firebase-config.js
+          // Submit order - this should create the order in the Firestore database
           const orderId = await submitOrder(notes);
 
           if (orderId) {
-            // Show success modal
-            successModal.style.display = 'block';
-
-            // Try to create notification using the client-side function too, but catch any errors
-            // and proceed with order submission anyway
+            console.log(`Order created successfully with ID: ${orderId}`);
+            
+            // Create notifications for the order
+            console.log('Creating notifications for the order...');
+            let notificationsResult = false;
+            
             try {
-              await createOrderNotification(orderId);
+              notificationsResult = await createOrderNotification(orderId);
+              if (notificationsResult) {
+                console.log('Notifications created successfully');
+              } else {
+                console.warn('Failed to create notifications through local function');
+              }
             } catch (notifError) {
-              // Log the error but don't block the order submission
-              console.log('Error with client-side notification but order was submitted successfully:', notifError);
-              console.log('Notifications were likely created server-side in submitOrder function');
+              console.error('Error creating notifications:', notifError);
             }
 
+            // Show success modal regardless of notification status
+            successModal.style.display = 'block';
+            
             // Clear cart
             cartItems = [];
             orderNotesTextarea.value = '';
           } else {
+            console.error('Failed to create order - no order ID returned');
             alert('שגיאה בשליחת ההזמנה. אנא נסה שוב.');
           }
         } catch (error) {
           console.error('Error sending order:', error);
+          console.error('Full error details:', error.message, error.stack);
           alert('שגיאה בשליחת ההזמנה. אנא נסה שוב.');
         } finally {
           hideLoading();
@@ -750,69 +760,79 @@
           const clientData = clientDoc.data();
           const agentId = clientData.agentId;
 
-          // Get user role to handle notification logic differently for each role
-          const userDoc = await db.collection('users').doc(currentUser.uid).get();
-          if (!userDoc.exists) return;
-          const userRole = userDoc.data().role;
+          console.log(`Creating notifications for order ID: ${orderId}`);
 
-          console.log(`Creating notifications as user with role: ${userRole}`);
-
-          // Create base notification data
+          // Create base notification data - ensure ALL required fields are present
           const notificationData = {
             type: 'new_order',
             orderId: orderId,
-            clientId: currentUser.uid,
+            clientId: currentUser.uid,  // Required for security rules
             clientEmail: currentUser.email,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             read: false,
-            agentId: agentId, // Add agentId to all notifications for permissions
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             senderId: currentUser.uid,
-            senderEmail: currentUser.email
+            senderEmail: currentUser.email,
+            agentId: agentId || null // Include agentId for security rules
           };
 
-          // Different notification creation strategy based on user role
-          if (userRole === 'admin' || userRole === 'agent') {
-            // Admins and agents can create notifications directly
-
-            // Create notification for the assigned agent
-            if (agentId) {
+          // Create notification for the agent if one is assigned
+          if (agentId) {
+            console.log(`Attempting to create notification for agent: ${agentId}`);
+            try {
               await db.collection('notifications').add({
                 ...notificationData,
                 recipientId: agentId,
-                message: `לקוח ${currentUser.email} שלח הזמנה חדשה`
+                message: `הזמנה חדשה התקבלה מלקוח: ${currentUser.email}`
               });
+              console.log('Order notification created for agent:', agentId);
+            } catch (agentNotifError) {
+              console.error('Error creating agent notification:', agentNotifError);
             }
-
-            // Create notification for all admin users
-            const adminsSnapshot = await db.collection('users').where('role', '==', USER_ROLES.ADMIN).get();
-            const adminNotificationPromises = [];
-            
-            adminsSnapshot.forEach(doc => {
-              const adminId = doc.id;
-              adminNotificationPromises.push(
-                db.collection('notifications').add({
-                  ...notificationData,
-                  recipientId: adminId,
-                  message: `לקוח ${currentUser.email} שלח הזמנה חדשה`
-                })
-              );
-            });
-
-            await Promise.all(adminNotificationPromises);
-          } 
-          else {
-            // Clients must use the server-side function for handling notifications
-            // We'll just log the attempt and not create notifications directly
-            // This code path shouldn't normally be hit since our Firebase rules will
-            // prevent clients from creating notifications directly
-            console.log(`Client attempted to create notification for order: ${orderId}`);
-            console.log('Client notification creation should be handled by submitOrder in firebase-config.js');
           }
 
-          console.log('Order notifications created successfully');
+          // Create notifications for all admins
+          console.log('Attempting to create notifications for admins');
+          try {
+            const adminsSnapshot = await db.collection('users')
+              .where('role', '==', USER_ROLES.ADMIN)
+              .get();
+              
+            if (!adminsSnapshot.empty) {
+              console.log(`Found ${adminsSnapshot.size} admin users`);
+              
+              // Create notifications one by one instead of using batch
+              const adminPromises = [];
+              
+              for (const adminDoc of adminsSnapshot.docs) {
+                console.log(`Creating notification for admin: ${adminDoc.id}`);
+                try {
+                  const notificationPromise = db.collection('notifications').add({
+                    ...notificationData,
+                    recipientId: adminDoc.id,
+                    message: `הזמנה חדשה התקבלה מלקוח: ${currentUser.email}`
+                  });
+                  adminPromises.push(notificationPromise);
+                } catch (singleAdminError) {
+                  console.error(`Error creating notification for admin ${adminDoc.id}:`, singleAdminError);
+                }
+              }
+              
+              // Wait for all promises but don't fail if some fail
+              const results = await Promise.allSettled(adminPromises);
+              const successful = results.filter(r => r.status === 'fulfilled').length;
+              console.log(`Successfully created ${successful} out of ${adminPromises.length} admin notifications`);
+            } else {
+              console.warn('No admin users found to notify');
+            }
+          } catch (adminNotifError) {
+            console.error('Error creating admin notifications:', adminNotifError);
+          }
+
+          console.log('Order notifications process completed');
           return true;
         } catch (error) {
           console.error('Error creating order notifications:', error);
+          console.error('Full error details:', error.message, error.stack);
           return false;
         }
       }
