@@ -603,7 +603,6 @@
         <div class="admin-tab active" data-tab="users">משתמשים</div>
         <div class="admin-tab" data-tab="clients">לקוחות</div>
         <div class="admin-tab" data-tab="agents">סוכנים</div>
-        <div class="admin-tab" data-tab="registration">בקשות הרשמה</div>
         <div class="admin-tab" data-tab="likes">מועדפים</div>
       </div>
       
@@ -730,25 +729,6 @@
             </tr>
           </thead>
           <tbody id="agents-table-body">
-            <!-- Will be populated by JavaScript -->
-          </tbody>
-        </table>
-      </div>
-      
-      <!-- Registration Requests Tab -->
-      <div class="tab-content" id="registration-tab">
-        <table class="admin-table" id="registration-table">
-          <thead>
-            <tr>
-              <th>שם</th>
-              <th>אימייל</th>
-              <th>תפקיד מבוקש</th>
-              <th>סטטוס</th>
-              <th>תאריך בקשה</th>
-              <th>פעולות</th>
-            </tr>
-          </thead>
-          <tbody id="registration-table-body">
             <!-- Will be populated by JavaScript -->
           </tbody>
         </table>
@@ -906,8 +886,6 @@
               loadBrandsForMultiselect();
             } else if (tabName === 'agents') {
               loadAgents();
-            } else if (tabName === 'registration') {
-              loadRegistrationRequests();
             } else if (tabName === 'likes') {
               loadLikes();
             }
@@ -987,8 +965,6 @@
           loadBrandsForMultiselect();
         } else if (activeTab === 'agents') {
           loadAgents();
-        } else if (activeTab === 'registration') {
-          loadRegistrationRequests();
         } else if (activeTab === 'likes') {
           loadLikes();
         }
@@ -1756,191 +1732,6 @@
         } catch (error) {
           console.error('Error loading agents:', error);
           agentsTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: red;">שגיאה בטעינת סוכנים: ${error.message}</td></tr>`;
-        }
-      }
-      
-      // Load registration requests
-      async function loadRegistrationRequests() {
-        const registrationTableBody = document.getElementById('registration-table-body');
-        
-        registrationTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">טוען בקשות הרשמה...</td></tr>';
-        
-        try {
-          const requestsSnapshot = await db.collection('registrationRequests')
-            .orderBy('createdAt', 'desc')
-            .get();
-          
-          if (requestsSnapshot.empty) {
-            registrationTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">אין בקשות הרשמה</td></tr>';
-            return;
-          }
-          
-          registrationTableBody.innerHTML = '';
-          
-          requestsSnapshot.forEach(doc => {
-            const requestData = doc.data();
-            
-            // Format role
-            let roleText = '';
-            switch (requestData.requestedRole) {
-              case USER_ROLES.ADMIN:
-                roleText = 'מנהל';
-                break;
-              case USER_ROLES.AGENT:
-                roleText = 'סוכן';
-                break;
-              case USER_ROLES.CLIENT:
-                roleText = 'לקוח';
-                break;
-              default:
-                roleText = requestData.requestedRole || '';
-            }
-            
-            // Format status
-            let statusText = '';
-            let statusClass = '';
-            switch (requestData.status) {
-              case 'approved':
-                statusText = 'אושר';
-                statusClass = 'badge-success';
-                break;
-              case 'rejected':
-                statusText = 'נדחה';
-                statusClass = 'badge-danger';
-                break;
-              case 'pending':
-              default:
-                statusText = 'ממתין';
-                statusClass = 'badge-warning';
-            }
-            
-            // Format date
-            let dateText = '';
-            if (requestData.createdAt) {
-              const date = requestData.createdAt.toDate();
-              dateText = new Date(date).toLocaleDateString('he-IL');
-            }
-            
-            const row = document.createElement('tr');
-            
-            row.innerHTML = `
-              <td>${requestData.name || ''}</td>
-              <td>${requestData.email || ''}</td>
-              <td>${roleText}</td>
-              <td><span class="badge ${statusClass}">${statusText}</span></td>
-              <td>${dateText}</td>
-              <td>
-                ${requestData.status === 'pending' ? `
-                  <button class="btn btn-success approve-request-btn" data-id="${doc.id}">אשר</button>
-                  <button class="btn btn-danger reject-request-btn" data-id="${doc.id}">דחה</button>
-                ` : ''}
-              </td>
-            `;
-            
-            registrationTableBody.appendChild(row);
-          });
-          
-          // Add approve click handlers
-          document.querySelectorAll('.approve-request-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const requestId = btn.dataset.id;
-              
-              try {
-                const requestDoc = await db.collection('registrationRequests').doc(requestId).get();
-                
-                if (requestDoc.exists) {
-                  const requestData = requestDoc.data();
-                  
-                  if (confirm(`האם לאשר את בקשת ההרשמה של ${requestData.name} (${requestData.email})?`)) {
-                    // Create user in Firebase Authentication
-                    const userCredential = await firebase.auth().createUserWithEmailAndPassword(
-                      requestData.email, 
-                      requestData.password
-                    );
-                    const newUser = userCredential.user;
-                    
-                    // Create user document in Firestore
-                    await db.collection('users').doc(newUser.uid).set({
-                      email: requestData.email,
-                      role: requestData.requestedRole,
-                      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    
-                    // Create additional documents based on role
-                    if (requestData.requestedRole === USER_ROLES.CLIENT) {
-                      await db.collection('clients').doc(newUser.uid).set({
-                        email: requestData.email,
-                        allowedBrands: [],
-                        likes: [],
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                      });
-                    } else if (requestData.requestedRole === USER_ROLES.AGENT) {
-                      await db.collection('agents').doc(newUser.uid).set({
-                        email: requestData.email,
-                        clients: [],
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                      });
-                      
-                      // Agents also get a client record for their own likes
-                      await db.collection('clients').doc(newUser.uid).set({
-                        email: requestData.email,
-                        allowedBrands: [],
-                        likes: [],
-                        agentId: newUser.uid, // Agents are their own agents
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                      });
-                    }
-                    
-                    // Update request status
-                    await db.collection('registrationRequests').doc(requestId).update({
-                      status: 'approved',
-                      approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                      approvedBy: auth.currentUser.uid
-                    });
-                    
-                    alert(`בקשת ההרשמה אושרה ונוצר משתמש: ${requestData.email}`);
-                    loadRegistrationRequests();
-                  }
-                }
-              } catch (error) {
-                console.error('Error approving registration request:', error);
-                alert(`שגיאה באישור בקשת הרשמה: ${error.message}`);
-              }
-            });
-          });
-          
-          // Add reject click handlers
-          document.querySelectorAll('.reject-request-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const requestId = btn.dataset.id;
-              
-              try {
-                const requestDoc = await db.collection('registrationRequests').doc(requestId).get();
-                
-                if (requestDoc.exists) {
-                  const requestData = requestDoc.data();
-                  
-                  if (confirm(`האם לדחות את בקשת ההרשמה של ${requestData.name} (${requestData.email})?`)) {
-                    // Update request status
-                    await db.collection('registrationRequests').doc(requestId).update({
-                      status: 'rejected',
-                      rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                      rejectedBy: auth.currentUser.uid
-                    });
-                    
-                    alert(`בקשת ההרשמה נדחתה`);
-                    loadRegistrationRequests();
-                  }
-                }
-              } catch (error) {
-                console.error('Error rejecting registration request:', error);
-                alert(`שגיאה בדחיית בקשת הרשמה: ${error.message}`);
-              }
-            });
-          });
-        } catch (error) {
-          console.error('Error loading registration requests:', error);
-          registrationTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">שגיאה בטעינת בקשות הרשמה: ${error.message}</td></tr>`;
         }
       }
       

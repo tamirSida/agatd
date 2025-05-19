@@ -1096,6 +1096,7 @@ function createProductCard(product) {
   } else if (currentFilters.brand && product[currentFilters.brand] === 'TRUE') {
     // If a brand is selected and this product is TRUE for that brand, we could show specific pricing
     // This is a placeholder for future pricing logic
+    // This is a placeholder for future pricing logic
     priceHtml = `<span class="price available">זמין</span>`;
   }
 
@@ -1499,7 +1500,7 @@ function openProductModal(product) {
     const priceSpec = document.createElement('div');
     priceSpec.className = 'spec-item price-spec';
     priceSpec.innerHTML = `
-      <div class="spec-label"><strong>מחיר</strong>:</div>
+      <div class="spec-label"><strong>מחירון</strong>:</div>
       <div class="spec-value price-value">${product['מחירון']}</div>
     `;
     modalSpecs.appendChild(priceSpec);

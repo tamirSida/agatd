@@ -122,7 +122,6 @@
     <div class="auth-container">
       <div class="auth-tabs">
         <div class="auth-tab active" data-tab="login">התחברות</div>
-        <div class="auth-tab" data-tab="register">בקשת הרשמה</div>
       </div>
       
       <div class="auth-content active" id="login-content">
@@ -150,35 +149,6 @@
         </div>
       </div>
       
-      <div class="auth-content" id="register-content">
-        <form id="register-form">
-          <div class="form-group">
-            <label for="register-name">שם מלא</label>
-            <input type="text" id="register-name" required>
-          </div>
-          <div class="form-group">
-            <label for="register-email">אימייל</label>
-            <input type="email" id="register-email" required>
-          </div>
-          <div class="form-group password-group">
-            <label for="register-password">סיסמה</label>
-            <div class="password-input-container" style="position: relative;">
-              <input type="password" id="register-password" required minlength="6">
-              <button type="button" class="toggle-password-btn" id="register-toggle-password" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #666;">👁️</button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="register-type">סוג משתמש</label>
-            <select id="register-type" required>
-              <option value="client">לקוח</option>
-              <option value="agent">סוכן</option>
-            </select>
-          </div>
-          <button type="submit" class="btn-primary">שלח בקשת הרשמה</button>
-          <div class="auth-error" id="register-error"></div>
-          <div class="auth-success" id="register-success"></div>
-        </form>
-      </div>
       
       <div class="auth-content" id="forgot-password-content">
         <form id="forgot-password-form">
@@ -247,16 +217,6 @@
         }
       });
       
-      document.getElementById('register-toggle-password').addEventListener('click', function() {
-        const passwordInput = document.getElementById('register-password');
-        if (passwordInput.type === 'password') {
-          passwordInput.type = 'text';
-          this.textContent = '🔒';
-        } else {
-          passwordInput.type = 'password';
-          this.textContent = '👁️';
-        }
-      });
       
       // Check for saved email in localStorage
       const savedEmail = localStorage.getItem('rememberedEmail');
@@ -330,44 +290,6 @@
         }
       });
       
-      // Register form
-      document.getElementById('register-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const name = document.getElementById('register-name').value;
-        const email = document.getElementById('register-email').value;
-        const password = document.getElementById('register-password').value;
-        const type = document.getElementById('register-type').value;
-        const errorElement = document.getElementById('register-error');
-        const successElement = document.getElementById('register-success');
-        
-        try {
-          errorElement.style.display = 'none';
-          successElement.style.display = 'none';
-          
-          // Here, we'll collect registration requests instead of creating users directly
-          // Only admins can create actual accounts
-          await db.collection('registrationRequests').add({
-            name: name,
-            email: email,
-            requestedRole: type,
-            password: password, // Note: In a production app, don't store raw passwords. This is for demo purposes.
-            status: 'pending',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          
-          // Show success message
-          successElement.textContent = 'בקשת ההרשמה נשלחה בהצלחה! מנהל המערכת יצור איתך קשר בקרוב.';
-          successElement.style.display = 'block';
-          
-          // Reset form
-          document.getElementById('register-form').reset();
-        } catch (error) {
-          console.error('Registration request error:', error);
-          errorElement.textContent = getAuthErrorMessage(error.code);
-          errorElement.style.display = 'block';
-        }
-      });
       
       // Forgot password form
       document.getElementById('forgot-password-form').addEventListener('submit', async (e) => {
