@@ -629,6 +629,12 @@
                 </select>
               </div>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="user-name">שם</label>
+                <input type="text" id="user-name" placeholder="שם מלא">
+              </div>
+            </div>
             <!-- Agent Selection - Match first form row style -->
             <div class="form-row" id="agent-assignment-row" style="display: none; margin-top: 15px;">
               <div class="form-group" style="width: 33.333%; margin-right: 15px;">
@@ -655,6 +661,7 @@
           <thead>
             <tr>
               <th>אימייל</th>
+              <th>שם</th>
               <th>תפקיד</th>
               <th>תאריך הצטרפות</th>
               <th>פעולות</th>
@@ -701,6 +708,7 @@
           <thead>
             <tr>
               <th>אימייל</th>
+              <th>שם</th>
               <th>סוכן</th>
               <th>תאריך הצטרפות</th>
               <th>מספר מועדפים</th>
@@ -723,6 +731,7 @@
           <thead>
             <tr>
               <th>אימייל</th>
+              <th>שם</th>
               <th>מספר לקוחות</th>
               <th>תאריך הצטרפות</th>
               <th>פעולות</th>
@@ -976,6 +985,7 @@
           const email = document.getElementById('user-email').value;
           const password = document.getElementById('user-password').value;
           const role = document.getElementById('user-role').value;
+          const name = document.getElementById('user-name').value || '';
           
           try {
             // Validate that clients have an agent assigned
@@ -1058,6 +1068,7 @@
               console.log('Creating user document in Firestore with ID:', newUserUid);
               await db.collection('users').doc(newUserUid).set({
                 email: email,
+                name: name,
                 role: role,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
               });
@@ -1071,6 +1082,7 @@
                 // Create client document with agent
                 const clientData = {
                   email: email,
+                  name: name,
                   allowedBrands: [],
                   likes: [],
                   agentId: selectedAgentId,
@@ -1093,6 +1105,7 @@
                 console.log('Creating agent document with ID:', newUserUid);
                 await db.collection('agents').doc(newUserUid).set({
                   email: email,
+                  name: name,
                   clients: [],
                   createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
@@ -1414,13 +1427,13 @@
       // Load users
       async function loadUsers() {
         const usersTableBody = document.getElementById('users-table-body');
-        usersTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">טוען משתמשים...</td></tr>';
+        usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">טוען משתמשים...</td></tr>';
         
         try {
           const usersSnapshot = await db.collection('users').get();
           
           if (usersSnapshot.empty) {
-            usersTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">אין משתמשים</td></tr>';
+            usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">אין משתמשים</td></tr>';
             return;
           }
           
@@ -1455,6 +1468,7 @@
             
             row.innerHTML = `
               <td>${userData.email || ''}</td>
+              <td>${userData.name || ''}</td>
               <td>${roleText}</td>
               <td>${dateText}</td>
               <td>
@@ -1502,7 +1516,7 @@
         const clientsTableBody = document.getElementById('clients-table-body');
         const clientSelect = document.getElementById('client-select');
         
-        clientsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">טוען לקוחות...</td></tr>';
+        clientsTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">טוען לקוחות...</td></tr>';
         
         try {
           // Clear client select except first option
@@ -1514,7 +1528,7 @@
             .get();
           
           if (clientUsersSnapshot.empty) {
-            clientsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">אין לקוחות</td></tr>';
+            clientsTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">אין לקוחות</td></tr>';
             return;
           }
           
@@ -1538,7 +1552,7 @@
           }
           
           if (clientDocs.length === 0) {
-            clientsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">אין לקוחות</td></tr>';
+            clientsTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">אין לקוחות</td></tr>';
             return;
           }
           
@@ -1559,16 +1573,20 @@
           
           // Create a map of client user emails for quicker lookup
           const clientEmailMap = {};
+          const clientNameMap = {};
           clientUsersSnapshot.forEach(doc => {
-            clientEmailMap[doc.id] = doc.data().email || '';
+            const userData = doc.data();
+            clientEmailMap[doc.id] = userData.email || '';
+            clientNameMap[doc.id] = userData.name || '';
           });
           
           // Gather client data with related user info
           for (const doc of clientDocs) {
             const clientData = doc.data();
             
-            // Get user email from the map we created
+            // Get user email and name from the maps we created
             let userEmail = clientEmailMap[doc.id] || clientData.email || '';
+            let userName = clientNameMap[doc.id] || clientData.name || '';
             
             let createdDate = '';
             if (clientData.createdAt) {
@@ -1578,6 +1596,7 @@
             clientsData.push({
               id: doc.id,
               email: userEmail,
+              name: userName,
               agent: clientData.agentId ? (agentEmails[clientData.agentId] || 'Unknown') : '',
               agentId: clientData.agentId || '',
               createdDate: createdDate,
@@ -1600,6 +1619,7 @@
             
             row.innerHTML = `
               <td>${client.email}</td>
+              <td>${client.name || ''}</td>
               <td>${client.agent || 'ללא סוכן'}</td>
               <td>${client.createdDate || 'לא ידוע'}</td>
               <td>${client.likes.length}</td>
@@ -1665,7 +1685,7 @@
       async function loadAgents() {
         const agentsTableBody = document.getElementById('agents-table-body');
         
-        agentsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">טוען סוכנים...</td></tr>';
+        agentsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">טוען סוכנים...</td></tr>';
         
         try {
           // Get agents
@@ -1674,7 +1694,7 @@
             .get();
           
           if (agentsSnapshot.empty) {
-            agentsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">אין סוכנים</td></tr>';
+            agentsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">אין סוכנים</td></tr>';
             return;
           }
           
@@ -1702,6 +1722,7 @@
             
             row.innerHTML = `
               <td>${agentData.email || ''}</td>
+              <td>${agentData.name || ''}</td>
               <td>${clientsCount}</td>
               <td>${dateText}</td>
               <td>

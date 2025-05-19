@@ -101,6 +101,12 @@
       color: #333;
     }
     
+    .client-name {
+      font-size: 16px;
+      color: #555;
+      margin-top: 3px;
+    }
+    
     .client-stats {
       display: flex;
       justify-content: space-between;
@@ -611,6 +617,12 @@
                 <input type="password" id="client-password" required>
               </div>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="client-name">שם</label>
+                <input type="text" id="client-name" placeholder="שם מלא">
+              </div>
+            </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">הוסף לקוח</button>
             </div>
@@ -765,6 +777,7 @@
           
           const email = document.getElementById('client-email').value;
           const password = document.getElementById('client-password').value;
+          const name = document.getElementById('client-name').value || '';
           
           try {
             // Show loading indicator
@@ -833,6 +846,7 @@
               console.log('Creating user document in Firestore with ID:', newUserUid);
               await db.collection('users').doc(newUserUid).set({
                 email: email,
+                name: name,
                 role: 'client',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
               });
@@ -842,6 +856,7 @@
               console.log('Creating client document with ID:', newUserUid);
               await db.collection('clients').doc(newUserUid).set({
                 email: email,
+                name: name,
                 agentId: agentUid, // Automatically assign to current agent
                 allowedBrands: [],
                 likes: [],
@@ -858,7 +873,7 @@
               
               // Reset form and show success message
               document.getElementById('add-client-form').reset();
-              alert(`הלקוח ${email} נוצר בהצלחה!`);
+              alert(`הלקוח ${name ? name + ' (' + email + ')' : email} נוצר בהצלחה!`);
               
               // Reset button state
               submitButton.innerHTML = originalButtonText;
@@ -952,13 +967,16 @@
             
             // Get user info
             let userEmail = clientData.email || '';
+            let userName = clientData.name || '';
             
-            // If no email, try to get from users collection
-            if (!userEmail) {
+            // If no email or name, try to get from users collection
+            if (!userEmail || !userName) {
               try {
                 const userDoc = await db.collection('users').doc(doc.id).get();
                 if (userDoc.exists) {
-                  userEmail = userDoc.data().email || '';
+                  const userData = userDoc.data();
+                  if (!userEmail) userEmail = userData.email || '';
+                  if (!userName) userName = userData.name || '';
                 }
               } catch (userError) {
                 console.error('Error getting user data:', userError);
@@ -976,6 +994,7 @@
             clientCard.innerHTML = `
               <div class="client-header">
                 <div class="client-email">${userEmail}</div>
+                ${userName ? `<div class="client-name">${userName}</div>` : ''}
               </div>
               <div class="client-stats">
                 <div class="stat-item">
