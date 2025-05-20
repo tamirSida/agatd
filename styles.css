@@ -153,6 +153,26 @@ h1 {
   position: relative;
 }
 
+.filter-group.active {
+  position: relative;
+}
+
+.filter-group.active::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--accent-color);
+  border-radius: 50%;
+}
+
+.filter-group.active select {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
 .search-group {
   display: flex;
   max-width: 300px;
@@ -230,23 +250,29 @@ select.has-value {
   border: none;
   font-size: 14px;
   line-height: 1;
-  color: #000;
+  color: var(--dark-gray);
   cursor: pointer;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   opacity: 0;
   pointer-events: none;
   transition: var(--transition);
   z-index: 10;
-  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.clear-filter:hover {
+  background-color: var(--light-gray);
+  color: var(--danger-color);
 }
 
 .clear-filter::after {
-  content: '✕';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  content: '×';
+  font-size: 18px;
+  font-weight: 300;
 }
 
 select.has-value ~ .clear-filter {
@@ -254,8 +280,41 @@ select.has-value ~ .clear-filter {
   pointer-events: auto;
 }
 
-.clear-filter:hover {
-  color: var(--danger-color);
+.clear-all-filters {
+  background-color: var(--light-gray);
+  color: var(--dark-gray);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: var(--transition);
+  margin-top: 15px;
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.clear-all-filters::before {
+  content: '×';
+  font-size: 18px;
+  font-weight: 300;
+}
+
+.clear-all-filters:hover {
+  background-color: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.clear-all-filters:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 #products-container {
