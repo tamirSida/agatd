@@ -277,9 +277,12 @@ async function init() {
     // Group products with same name but different variants
     groupProductsByName();
 
-    // Populate filter options
-    populateFilters();
-
+    // Initialize all products and prepare them for filtering
+    const allProductsForFiltering = [...allProducts];
+    
+    // Update all filters with dynamically filtered options
+    updateFilterOptions(allProductsForFiltering);
+    
     // Handle brand filter visibility based on user role - only show for admin and agent roles
     const brandFilterContainer = brandFilter.closest('.filter-group');
     if (brandFilterContainer) {
@@ -290,6 +293,12 @@ async function init() {
         brandFilterContainer.style.display = 'none';
       }
     }
+    
+    // Initialize the data-open attribute for all filters
+    const filters = [countryFilter, categoryFilter, brandFilter, brandGroupFilter, kosherFilter];
+    filters.forEach(filter => {
+      filter.setAttribute('data-open', 'false');
+    });
 
     // Display products
     displayProducts();
@@ -2375,6 +2384,67 @@ function setupEventListeners() {
     });
   });
 
+  // Function to update filter options as soon as a dropdown is clicked
+  function handleFilterFocus(filterElement, filterName) {
+    console.log(`${filterName} filter clicked/focused`);
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products, excluding the filter that's being focused
+    const filteredProducts = getDynamicallyFilteredProducts(products, filterName);
+    
+    // Update all filter options based on the current state
+    updateFilterOptions(filteredProducts);
+  }
+
+  // Add mousedown/focus events to trigger dynamic filtering BEFORE selection
+  countryFilter.addEventListener('mousedown', function(event) {
+    // Only process if this is the initial click to open the dropdown
+    if (this.getAttribute('data-open') !== 'true') {
+      this.setAttribute('data-open', 'true');
+      handleFilterFocus(this, 'country-filter');
+    }
+  });
+  
+  categoryFilter.addEventListener('mousedown', function(event) {
+    if (this.getAttribute('data-open') !== 'true') {
+      this.setAttribute('data-open', 'true');
+      handleFilterFocus(this, 'category-filter');
+    }
+  });
+  
+  brandFilter.addEventListener('mousedown', function(event) {
+    if (this.getAttribute('data-open') !== 'true') {
+      this.setAttribute('data-open', 'true');
+      handleFilterFocus(this, 'brand-filter');
+    }
+  });
+  
+  brandGroupFilter.addEventListener('mousedown', function(event) {
+    if (this.getAttribute('data-open') !== 'true') {
+      this.setAttribute('data-open', 'true');
+      handleFilterFocus(this, 'brand-group-filter');
+    }
+  });
+  
+  kosherFilter.addEventListener('mousedown', function(event) {
+    if (this.getAttribute('data-open') !== 'true') {
+      this.setAttribute('data-open', 'true');
+      handleFilterFocus(this, 'kosher-filter');
+    }
+  });
+  
+  // Reset the open state when the dropdown closes
+  document.addEventListener('click', function(event) {
+    const filters = [countryFilter, categoryFilter, brandFilter, brandGroupFilter, kosherFilter];
+    filters.forEach(filter => {
+      if (!filter.contains(event.target)) {
+        filter.setAttribute('data-open', 'false');
+      }
+    });
+  });
+
   // Filter change events - ensure they're only attached once
   countryFilter.addEventListener('change', function() {
     console.log(`Country filter changed to: ${this.value}`);
@@ -2393,6 +2463,9 @@ function setupEventListeners() {
     
     // Display filtered products
     displayProducts();
+    
+    // Reset the open state
+    this.setAttribute('data-open', 'false');
   });
 
   categoryFilter.addEventListener('change', function() {
@@ -2412,6 +2485,9 @@ function setupEventListeners() {
     
     // Display filtered products
     displayProducts();
+    
+    // Reset the open state
+    this.setAttribute('data-open', 'false');
   });
   
   brandFilter.addEventListener('change', function() {
@@ -2431,6 +2507,9 @@ function setupEventListeners() {
     
     // Display filtered products
     displayProducts();
+    
+    // Reset the open state
+    this.setAttribute('data-open', 'false');
   });
   
   brandGroupFilter.addEventListener('change', function() {
@@ -2450,6 +2529,9 @@ function setupEventListeners() {
     
     // Display filtered products
     displayProducts();
+    
+    // Reset the open state
+    this.setAttribute('data-open', 'false');
   });
   
   kosherFilter.addEventListener('change', function() {
@@ -2469,6 +2551,9 @@ function setupEventListeners() {
     
     // Display filtered products
     displayProducts();
+    
+    // Reset the open state
+    this.setAttribute('data-open', 'false');
   });
 
   // Search button click
@@ -2931,6 +3016,7 @@ clearKosherFilterBtn.addEventListener('click', function() {
 
 // Add a function to clear all filters with animation
 function clearAllFilters() {
+  console.log('Clearing all filters');
   const filterGroups = document.querySelectorAll('.filter-group');
   
   // Add fade-out animation to active filters
@@ -2963,13 +3049,23 @@ function clearAllFilters() {
   updateSelectStyling(brandGroupFilter);
   updateSelectStyling(kosherFilter);
   
+  // Reset open state for all filters
+  [countryFilter, categoryFilter, brandFilter, brandGroupFilter, kosherFilter].forEach(filter => {
+    filter.setAttribute('data-open', 'false');
+  });
+  
   // Reset opacity and update states
   setTimeout(() => {
     filterGroups.forEach(group => {
       group.style.opacity = '1';
     });
     updateFilterStates();
-    debouncedPopulateFilters();
+    
+    // Get all products for the current tab and update filter options
+    const products = getProductsByTab();
+    updateFilterOptions(products);
+    
+    // Display all products
     displayProducts();
   }, 300);
 }
