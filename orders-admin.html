@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>ניהול הזמנות - AGAT&D</title>
@@ -696,19 +697,137 @@
           
           // Calculate order total
           const orderTotal = order.items.reduce((total, item) => {
-            return total + (parseFloat(item.price) || 0) * item.quantity;
+            // First try to use מחירון (pricelist)
+            let priceToUse = 0;
+            
+            // Helper function to clean and parse price strings
+            function cleanAndParsePrice(priceStr) {
+              if (!priceStr) return 0;
+              
+              // If it's already a number, return it
+              if (typeof priceStr === 'number') return priceStr;
+              
+              // Convert to string if somehow not a string
+              const str = String(priceStr);
+              
+              // Handle the format "₪2,630.00" (currency first)
+              if (str.startsWith('₪')) {
+                const cleaned = str.replace('₪', '').replace(/,/g, '');
+                if (!isNaN(parseFloat(cleaned))) {
+                  return parseFloat(cleaned);
+                }
+              }
+              
+              // Handle format "2,630.00 ₪" (currency last)
+              if (str.endsWith('₪')) {
+                const cleaned = str.replace('₪', '').replace(/,/g, '').trim();
+                if (!isNaN(parseFloat(cleaned))) {
+                  return parseFloat(cleaned);
+                }
+              }
+              
+              // General cleanup for any other format
+              const cleaned = str.replace(/[^\d.-]/g, '');
+              if (cleaned && !isNaN(parseFloat(cleaned))) {
+                return parseFloat(cleaned);
+              }
+              
+              return 0;
+            }
+            
+            // Try all possible price fields with proper cleaning
+            const priceFields = [
+              item.pricelist,
+              item['מחירון'],
+              item.price,
+              item['מחיר']
+            ];
+            
+            // Find the first valid price
+            for (const field of priceFields) {
+              if (field) {
+                const parsed = cleanAndParsePrice(field);
+                if (parsed > 0) {
+                  priceToUse = parsed;
+                  break;
+                }
+              }
+            }
+            
+            console.log(`Item ${item.name || item.barcode}: price=${priceToUse}, qty=${item.quantity}`);
+            return total + (priceToUse * item.quantity);
           }, 0);
+          
+          // Helper function to clean and parse price strings
+          function cleanAndParsePrice(priceStr) {
+            if (!priceStr) return 0;
+            
+            // If it's already a number, return it
+            if (typeof priceStr === 'number') return priceStr;
+            
+            // Convert to string if somehow not a string
+            const str = String(priceStr);
+            
+            // Handle the format "₪2,630.00" (currency first)
+            if (str.startsWith('₪')) {
+              const cleaned = str.replace('₪', '').replace(/,/g, '');
+              if (!isNaN(parseFloat(cleaned))) {
+                return parseFloat(cleaned);
+              }
+            }
+            
+            // Handle format "2,630.00 ₪" (currency last)
+            if (str.endsWith('₪')) {
+              const cleaned = str.replace('₪', '').replace(/,/g, '').trim();
+              if (!isNaN(parseFloat(cleaned))) {
+                return parseFloat(cleaned);
+              }
+            }
+            
+            // General cleanup for any other format
+            const cleaned = str.replace(/[^\d.-]/g, '');
+            if (cleaned && !isNaN(parseFloat(cleaned))) {
+              return parseFloat(cleaned);
+            }
+            
+            return 0;
+          }
           
           // Generate order items preview (up to 3 items)
           const previewItems = order.items.slice(0, 3).map(item => {
+            // Get price to display - prefer מחירון over regular price
+            let priceValue = 0;
+            
+            // Try all possible price fields with proper cleaning
+            const priceFields = [
+              item.pricelist,
+              item['מחירון'],
+              item.price,
+              item['מחיר']
+            ];
+            
+            // Find the first valid price
+            for (const field of priceFields) {
+              if (field) {
+                const parsed = cleanAndParsePrice(field);
+                if (parsed > 0) {
+                  priceValue = parsed;
+                  break;
+                }
+              }
+            }
+            
+            const priceDisplay = priceValue > 0 ? priceValue.toFixed(2) + ' ₪' : 'מחיר לא זמין';
+            
             return `
               <div class="order-item">
-                <img src="tl/${item.barcode}.jpg" alt="${item.name}" class="order-item-image" onerror="this.src='images/logo.png';">
+                <img src="tl/${item.barcode}.jpg" alt="${item.name}" class="order-item-image" 
+                     onerror="this.onerror=null; this.src='images/logo.png';">
                 <div class="order-item-details">
                   <div class="order-item-name">${item.name}</div>
                   <div class="order-item-meta">
                     <span>${item.quantity} יח'</span>
-                    <span class="order-item-price">${item.price ? item.price + ' ₪' : 'מחיר לא זמין'}</span>
+                    <span class="order-item-price">${priceDisplay}</span>
                   </div>
                 </div>
               </div>
@@ -844,13 +963,65 @@
         // Get order date
         const orderDate = formatDate(order.createdAt);
         
+        // Helper function to clean and parse price strings
+        function cleanAndParsePrice(priceStr) {
+          if (!priceStr) return 0;
+          
+          // If it's already a number, return it
+          if (typeof priceStr === 'number') return priceStr;
+          
+          // Convert to string if somehow not a string
+          const str = String(priceStr);
+          
+          // Handle the format "₪2,630.00" (currency first)
+          if (str.startsWith('₪')) {
+            const cleaned = str.replace('₪', '').replace(/,/g, '');
+            if (!isNaN(parseFloat(cleaned))) {
+              return parseFloat(cleaned);
+            }
+          }
+          
+          // Handle format "2,630.00 ₪" (currency last)
+          if (str.endsWith('₪')) {
+            const cleaned = str.replace('₪', '').replace(/,/g, '').trim();
+            if (!isNaN(parseFloat(cleaned))) {
+              return parseFloat(cleaned);
+            }
+          }
+          
+          // General cleanup for any other format
+          const cleaned = str.replace(/[^\d.-]/g, '');
+          if (cleaned && !isNaN(parseFloat(cleaned))) {
+            return parseFloat(cleaned);
+          }
+          
+          return 0;
+        }
+        
         // Calculate order total - prioritize מחירון (pricelist) over price
         const orderTotal = order.items.reduce((total, item) => {
-          // Use pricelist if available, otherwise fall back to price
-          const unitPrice = (item.pricelist || item['מחירון']) ? 
-            parseFloat(item.pricelist || item['מחירון']) : 
-            parseFloat(item.price || 0);
-          return total + unitPrice * item.quantity;
+          let priceToUse = 0;
+          
+          // Try all possible price fields with proper cleaning
+          const priceFields = [
+            item.pricelist,
+            item['מחירון'],
+            item.price,
+            item['מחיר']
+          ];
+          
+          // Find the first valid price
+          for (const field of priceFields) {
+            if (field) {
+              const parsed = cleanAndParsePrice(field);
+              if (parsed > 0) {
+                priceToUse = parsed;
+                break;
+              }
+            }
+          }
+          
+          return total + (priceToUse * item.quantity);
         }, 0);
         
         // Get status label
@@ -903,25 +1074,53 @@
               </thead>
               <tbody>
                 ${order.items.map(item => {
-                  // Use pricelist if available, otherwise fall back to price
-                  const priceToUse = (item.pricelist || item['מחירון']) ? 
-                    parseFloat(item.pricelist || item['מחירון']) : 
-                    parseFloat(item.price || 0);
+                  let priceToUse = 0;
+                  let originalPriceString = '';
+                  
+                  // Try all possible price fields with proper cleaning
+                  const priceFields = [
+                    { field: item.pricelist, name: 'pricelist', isPricelist: true },
+                    { field: item['מחירון'], name: 'מחירון', isPricelist: true },
+                    { field: item.price, name: 'price', isPricelist: false },
+                    { field: item['מחיר'], name: 'מחיר', isPricelist: false }
+                  ];
+                  
+                  // Find the first valid price
+                  let foundPrice = false;
+                  for (const fieldObj of priceFields) {
+                    if (fieldObj.field) {
+                      const parsed = cleanAndParsePrice(fieldObj.field);
+                      if (parsed > 0) {
+                        priceToUse = parsed;
+                        originalPriceString = fieldObj.field;
+                        foundPrice = true;
+                        break;
+                      }
+                    }
+                  }
+                  
                   const itemTotal = priceToUse * item.quantity;
                   
-                  // Get both prices for display if available
-                  const priceListDisplay = item.pricelist || item['מחירון'] ? 
-                    `<span class="pricelist-value">${item.pricelist || item['מחירון']} ₪</span>` : '';
-                  const regularPriceDisplay = item.price ? 
-                    `<span class="regular-price">${item.price} ₪</span>` : 'N/A';
+                  // Debug the price
+                  console.log(`Modal item ${item.name || item.barcode}: originalPrice=${originalPriceString}, cleaned=${priceToUse}, total=${itemTotal}`);
+                  
+                  // Format the price for display
+                  let priceListDisplay = '';
+                  
+                  if (priceToUse > 0) {
+                    priceListDisplay = `<span class="pricelist-value">${priceToUse.toFixed(2)} ₪</span>`;
+                  } else {
+                    priceListDisplay = 'N/A';
+                  }
                   
                   return `
                     <tr>
                       <td>${item.barcode}</td>
-                      <td><img src="tl/${item.barcode}.jpg" alt="${item.name}" width="50" height="50" onerror="this.src='images/logo.png';"></td>
+                      <td><img src="tl/${item.barcode}.jpg" alt="${item.name}" width="50" height="50" 
+                           onerror="this.onerror=null; this.src='images/logo.png';"></td>
                       <td>${item.name}</td>
                       <td>${item.quantity}</td>
-                      <td>${priceListDisplay || regularPriceDisplay}</td>
+                      <td>${priceListDisplay}</td>
                       <td>${itemTotal.toFixed(2)} ₪</td>
                     </tr>
                   `;
@@ -969,9 +1168,15 @@
           // Create order items worksheet with expanded headers
           const itemsHeaders = ['מק"ט', 'שם פריט', 'קטגוריה', 'מותג/חברה', 'מחירון', 'מחיר יחידה', 'כמות', 'סה"כ'];
           const itemsData = currentOrder.items.map(item => {
-            const itemTotal = (parseFloat(item.price) || 0) * item.quantity;
-            // Get price from correct field
-            const unitPrice = parseFloat(item.price) || 0;
+            let priceToUse = 0;
+            if (item.pricelist || item['מחירון']) {
+              priceToUse = parseFloat(item.pricelist || item['מחירון']);
+            } else if (item.price) {
+              priceToUse = parseFloat(item.price);
+            }
+            
+            const itemTotal = (isNaN(priceToUse) ? 0 : priceToUse) * item.quantity;
+            
             // Get pricelist from correct field
             const pricelist = item.pricelist || item['מחירון'] || '';
             // Get category from item
@@ -985,9 +1190,9 @@
               category,
               brand,
               pricelist,
-              unitPrice,
+              isNaN(priceToUse) ? 0 : parseFloat(priceToUse).toFixed(2),
               item.quantity,
-              itemTotal
+              itemTotal.toFixed(2)
             ];
           });
           
@@ -1042,7 +1247,7 @@
             closeOrderDetailsModal();
             
             // Refresh display
-            renderOrders();
+            loadAllOrders();
           } catch (error) {
             console.error('Error deleting order:', error);
             alert('שגיאה במחיקת ההזמנה. אנא נסה שוב.');

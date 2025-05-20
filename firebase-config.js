@@ -360,54 +360,25 @@ const submitOrder = async (notes = '') => {
           console.error('Agent notification error details:', agentNotifError.message);
         }
         
-        // Create notifications for all admins
-        console.log('Attempting to create notifications for admins...');
+        // Create a SINGLE notification for admins - simpler approach
+        console.log('Creating a single system notification for admins...');
         try {
-          const adminsSnapshot = await db.collection('users')
-            .where('role', '==', 'admin')
-            .get();
-            
-          console.log(`Found ${adminsSnapshot.size} admin users for notifications`);
-          
-          if (adminsSnapshot.empty) {
-            console.warn('No admin users found in the database to send notifications to');
-          } else {
-            // Create notifications individually rather than using batch
-            let adminCount = 0;
-            let successCount = 0;
-            
-            // Use Promise.allSettled to handle each notification creation independently
-            const adminPromises = [];
-            
-            for (const adminDoc of adminsSnapshot.docs) {
-              adminCount++;
-              const adminData = adminDoc.data();
-              console.log(`Creating notification for admin ${adminDoc.id}, email: ${adminData.email || 'unknown'}`);
-              
-              try {
-                // Create individual notification 
-                const adminNotifPromise = db.collection('notifications').add({
-                  ...notificationData,
-                  recipientId: adminDoc.id,
-                  message: `הזמנה חדשה התקבלה מלקוח: ${clientData.name ? `${clientData.name} (${user.email})` : user.email}`
-                });
-                
-                adminPromises.push(adminNotifPromise);
-              } catch (singleAdminError) {
-                console.error(`Error creating notification for admin ${adminDoc.id}:`, singleAdminError);
-              }
-            }
-            
-            if (adminPromises.length > 0) {
-              console.log(`Processing ${adminPromises.length} admin notifications individually`);
-              const results = await Promise.allSettled(adminPromises);
-              successCount = results.filter(r => r.status === 'fulfilled').length;
-              console.log(`Successfully created ${successCount} out of ${adminPromises.length} admin notifications`);
-            }
-          }
-        } catch (adminBatchError) {
-          console.error('Error creating admin notifications batch:', adminBatchError);
-          console.error('Admin batch error details:', adminBatchError.message);
+          // Create a single notification with minimal fields
+          await db.collection('notifications').add({
+            type: 'new_order',
+            orderId: orderRef.id,
+            clientId: user.uid,
+            clientEmail: user.email,
+            read: false,
+            message: `הזמנה חדשה התקבלה מלקוח: ${clientData.name ? `${clientData.name} (${user.email})` : user.email}`,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            recipientType: 'admin_broadcast', // Special type to indicate it's for all admins
+            agentId: clientData.agentId || null
+          });
+          console.log('Successfully created admin notification');
+        } catch (adminError) {
+          console.error('Error creating admin notification:', adminError);
+          console.error('Admin notification error details:', adminError.message);
         }
       } catch (notifError) {
         console.error('Error in overall notification process:', notifError);
@@ -418,61 +389,22 @@ const submitOrder = async (notes = '') => {
       console.log('No agent assigned to this client. Creating admin notifications only.');
       
       try {
-        // Create base notification data with ALL required fields for security rules
-        const notificationData = {
+        // Create a single notification for admins (no agent case)
+        console.log('Creating a single admin notification (no agent case)');
+        await db.collection('notifications').add({
           type: 'new_order',
           orderId: orderRef.id,
           clientId: user.uid,
           clientEmail: user.email,
           read: false,
+          message: `הזמנה חדשה התקבלה מלקוח: ${clientData.name ? `${clientData.name} (${user.email})` : user.email} (ללא סוכן)`,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          senderId: user.uid,
-          senderEmail: user.email,
-          agentId: null // Must include this field even when null
-        };
-        
-        // Create notifications for all admins
-        const adminsSnapshot = await db.collection('users')
-          .where('role', '==', 'admin')
-          .get();
-          
-        console.log(`Found ${adminsSnapshot.size} admin users to notify (no agent case)`);
-        
-        if (!adminsSnapshot.empty) {
-          // Process notifications individually rather than in a batch
-          let adminCount = 0;
-          let successCount = 0;
-          
-          // Use Promise.allSettled to handle each notification creation independently
-          const adminPromises = [];
-          
-          for (const adminDoc of adminsSnapshot.docs) {
-            adminCount++;
-            console.log(`Creating notification for admin ${adminDoc.id} (no agent case)`);
-            
-            try {
-              // Create individual notification
-              const adminNotifPromise = db.collection('notifications').add({
-                ...notificationData,
-                recipientId: adminDoc.id,
-                message: `הזמנה חדשה התקבלה מלקוח: ${clientData.name ? `${clientData.name} (${user.email})` : user.email} (ללא סוכן)`
-              });
-              
-              adminPromises.push(adminNotifPromise);
-            } catch (singleAdminError) {
-              console.error(`Error creating notification for admin ${adminDoc.id} (no agent case):`, singleAdminError);
-            }
-          }
-          
-          if (adminPromises.length > 0) {
-            console.log(`Processing ${adminPromises.length} admin notifications individually (no agent case)`);
-            const results = await Promise.allSettled(adminPromises);
-            successCount = results.filter(r => r.status === 'fulfilled').length;
-            console.log(`Successfully created ${successCount} out of ${adminPromises.length} admin notifications (no agent case)`);
-          }
-        }
+          recipientType: 'admin_broadcast',
+          agentId: null
+        });
+        console.log('Successfully created admin notification (no agent case)');
       } catch (adminNotifError) {
-        console.error('Error creating admin notifications (no agent case):', adminNotifError);
+        console.error('Error creating admin notification (no agent case):', adminNotifError);
         console.error('Error details (no agent case):', adminNotifError.message);
         // Continue execution even if notification creation fails
       }

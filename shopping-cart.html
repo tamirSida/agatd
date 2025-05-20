@@ -751,81 +751,77 @@
         try {
           // Get current user info
           const currentUser = auth.currentUser;
-          if (!currentUser) return;
+          if (!currentUser) {
+            console.error('No current user found');
+            return false;
+          }
 
           // Get client data to find assigned agent
           const clientDoc = await db.collection('clients').doc(currentUser.uid).get();
-          if (!clientDoc.exists) return;
+          if (!clientDoc.exists) {
+            console.error('Client document does not exist');
+            return false;
+          }
 
           const clientData = clientDoc.data();
           const agentId = clientData.agentId;
+          const clientName = clientData.name || null;
 
           console.log(`Creating notifications for order ID: ${orderId}`);
 
-          // Create base notification data - ensure ALL required fields are present
-          const notificationData = {
-            type: 'new_order',
-            orderId: orderId,
-            clientId: currentUser.uid,  // Required for security rules
-            clientEmail: currentUser.email,
-            read: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            senderId: currentUser.uid,
-            senderEmail: currentUser.email,
-            agentId: agentId || null // Include agentId for security rules
-          };
+          // Create a single admin notification first as this is less complex
+          try {
+            console.log('Creating a single notification for all admins');
+            
+            // Simplified notification data with minimal required fields
+            const adminNotification = {
+              type: 'new_order',
+              orderId: orderId,
+              clientId: currentUser.uid,
+              clientEmail: currentUser.email,
+              read: false,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              recipientType: 'admin_broadcast',
+              message: `הזמנה חדשה התקבלה מלקוח: ${clientName ? clientName + ' (' + currentUser.email + ')' : currentUser.email}`,
+              agentId: agentId || null
+            };
+            
+            // Add the admin notification
+            await db.collection('notifications').add(adminNotification);
+            console.log('Successfully created admin broadcast notification');
+          } catch (adminError) {
+            console.error('Error creating admin notification:', adminError);
+            // Continue execution to try agent notification
+          }
 
           // Create notification for the agent if one is assigned
           if (agentId) {
-            console.log(`Attempting to create notification for agent: ${agentId}`);
             try {
-              await db.collection('notifications').add({
-                ...notificationData,
+              console.log(`Creating notification for agent: ${agentId}`);
+              
+              // Simplified agent notification data
+              const agentNotification = {
+                type: 'new_order',
+                orderId: orderId,
+                clientId: currentUser.uid,
+                clientEmail: currentUser.email,
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 recipientId: agentId,
-                message: `הזמנה חדשה התקבלה מלקוח: ${currentUser.email}`
-              });
-              console.log('Order notification created for agent:', agentId);
-            } catch (agentNotifError) {
-              console.error('Error creating agent notification:', agentNotifError);
+                recipientType: 'agent',
+                message: `הזמנה חדשה התקבלה מלקוח: ${clientName ? clientName + ' (' + currentUser.email + ')' : currentUser.email}`,
+                agentId: agentId
+              };
+              
+              // Add the agent notification
+              await db.collection('notifications').add(agentNotification);
+              console.log('Successfully created agent notification');
+            } catch (agentError) {
+              console.error('Error creating agent notification:', agentError);
+              // Continue execution to return success for the overall process
             }
-          }
-
-          // Create notifications for all admins
-          console.log('Attempting to create notifications for admins');
-          try {
-            const adminsSnapshot = await db.collection('users')
-              .where('role', '==', USER_ROLES.ADMIN)
-              .get();
-              
-            if (!adminsSnapshot.empty) {
-              console.log(`Found ${adminsSnapshot.size} admin users`);
-              
-              // Create notifications one by one instead of using batch
-              const adminPromises = [];
-              
-              for (const adminDoc of adminsSnapshot.docs) {
-                console.log(`Creating notification for admin: ${adminDoc.id}`);
-                try {
-                  const notificationPromise = db.collection('notifications').add({
-                    ...notificationData,
-                    recipientId: adminDoc.id,
-                    message: `הזמנה חדשה התקבלה מלקוח: ${currentUser.email}`
-                  });
-                  adminPromises.push(notificationPromise);
-                } catch (singleAdminError) {
-                  console.error(`Error creating notification for admin ${adminDoc.id}:`, singleAdminError);
-                }
-              }
-              
-              // Wait for all promises but don't fail if some fail
-              const results = await Promise.allSettled(adminPromises);
-              const successful = results.filter(r => r.status === 'fulfilled').length;
-              console.log(`Successfully created ${successful} out of ${adminPromises.length} admin notifications`);
-            } else {
-              console.warn('No admin users found to notify');
-            }
-          } catch (adminNotifError) {
-            console.error('Error creating admin notifications:', adminNotifError);
+          } else {
+            console.log('No agent assigned to this client - skipping agent notification');
           }
 
           console.log('Order notifications process completed');
@@ -833,7 +829,10 @@
         } catch (error) {
           console.error('Error creating order notifications:', error);
           console.error('Full error details:', error.message, error.stack);
-          return false;
+          
+          // Return true to allow the order process to continue
+          // even if notifications fail
+          return true;
         }
       }
       

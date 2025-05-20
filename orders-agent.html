@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>הזמנות לקוחות - AGAT&D</title>
+  <title>הזמנות סוכן - AGAT&D</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="images/logo.png" type="image/png">
   <style>
@@ -713,19 +714,29 @@
           
           // Calculate order total
           const orderTotal = order.items.reduce((total, item) => {
-            return total + (parseFloat(item.price) || 0) * item.quantity;
+            // First try to use מחירון (pricelist)
+            const priceToUse = (item.pricelist || item['מחירון']) ? 
+              parseFloat(item.pricelist || item['מחירון']) : 
+              parseFloat(item.price || 0);
+            
+            return total + (isNaN(priceToUse) ? 0 : priceToUse) * item.quantity;
           }, 0);
           
           // Generate order items preview (up to 3 items)
           const previewItems = order.items.slice(0, 3).map(item => {
+            // Get price to display - prefer מחירון over regular price
+            const priceToShow = (item.pricelist || item['מחירון']) || item.price || 'מחיר לא זמין';
+            const priceDisplay = isNaN(parseFloat(priceToShow)) ? 'מחיר לא זמין' : priceToShow + ' ₪';
+            
             return `
               <div class="order-item">
-                <img src="tl/${item.barcode}.jpg" alt="${item.name}" class="order-item-image" onerror="this.src='images/logo.png';">
+                <img src="tl/${item.barcode}.jpg" alt="${item.name}" class="order-item-image" 
+                     onerror="this.onerror=null; this.src='images/logo.png';">
                 <div class="order-item-details">
                   <div class="order-item-name">${item.name}</div>
                   <div class="order-item-meta">
                     <span>${item.quantity} יח'</span>
-                    <span class="order-item-price">${item.price ? item.price + ' ₪' : 'מחיר לא זמין'}</span>
+                    <span class="order-item-price">${priceDisplay}</span>
                   </div>
                 </div>
               </div>
@@ -864,10 +875,10 @@
         // Calculate order total - prioritize מחירון (pricelist) over price
         const orderTotal = order.items.reduce((total, item) => {
           // Use pricelist if available, otherwise fall back to price
-          const unitPrice = (item.pricelist || item['מחירון']) ? 
+          const priceToUse = (item.pricelist || item['מחירון']) ? 
             parseFloat(item.pricelist || item['מחירון']) : 
             parseFloat(item.price || 0);
-          return total + unitPrice * item.quantity;
+          return total + (isNaN(priceToUse) ? 0 : priceToUse) * item.quantity;
         }, 0);
         
         // Get status label
@@ -924,18 +935,19 @@
                   const priceToUse = (item.pricelist || item['מחירון']) ? 
                     parseFloat(item.pricelist || item['מחירון']) : 
                     parseFloat(item.price || 0);
-                  const itemTotal = priceToUse * item.quantity;
+                  const itemTotal = (isNaN(priceToUse) ? 0 : priceToUse) * item.quantity;
                   
                   // Get both prices for display if available
                   const priceListDisplay = item.pricelist || item['מחירון'] ? 
                     `<span class="pricelist-value">${item.pricelist || item['מחירון']} ₪</span>` : '';
-                  const regularPriceDisplay = item.price ? 
+                  const regularPriceDisplay = item.price && !isNaN(parseFloat(item.price)) ? 
                     `<span class="regular-price">${item.price} ₪</span>` : 'N/A';
                   
                   return `
                     <tr>
                       <td>${item.barcode}</td>
-                      <td><img src="tl/${item.barcode}.jpg" alt="${item.name}" width="50" height="50" onerror="this.src='images/logo.png';"></td>
+                      <td><img src="tl/${item.barcode}.jpg" alt="${item.name}" width="50" height="50" 
+                           onerror="this.onerror=null; this.src='images/logo.png';"></td>
                       <td>${item.name}</td>
                       <td>${item.quantity}</td>
                       <td>${priceListDisplay || regularPriceDisplay}</td>
@@ -986,9 +998,12 @@
           // Create order items worksheet with expanded headers
           const itemsHeaders = ['מק"ט', 'שם פריט', 'קטגוריה', 'מותג/חברה', 'מחירון', 'מחיר יחידה', 'כמות', 'סה"כ'];
           const itemsData = currentOrder.items.map(item => {
-            const itemTotal = (parseFloat(item.price) || 0) * item.quantity;
             // Get price from correct field
-            const unitPrice = parseFloat(item.price) || 0;
+            const priceToUse = (item.pricelist || item['מחירון']) ? 
+              parseFloat(item.pricelist || item['מחירון']) : 
+              parseFloat(item.price || 0);
+            const itemTotal = (isNaN(priceToUse) ? 0 : priceToUse) * item.quantity;
+            
             // Get pricelist from correct field
             const pricelist = item.pricelist || item['מחירון'] || '';
             // Get category from item
@@ -1002,7 +1017,7 @@
               category,
               brand,
               pricelist,
-              unitPrice,
+              isNaN(priceToUse) ? 0 : priceToUse,
               item.quantity,
               itemTotal
             ];
@@ -1050,7 +1065,7 @@
             await db.collection('orders').doc(currentOrder.id).delete();
             
             // Remove from local data
-            agentOrders = agentOrders.filter(o => o.id !== currentOrder.id);
+            allOrders = allOrders.filter(o => o.id !== currentOrder.id);
             
             // Show success message
             alert('ההזמנה נמחקה בהצלחה');
