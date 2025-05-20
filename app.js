@@ -759,6 +759,10 @@ function populateFilters(excludeFilter = '') {
 // Helper function to get filtered products for dynamic filters
 function getDynamicallyFilteredProducts(products, excludeFilter) {
   console.log(`getDynamicallyFilteredProducts called with ${products.length} products, excludeFilter: ${excludeFilter}`);
+  
+  // Log current filters to help with debugging
+  console.log('Current filters:', JSON.stringify(currentFilters));
+  
   return products.filter(product => {
     // Country filter - skip if this is the filter being updated
     if (excludeFilter !== 'country-filter' && currentFilters.country && product['מדינה'] !== currentFilters.country) {
@@ -775,6 +779,7 @@ function getDynamicallyFilteredProducts(products, excludeFilter) {
 
     // Brand Group filter - skip if this is the filter being updated
     if (excludeFilter !== 'brand-group-filter' && currentFilters.brandGroup) {
+      // Determine product type for selecting the correct field
       let productType = '';
       if (whiskeyProducts.includes(product)) {
         productType = 'whiskey';
@@ -788,9 +793,9 @@ function getDynamicallyFilteredProducts(products, excludeFilter) {
         productType = 'alcohol';
       }
       
+      // Get brand/group field based on product type
       let productBrandGroup = '';
       
-      // Get brand/group value based on product type
       if (productType === 'wine') {
         productBrandGroup = product['קבוצה / מותג'] || '';
       } else if (productType === 'whiskey') {
@@ -2370,50 +2375,99 @@ function setupEventListeners() {
     });
   });
 
-  // Filter change events
+  // Filter change events - ensure they're only attached once
   countryFilter.addEventListener('change', function() {
     console.log(`Country filter changed to: ${this.value}`);
     currentFilters.country = this.value;
     updateSelectStyling(this);
     updateFilterStates();
-    // Repopulate other filters based on this selection
-    populateFilters('country-filter');
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products, excluding the country filter that's being changed
+    const filteredProducts = getDynamicallyFilteredProducts(products, 'country-filter');
+    
+    // Update other filters based on this selection
+    updateFilterOptions(filteredProducts);
+    
+    // Display filtered products
     displayProducts();
   });
 
   categoryFilter.addEventListener('change', function() {
+    console.log(`Category filter changed to: ${this.value}`);
     currentFilters.category = this.value;
     updateSelectStyling(this);
     updateFilterStates();
-    // Repopulate other filters based on this selection
-    populateFilters('category-filter');
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products, excluding the category filter that's being changed
+    const filteredProducts = getDynamicallyFilteredProducts(products, 'category-filter');
+    
+    // Update other filters based on this selection
+    updateFilterOptions(filteredProducts);
+    
+    // Display filtered products
     displayProducts();
   });
   
   brandFilter.addEventListener('change', function() {
+    console.log(`Brand filter changed to: ${this.value}`);
     currentFilters.brand = this.value;
     updateSelectStyling(this);
     updateFilterStates();
-    // Repopulate other filters based on this selection
-    populateFilters('brand-filter');
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products, excluding the brand filter that's being changed
+    const filteredProducts = getDynamicallyFilteredProducts(products, 'brand-filter');
+    
+    // Update other filters based on this selection
+    updateFilterOptions(filteredProducts);
+    
+    // Display filtered products
     displayProducts();
   });
   
   brandGroupFilter.addEventListener('change', function() {
+    console.log(`Brand group filter changed to: ${this.value}`);
     currentFilters.brandGroup = this.value;
     updateSelectStyling(this);
     updateFilterStates();
-    // Repopulate other filters based on this selection
-    populateFilters('brand-group-filter');
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products, excluding the brand group filter that's being changed
+    const filteredProducts = getDynamicallyFilteredProducts(products, 'brand-group-filter');
+    
+    // Update other filters based on this selection
+    updateFilterOptions(filteredProducts);
+    
+    // Display filtered products
     displayProducts();
   });
   
   kosherFilter.addEventListener('change', function() {
+    console.log(`Kosher filter changed to: ${this.value}`);
     currentFilters.kosher = this.value;
     updateSelectStyling(this);
     updateFilterStates();
-    // Repopulate other filters based on this selection
-    populateFilters('kosher-filter');
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products, excluding the kosher filter that's being changed
+    const filteredProducts = getDynamicallyFilteredProducts(products, 'kosher-filter');
+    
+    // Update other filters based on this selection
+    updateFilterOptions(filteredProducts);
+    
+    // Display filtered products
     displayProducts();
   });
 
@@ -2469,52 +2523,102 @@ function setupEventListeners() {
 
   // Clear filter buttons
   clearCountryFilterBtn.addEventListener('click', function() {
+    console.log('Clearing country filter');
     countryFilter.value = '';
     currentFilters.country = '';
     updateSelectStyling(countryFilter);
     updateFilterStates();
-    // Repopulate other filters
-    populateFilters('country-filter');
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products after clearing this filter
+    const filteredProducts = getDynamicallyFilteredProducts(products, 'country-filter');
+    
+    // Update other filters based on this selection
+    updateFilterOptions(filteredProducts);
+    
+    // Display filtered products
     displayProducts();
   });
 
   clearCategoryFilterBtn.addEventListener('click', function() {
+    console.log('Clearing category filter');
     categoryFilter.value = '';
     currentFilters.category = '';
     updateSelectStyling(categoryFilter);
     updateFilterStates();
-    // Repopulate other filters
-    populateFilters('category-filter');
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products after clearing this filter
+    const filteredProducts = getDynamicallyFilteredProducts(products, 'category-filter');
+    
+    // Update other filters based on this selection
+    updateFilterOptions(filteredProducts);
+    
+    // Display filtered products
     displayProducts();
   });
 
   clearBrandFilterBtn.addEventListener('click', function() {
+    console.log('Clearing brand filter');
     brandFilter.value = '';
     currentFilters.brand = '';
     updateSelectStyling(brandFilter);
     updateFilterStates();
-    // Repopulate other filters
-    populateFilters('brand-filter');
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products after clearing this filter
+    const filteredProducts = getDynamicallyFilteredProducts(products, 'brand-filter');
+    
+    // Update other filters based on this selection
+    updateFilterOptions(filteredProducts);
+    
+    // Display filtered products
     displayProducts();
   });
   
   clearBrandGroupFilterBtn.addEventListener('click', function() {
+    console.log('Clearing brand group filter');
     brandGroupFilter.value = '';
     currentFilters.brandGroup = '';
     updateSelectStyling(brandGroupFilter);
     updateFilterStates();
-    // Repopulate other filters
-    populateFilters('brand-group-filter');
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products after clearing this filter
+    const filteredProducts = getDynamicallyFilteredProducts(products, 'brand-group-filter');
+    
+    // Update other filters based on this selection
+    updateFilterOptions(filteredProducts);
+    
+    // Display filtered products
     displayProducts();
   });
 
   clearKosherFilterBtn.addEventListener('click', function() {
+    console.log('Clearing kosher filter');
     kosherFilter.value = '';
     currentFilters.kosher = '';
     updateSelectStyling(kosherFilter);
     updateFilterStates();
-    // Repopulate other filters
-    populateFilters('kosher-filter');
+    
+    // Get products based on current tab
+    const products = getProductsByTab();
+    
+    // Get filtered products after clearing this filter
+    const filteredProducts = getDynamicallyFilteredProducts(products, 'kosher-filter');
+    
+    // Update other filters based on this selection
+    updateFilterOptions(filteredProducts);
+    
+    // Display filtered products
     displayProducts();
   });
 }
@@ -2630,6 +2734,8 @@ kosherFilter.addEventListener('change', function() {
 
 // Add a new function to update filter options based on filtered products
 function updateFilterOptions(filteredProducts) {
+  console.log(`Updating filter options with ${filteredProducts.length} filtered products`);
+  
   // Get unique values for each filter from the filtered products
   const countries = [...new Set(filteredProducts.filter(p => p['מדינה']).map(p => p['מדינה']))];
   const categories = [...new Set(filteredProducts.filter(p => p['קטגוריה אוטומטי'] || p['קטגוריה']).map(p => p['קטגוריה אוטומטי'] || p['קטגוריה']))];
@@ -2640,52 +2746,18 @@ function updateFilterOptions(filteredProducts) {
     brandGroups = [...new Set(filteredProducts.filter(p => p['קבוצה / מותג']).map(p => p['קבוצה / מותג']))];
   } else if (currentFilters.tab === 'whiskey') {
     brandGroups = [...new Set(filteredProducts.filter(p => p['מותג']).map(p => p['מותג']))];
+  } else if (currentFilters.tab === 'all') {
+    // For "all" tab, we need to collect brands from all product types
+    const wineGroups = [...new Set(filteredProducts.filter(p => wineProducts.includes(p) && p['קבוצה / מותג']).map(p => p['קבוצה / מותג']))];
+    const whiskeyGroups = [...new Set(filteredProducts.filter(p => whiskeyProducts.includes(p) && p['מותג']).map(p => p['מותג']))];
+    const otherGroups = [...new Set(filteredProducts.filter(p => p['קבוצה / מותג אוטומטי']).map(p => p['קבוצה / מותג אוטומטי']))];
+    
+    brandGroups = [...new Set([...wineGroups, ...whiskeyGroups, ...otherGroups])].filter(Boolean);
   } else {
     brandGroups = [...new Set(filteredProducts.filter(p => p['קבוצה / מותג אוטומטי']).map(p => p['קבוצה / מותג אוטומטי']))];
   }
 
-  // Sort all arrays
-  countries.sort();
-  categories.sort();
-  brandGroups.sort();
-
-  // Update country filter options
-  const countryOptions = countryFilter.querySelectorAll('option');
-  countryOptions.forEach(option => {
-    if (option.value && !countries.includes(option.value)) {
-      option.disabled = true;
-      option.style.display = 'none';
-    } else {
-      option.disabled = false;
-      option.style.display = '';
-    }
-  });
-
-  // Update category filter options
-  const categoryOptions = categoryFilter.querySelectorAll('option');
-  categoryOptions.forEach(option => {
-    if (option.value && !categories.includes(option.value)) {
-      option.disabled = true;
-      option.style.display = 'none';
-    } else {
-      option.disabled = false;
-      option.style.display = '';
-    }
-  });
-
-  // Update brand group filter options
-  const brandGroupOptions = brandGroupFilter.querySelectorAll('option');
-  brandGroupOptions.forEach(option => {
-    if (option.value && !brandGroups.includes(option.value)) {
-      option.disabled = true;
-      option.style.display = 'none';
-    } else {
-      option.disabled = false;
-      option.style.display = '';
-    }
-  });
-
-  // Update brand (client) filter options
+  // Get client names from filtered products
   const availableClients = [];
   filteredProducts.forEach(product => {
     Object.keys(product).forEach(key => {
@@ -2702,16 +2774,93 @@ function updateFilterOptions(filteredProducts) {
     });
   });
 
-  const brandOptions = brandFilter.querySelectorAll('option');
-  brandOptions.forEach(option => {
-    if (option.value && !availableClients.includes(option.value)) {
-      option.disabled = true;
-      option.style.display = 'none';
-    } else {
-      option.disabled = false;
-      option.style.display = '';
+  // Sort all arrays
+  countries.sort();
+  categories.sort();
+  brandGroups.sort();
+  availableClients.sort((a, b) => a.localeCompare(b, 'he'));
+
+  console.log('Updating filters with:');
+  console.log('- Countries:', countries.length);
+  console.log('- Categories:', categories.length);
+  console.log('- Brand Groups:', brandGroups.length);
+  console.log('- Clients:', availableClients.length);
+
+  // Rebuild the filter dropdowns completely instead of just hiding options
+  
+  // Save current selections before rebuilding
+  const currentCountry = countryFilter.value;
+  const currentCategory = categoryFilter.value;
+  const currentBrandGroup = brandGroupFilter.value;
+  const currentBrand = brandFilter.value;
+  
+  // Clear and rebuild country filter
+  countryFilter.innerHTML = '<option value="">כל הארצות</option>';
+  countries.forEach(country => {
+    const option = document.createElement('option');
+    option.value = country;
+    option.textContent = country;
+    if (country === currentCountry) {
+      option.selected = true;
+    }
+    countryFilter.appendChild(option);
+  });
+  
+  // Clear and rebuild category filter
+  let categoryPlaceholder = 'כל הקטגוריות';
+  if (currentFilters.tab === 'alcohol') {
+    categoryPlaceholder = 'כל הסוגים';
+  }
+  categoryFilter.innerHTML = `<option value="">${categoryPlaceholder}</option>`;
+  categories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    if (category === currentCategory) {
+      option.selected = true;
+    }
+    categoryFilter.appendChild(option);
+  });
+  
+  // Clear and rebuild brand group filter
+  brandGroupFilter.innerHTML = '<option value="">קבוצה/מותג</option>';
+  brandGroups.forEach(group => {
+    if (group && group.trim() !== '') {
+      const option = document.createElement('option');
+      option.value = group;
+      option.textContent = group;
+      if (group === currentBrandGroup) {
+        option.selected = true;
+      }
+      brandGroupFilter.appendChild(option);
     }
   });
+  
+  // Clear and rebuild client/brand filter (only if user is admin or agent)
+  if (window.userRole === USER_ROLES.ADMIN || window.userRole === USER_ROLES.AGENT) {
+    // Keep the first option (default)
+    const defaultOption = brandFilter.querySelector('option[value=""]');
+    brandFilter.innerHTML = '';
+    if (defaultOption) {
+      brandFilter.appendChild(defaultOption);
+    } else {
+      const newDefaultOption = document.createElement('option');
+      newDefaultOption.value = '';
+      newDefaultOption.textContent = 'כל הלקוחות';
+      brandFilter.appendChild(newDefaultOption);
+    }
+    
+    // Add available clients
+    availableClients.forEach(client => {
+      const option = document.createElement('option');
+      option.value = client;
+      option.textContent = client;
+      if (client === currentBrand) {
+        option.selected = true;
+      }
+      brandFilter.appendChild(option);
+    });
+  }
 
   // Update select styling
   updateSelectStyling(countryFilter);
