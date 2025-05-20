@@ -1116,20 +1116,10 @@ function displayProducts() {
     return;
   }
 
-  // Track displayed groups to avoid duplicates
-  const displayedGroups = new Set();
-
+  // Display all valid products without grouping
   validProducts.forEach(product => {
-    // Skip if we've already shown this product group
-    const groupKey = getProductGroupKey(product);
-    if (groupKey && displayedGroups.has(groupKey)) return;
-
-    // Create product card
     const card = createProductCard(product);
     productsContainer.appendChild(card);
-
-    // Mark this group as displayed
-    if (groupKey) displayedGroups.add(groupKey);
   });
 }
 
