@@ -1382,7 +1382,7 @@ function createProductCard(product) {
       ${showClientButtons ? 
         `<div class="product-buttons">
           <button class="heart-button" data-barcode="${barcode || ''}"><i class="heart-icon">♡</i></button>
-          <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחירון'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="cart-icon">🛒</i></button>
+          <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="cart-icon">🛒</i></button>
         </div>` 
         : ''}
     </div>
@@ -1547,8 +1547,8 @@ function createProductCard(product) {
         return;
       }
       
-      // Get the מחירון value if available
-      const pricelist = product['מחירון'] || null;
+      // Get the מחירון value from data attribute
+      const pricelist = cartButton.dataset.pricelist || null;
       
       // Show quantity prompt modal
       const quantity = await showQuantityPrompt(productName);
@@ -1563,9 +1563,8 @@ function createProductCard(product) {
         const success = await addToCart({
           barcode: barcode,
           name: productName,
-          price: product['מחיר'] || 0,
-          מחירון: product['מחירון'] || price,
-          pricelist: product['מחירון'] || price,
+          price: parseFloat(price) || 0,
+          מחירון: pricelist,
           category: currentFilters.tab
         }, quantity);
         
@@ -1988,8 +1987,8 @@ function openProductModal(product) {
           return;
         }
         
-        // Get the מחירון value if available
-        const pricelist = product['מחירון'] || null;
+        // Get the מחירון value from data attribute
+        const pricelist = this.dataset.pricelist || null;
         
         // Show quantity prompt modal
         const quantity = await showQuantityPrompt(productName);
@@ -2004,9 +2003,8 @@ function openProductModal(product) {
           const success = await addToCart({
             barcode: barcode,
             name: productName,
-            price: product['מחיר'] || 0,
-            מחירון: product['מחירון'] || pricelist,
-            pricelist: product['מחירון'] || pricelist,
+            price: parseFloat(price) || 0,
+            מחירון: pricelist,
             category: currentFilters.tab
           }, quantity);
           

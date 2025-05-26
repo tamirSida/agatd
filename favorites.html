@@ -869,7 +869,7 @@
           <div class="image-not-found">image not found</div>
           <div class="product-buttons">
             <button class="heart-button liked" data-barcode="${barcode || ''}"><i class="heart-icon">♥</i></button>
-            <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}"><i class="cart-icon">🛒</i></button>
+            <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="cart-icon">🛒</i></button>
           </div>
         </div>
         <div class="product-info">
@@ -969,7 +969,8 @@
             const success = await addToCart({
               barcode: barcode,
               name: productName,
-              מחיר: price,
+              price: parseFloat(price) || 0,
+              מחירון: cartButton.dataset.pricelist || null,
               category: product.source || 'alcohol'
             }, quantity);
             
@@ -1196,6 +1197,7 @@
         modalCartButton.dataset.barcode = barcode || '';
         modalCartButton.dataset.productName = modalTitle.textContent;
         modalCartButton.dataset.price = product['מחיר'] || '0';
+        modalCartButton.dataset.pricelist = product['מחירון'] || '';
         modalCartButton.style.position = 'absolute';
         modalCartButton.style.right = '40px';
         modalCartButton.style.top = '10px';
@@ -1237,7 +1239,8 @@
             const success = await addToCart({
               barcode: barcode,
               name: productName,
-              מחיר: price,
+              price: parseFloat(price) || 0,
+              מחירון: this.dataset.pricelist || null,
               category: product.source || 'alcohol'
             }, quantity);
             
@@ -1275,6 +1278,7 @@
         modalCartButton.dataset.barcode = barcode || '';
         modalCartButton.dataset.productName = modalTitle.textContent;
         modalCartButton.dataset.price = product['מחיר'] || '0';
+        modalCartButton.dataset.pricelist = product['מחירון'] || '';
       }
       
       // Show modal
