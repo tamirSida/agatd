@@ -110,7 +110,7 @@
     
     <!-- Catalog Tabs -->
     <div class="catalog-tabs">
-      <button class="tab-button active" data-tab="all">כל המוצרים</button>
+      <button class="tab-button active" data-tab="all">כל המוצרים החדשים</button>
       <button class="tab-button" data-tab="alcohol">אלכוהול</button>
       <button class="tab-button" data-tab="whiskey">וויסקי</button>
       <button class="tab-button" data-tab="wine">יין</button>
@@ -130,13 +130,6 @@
           <option value="">כל הקטגוריות</option>
         </select>
         <button class="clear-filter" id="clear-category-filter" aria-label="נקה בחירת קטגוריה"></button>
-      </div>
-      <div class="filter-group">
-        <select id="brand-filter">
-          <option value="">כל הלקוחות</option>
-          <!-- Client options will be populated via JavaScript -->
-        </select>
-        <button class="clear-filter" id="clear-brand-filter" aria-label="נקה בחירת לקוח"></button>
       </div>
       <div class="filter-group">
         <select id="brand-group-filter">
@@ -186,7 +179,34 @@
     </div>
   </div>
 
-  <!-- We no longer need the brand filter modal since we're using a dropdown -->
+  <!-- Add to Cart Modal -->
+  <div id="cart-modal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div class="modal-header">
+        <h2>הוסף לעגלה</h2>
+      </div>
+      <div class="modal-body">
+        <div class="cart-modal-body">
+          <div class="cart-product-info">
+            <img id="cart-modal-image" src="" alt="Product Image">
+            <div>
+              <h3 id="cart-modal-title"></h3>
+              <p id="cart-modal-price"></p>
+            </div>
+          </div>
+          <div class="quantity-selector">
+            <label for="quantity-input">כמות:</label>
+            <input type="number" id="quantity-input" min="1" value="1">
+          </div>
+          <div class="cart-modal-actions">
+            <button id="add-to-cart-confirm" class="confirm-btn">הוסף לעגלה</button>
+            <button id="cancel-cart" class="cancel-btn">ביטול</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -291,12 +311,6 @@
                 // Show favorites and shopping cart buttons for clients
                 document.getElementById('favorites-button').style.display = 'block';
                 document.getElementById('cart-button-header').style.display = 'block';
-                
-                // Hide client filter only for client users
-                const brandFilterContainer = document.querySelector('#brand-filter').closest('.filter-group');
-                if (brandFilterContainer) {
-                  brandFilterContainer.style.display = 'none';
-                }
               } else {
                 // For clients, check if they have restrictions
                 const clientDoc = await db.collection('clients').doc(user.uid).get();
@@ -331,11 +345,9 @@
               
               window.userRole = USER_ROLES.CLIENT;
               
-              // Hide client filter for new client users
-              const brandFilterContainer = document.querySelector('#brand-filter').closest('.filter-group');
-              if (brandFilterContainer) {
-                brandFilterContainer.style.display = 'none';
-              }
+              // Show favorites and shopping cart buttons for new client users
+              document.getElementById('favorites-button').style.display = 'block';
+              document.getElementById('cart-button-header').style.display = 'block';
             }
             
             // Load user liked products
@@ -374,6 +386,6 @@
     });
   </script>
   
-  <script src="app.js"></script>
+  <script src="new-products.js"></script>
 </body>
 </html>

@@ -705,10 +705,10 @@ select.has-value ~ .clear-filter {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  z-index: 10;
+  z-index: 12;
 }
 
-.heart-button, .cart-button {
+.heart-button, .like-button, .cart-button {
   background: white;
   border: none;
   border-radius: 50%;
@@ -720,9 +720,11 @@ select.has-value ~ .clear-filter {
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s ease;
+  font-size: 18px;
+  color: #ccc;
 }
 
-.heart-button:hover, .cart-button:hover {
+.heart-button:hover, .like-button:hover, .cart-button:hover {
   transform: scale(1.1);
 }
 
@@ -733,11 +735,11 @@ select.has-value ~ .clear-filter {
   transition: color 0.2s ease;
 }
 
-.heart-button:hover .heart-icon {
+.heart-button:hover .heart-icon, .like-button:hover {
   color: #e74c3c;
 }
 
-.heart-button.liked .heart-icon {
+.heart-button.liked .heart-icon, .like-button.liked {
   color: #e74c3c;
 }
 
@@ -747,6 +749,84 @@ select.has-value ~ .clear-filter {
 
 .cart-button:hover .cart-icon {
   color: #219955;
+}
+
+.cart-button {
+  background: #27ae60;
+  color: white;
+  font-size: 14px;
+  border-radius: 8px;
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
+  margin-top: 10px;
+}
+
+.cart-button:hover {
+  background: #219955;
+}
+
+/* New badge styles */
+.new-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  z-index: 15;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  animation: newBadgePulse 2s ease-in-out infinite;
+  letter-spacing: 0.5px;
+}
+
+@keyframes newBadgePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+  }
+}
+
+/* Cute notification style new badge for main catalog */
+.new-notification-badge {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: linear-gradient(45deg, #ff6b6b, #ffa500);
+  color: white;
+  padding: 3px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: bold;
+  text-transform: uppercase;
+  z-index: 15;
+  box-shadow: 0 2px 6px rgba(255, 107, 107, 0.4);
+  animation: notificationBounce 3s ease-in-out infinite;
+  letter-spacing: 0.3px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+@keyframes notificationBounce {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(-2deg);
+  }
+  50% {
+    transform: scale(1.05) rotate(0deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(2deg);
+  }
 }
 
 /* Shopping cart badge */

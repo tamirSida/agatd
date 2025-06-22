@@ -1379,6 +1379,7 @@ function createProductCard(product) {
     <div class="product-image">
       <img src="${imageUrl}" alt="${productName}" onerror="if(this.src.includes('tl/')){ this.src='media/${barcode || ''}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.nextElementSibling.style.display='block'; }">
       <div class="image-not-found">image not found</div>
+      ${product['IsNew'] && product['IsNew'].toLowerCase() === 'true' ? '<span class="new-notification-badge">חדש!</span>' : ''}
       ${showClientButtons ? 
         `<div class="product-buttons">
           <button class="heart-button" data-barcode="${barcode || ''}"><i class="heart-icon">♡</i></button>
