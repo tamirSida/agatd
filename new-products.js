@@ -429,13 +429,13 @@ function setupEventListeners() {
   // Modal close functionality
   if (closeModalBtn) {
     closeModalBtn.addEventListener('click', () => {
-      modal.style.display = 'none';
+      closeProductModal();
     });
   }
 
   window.addEventListener('click', (event) => {
     if (event.target === modal) {
-      modal.style.display = 'none';
+      closeProductModal();
     }
     if (event.target === cartModal) {
       cartModal.style.display = 'none';
@@ -785,24 +785,53 @@ function addProductCardEventListeners() {
   });
 }
 
-// Open product modal (same logic as main catalog)
+// Get current product category (same function as app.js)
+function getCurrentProductCategory(product) {
+  // Check which array this product belongs to
+  if (alcoholProducts.includes(product)) return 'alcohol';
+  if (whiskeyProducts.includes(product)) return 'whiskey';
+  if (wineProducts.includes(product)) return 'wine';
+  if (beerProducts.includes(product)) return 'beer';
+  if (foodProducts.includes(product)) return 'food';
+  return 'unknown';
+}
+
+// Open product modal - uses same logic as main catalog app.js
 function openProductModal(barcode) {
   const product = allProducts.find(p => (p['ברקוד'] || p['מספר פריט']) === barcode);
   if (!product) return;
 
-  const productName = getProductName(product);
-  const company = getProductCompany(product);
-  
-  modalTitle.textContent = productName;
-  if (company) {
-    modalCompany.textContent = company;
+  // Safety check for modal and other DOM elements
+  if (!modal || !modalTitle || !modalCompany || !modalDescription) {
+    console.error('Modal DOM elements not found');
+    return;
   }
-  modalDescription.textContent = getProductDescription(product);
+
+  // Get company/brand name
+  const company = product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג'] || '';
+
+  // Debug: Log product data for description debugging
+  console.log('Opening modal for product:', product);
+  console.log('Description fields:', {
+    'תאור': product['תאור'],
+    'תיאור פריט': product['תיאור פריט'],
+    'תיאור': product['תיאור']
+  });
+
+  // Set modal content based on product type (EXACT copy from app.js)
+  const productType = getCurrentProductCategory(product);
+  if (productType === 'whiskey') {
+    modalTitle.textContent = product['תיאור פריט'] || product['שם פריט אוטומטי'] || 'Unnamed Product';
+  } else {
+    modalTitle.textContent = product['שם פריט אוטומטי'] || product['תיאור פריט'] || 'Unnamed Product';
+  }
+  modalCompany.textContent = company;
+  modalDescription.textContent = product['תאור'] || '';
 
   // Set image - use high-quality Cloudinary URL for modal
   const imageUrl = barcode ? getCloudinaryImageUrlHQ(barcode) : 'images/logo.png';
   modalImage.src = imageUrl;
-  modalImage.alt = productName || 'Product';
+  modalImage.alt = product['שם פריט אוטומטי'] || 'Product';
 
   // Reset the image not found message
   document.querySelector('.modal-image-not-found').style.display = 'none';
@@ -822,43 +851,246 @@ function openProductModal(barcode) {
     }
   };
 
-  // Clear previous modal content
+  // Clear specs and variants
   modalSpecs.innerHTML = '';
   modalVariants.innerHTML = '';
 
-  // Add product specifications
-  const specs = [];
-  
-  if (product['ארץ יצור'] || product['מדינה']) {
-    specs.push(`ארץ יצור: ${product['ארץ יצור'] || product['מדינה']}`);
-  }
-  
-  if (product['כשרות'] || product['כשר']) {
-    specs.push(`כשרות: ${product['כשרות'] || product['כשר']}`);
-  }
-  
-  const volume = getProductVolume(product);
-  if (volume) {
-    specs.push(`נפח: ${volume}`);
-  }
-  
-  const weight = getProductWeight(product);
-  if (weight) {
-    specs.push(`משקל: ${weight}`);
-  }
-  
-  const price = getProductPrice(product);
-  if (price) {
-    specs.push(`מחיר: ${price}`);
+  // Add kosher status to modal (same as app.js)
+  if (product['כשרות']) {
+    const kosherSpec = document.createElement('div');
+    kosherSpec.className = 'spec-item';
+    
+    let kosherValue;
+    const kosherRawValue = product['כשרות'].toString().trim().toLowerCase();
+    
+    if (kosherRawValue === 'true' || kosherRawValue === 'כן' || kosherRawValue === 'כשר') {
+      kosherValue = '<span class="kosher-status kosher-yes">כשר</span>';
+    } else if (kosherRawValue === 'false' || kosherRawValue === 'לא' || kosherRawValue === 'לא כשר') {
+      kosherValue = '<span class="kosher-status kosher-no">לא כשר</span>';
+    } else {
+      // Don't display raw values like TRUE/FALSE, just show a neutral value
+      if (kosherRawValue === 'true' || kosherRawValue === 'false') {
+        kosherValue = '';
+      } else {
+        kosherValue = product['כשרות'];
+      }
+    }
+    
+    // Add Passover status if available - check multiple possible column names
+    let passoverField = null;
+    const possiblePassoverFields = ['כשר לפסח', 'כשרות לפסח', 'פסח'];
+    
+    for (const field of possiblePassoverFields) {
+      if (product[field] !== undefined) {
+        passoverField = field;
+        break;
+      }
+    }
+    
+    if (passoverField && product[passoverField]) {
+      const passoverValue = product[passoverField].toString().trim().toLowerCase();
+      if (passoverValue === 'true' || 
+          passoverValue === 'כן' || 
+          passoverValue === 'כשר' || 
+          passoverValue === 'כשר לפסח' ||
+          (passoverValue.includes('כשר') && passoverValue.includes('פסח'))) {
+        kosherValue += ' <span class="kosher-status kosher-passover">כשר לפסח</span>';
+      }
+    }
+    
+    kosherSpec.innerHTML = `
+      <div class="spec-label"><strong>כשרות</strong>:</div>
+      <div class="spec-value">${kosherValue}</div>
+    `;
+    modalSpecs.appendChild(kosherSpec);
   }
 
-  if (specs.length > 0) {
-    modalSpecs.innerHTML = '<h4>מפרטים:</h4><ul>' + 
-      specs.map(spec => `<li>${spec}</li>`).join('') + 
-      '</ul>';
+  // Add country with flag to specs (same as app.js)
+  if (product['מדינה']) {
+    const countryToCode = {
+      'ישראל': 'il',
+      'איטליה': 'it',
+      'צרפת': 'fr',
+      'גרמניה': 'de',
+      'ספרד': 'es',
+      'ארה"ב': 'us',
+      'בריטניה': 'gb',
+      'סין': 'cn',
+      'יפן': 'jp',
+      'הודו': 'in',
+      'ברזיל': 'br',
+      'אוסטרליה': 'au',
+      'קנדה': 'ca',
+      'רוסיה': 'ru',
+      'טורקיה': 'tr',
+      'מולדובה': 'md',
+      'גאורגיה': 'ge',
+      'איחוד האמירויות': 'ae',
+      'אוקראינה': 'ua',
+      'פולין': 'pl',
+      'בולגריה': 'bg',
+      'גואטמאלה': 'gt',
+      'מקסיקו': 'mx',
+      'סנט לוסיה': 'lc',
+      'קולומביה': 'co',
+      'קאריבים': 'bs', // Using Bahamas as generic Caribbean flag
+      'יוון': 'gr',
+      'סקוטלנד': 'gb', // Using UK flag for Scotland
+      'מלטה': 'mt',
+      'קניה': 'ke',
+      'סלובניה': 'si'
+    };
+
+    const countryCode = countryToCode[product['מדינה']] || '';
+    const countrySpec = document.createElement('div');
+    countrySpec.className = 'spec-item country-spec';
+    countrySpec.innerHTML = `
+      <div class="spec-label"><strong>מדינת ייצור</strong>:</div>
+      <div class="spec-value">
+        ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
+        <span class="country-name">${product['מדינה']}</span>
+      </div>
+    `;
+    modalSpecs.appendChild(countrySpec);
+  }
+
+  // Add price information as top spec if available (same as app.js)
+  if (product['מחירון']) {
+    const priceSpec = document.createElement('div');
+    priceSpec.className = 'spec-item price-spec';
+    priceSpec.innerHTML = `
+      <div class="spec-label"><strong>מחירון</strong>:</div>
+      <div class="spec-value price-value">${product['מחירון']}</div>
+    `;
+    modalSpecs.appendChild(priceSpec);
+  } else if (product['מחיר']) {
+    const priceSpec = document.createElement('div');
+    priceSpec.className = 'spec-item price-spec';
+    priceSpec.innerHTML = `
+      <div class="spec-label"><strong>מחיר</strong>:</div>
+      <div class="spec-value price-value">${product['מחיר']} ₪</div>
+    `;
+    modalSpecs.appendChild(priceSpec);
+  }
+
+  // Add ALL product specifications (same logic as app.js)
+  for (const [key, value] of Object.entries(product)) {
+    // Skip empty values, brands, and fields displayed elsewhere
+    if (!value || 
+        key === 'שם פריט אוטומטי' || 
+        key === 'תאור' || 
+        key === 'תיאור פריט' ||
+        key === 'תיאור' ||
+        key === 'מחירון' || // Already displayed in special section
+        key === 'מחיר' || // Already displayed in special section
+        key === 'כשרות' || // Already displayed in special section
+        key === 'כשר לפסח' || // Already included with kosher status
+        key === 'כשרות לפסח' || // Alternate passover field name
+        key === 'פסח' || // Another possible passover field name
+        key === 'מדינה' ||
+        key === 'company' || 
+        key === 'קבוצה / מותג' || 
+        key === 'קבוצה / מותג אוטומטי' ||
+        key === 'מותג' ||
+        brands.includes(key) ||
+        // Skip values that are just TRUE/FALSE strings
+        (typeof value === 'string' && 
+         (value.trim().toUpperCase() === 'TRUE' || 
+          value.trim().toUpperCase() === 'FALSE'))) continue;
+
+    const specItem = document.createElement('div');
+    specItem.className = 'spec-item';
+
+    specItem.innerHTML = `
+      <div class="spec-label"><strong>${key}</strong>:</div>
+      <div class="spec-value">${value}</div>
+    `;
+
+    modalSpecs.appendChild(specItem);
+  }
+
+  // Add like button for clients (same logic as app.js)
+  const isLiked = window.userLikes && window.userLikes.includes(barcode);
+  const showClientButtons = window.userRole === USER_ROLES.CLIENT;
+  
+  // Remove existing modal buttons
+  const existingButtons = modal.querySelectorAll('.modal-heart-button, .modal-cart-button');
+  existingButtons.forEach(btn => btn.remove());
+  
+  if (showClientButtons) {
+    // Add heart button to modal
+    const heartButton = document.createElement('button');
+    heartButton.className = `modal-heart-button ${isLiked ? 'liked' : ''}`;
+    heartButton.dataset.barcode = barcode || '';
+    heartButton.innerHTML = `<i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> ${isLiked ? 'הסר ממועדפים' : 'הוסף למועדפים'}`;
+    
+    heartButton.addEventListener('click', async function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      try {
+        const currentlyLiked = await toggleProductLike(barcode);
+        const heartIcon = this.querySelector('.fa-heart');
+        
+        if (currentlyLiked) {
+          this.classList.add('liked');
+          heartIcon.className = 'fas fa-heart';
+          this.innerHTML = '<i class="fas fa-heart"></i> הסר ממועדפים';
+        } else {
+          this.classList.remove('liked');
+          heartIcon.className = 'far fa-heart';
+          this.innerHTML = '<i class="far fa-heart"></i> הוסף למועדפים';
+        }
+        
+        // Update card button if it exists
+        const cardHeartButton = document.querySelector(`[data-barcode="${barcode}"].heart-button`);
+        if (cardHeartButton) {
+          if (currentlyLiked) {
+            cardHeartButton.classList.add('liked');
+            const cardHeartIcon = cardHeartButton.querySelector('.fa-heart');
+            if (cardHeartIcon) cardHeartIcon.className = 'fas fa-heart';
+          } else {
+            cardHeartButton.classList.remove('liked');
+            const cardHeartIcon = cardHeartButton.querySelector('.fa-heart');
+            if (cardHeartIcon) cardHeartIcon.className = 'far fa-heart';
+          }
+        }
+      } catch (error) {
+        console.error('Error toggling like:', error);
+      }
+    });
+    
+    // Add cart button to modal
+    const cartButton = document.createElement('button');
+    cartButton.className = 'modal-cart-button';
+    cartButton.dataset.barcode = barcode || '';
+    cartButton.innerHTML = '<i class="fas fa-shopping-cart"></i> הוסף לעגלה';
+    
+    cartButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openCartModal(barcode);
+    });
+    
+    // Add buttons to modal header
+    const modalHeader = modal.querySelector('.modal-header');
+    if (modalHeader) {
+      const buttonContainer = document.createElement('div');
+      buttonContainer.className = 'modal-button-container';
+      buttonContainer.appendChild(heartButton);
+      buttonContainer.appendChild(cartButton);
+      modalHeader.appendChild(buttonContainer);
+    }
   }
 
   modal.style.display = 'block';
+  document.body.style.overflow = 'hidden'; // Prevent scrolling of the background
+}
+
+// Close product modal
+function closeProductModal() {
+  modal.style.display = 'none';
+  document.body.style.overflow = 'auto'; // Enable scrolling on body again
 }
 
 // Open cart modal
@@ -1026,6 +1258,38 @@ function updateSelectOptions(selectElement, options) {
   }
 }
 
+// Determine which product category/tab a product belongs to
+function getCurrentProductCategory(product) {
+  // Check if it's in the specific product arrays
+  if (alcoholProducts.includes(product)) {
+    return 'alcohol';
+  } else if (whiskeyProducts.includes(product)) {
+    return 'whiskey';
+  } else if (wineProducts.includes(product)) {
+    return 'wine';
+  } else if (beerProducts.includes(product)) {
+    return 'beer';
+  } else if (foodProducts.includes(product)) {
+    return 'food';
+  }
+  
+  // If not found in arrays (unlikely), check by product properties
+  if (product['קטגוריה אוטומטי'] === 'קוניאק' || 
+      product['קטגוריה אוטומטי'] === 'וודקה' || 
+      product['קטגוריה אוטומטי'] === 'ג\'ין') {
+    return 'alcohol';
+  } else if (product['קטגוריה אוטומטי'] === 'וויסקי') {
+    return 'whiskey';
+  } else if (product['קטגוריה אוטומטי'] === 'יין') {
+    return 'wine';
+  } else if (product['קטגוריה אוטומטי'] === 'בירה') {
+    return 'beer';
+  }
+  
+  // Default to the current tab
+  return currentFilters.tab === 'all' ? 'alcohol' : currentFilters.tab;
+}
+
 // Group products by name for variant handling
 function groupProductsByName() {
   groupedProducts = {};
@@ -1054,9 +1318,7 @@ function getProductCompany(product) {
 }
 
 function getProductDescription(product) {
-  return product['תאור'] || 
-         product['תיאור פריט'] || 
-         product['תיאור'] || '';
+  return product['תאור'] || '';
 }
 
 function getProductImage(product) {
