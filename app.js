@@ -1199,7 +1199,7 @@ function createProductCard(product) {
 
   // Get image URL based on barcode
   const barcode = product['ברקוד'];
-  const imageUrl = barcode ? `tl/${barcode}.jpg` : 'placeholder.jpg';
+  const imageUrl = barcode ? getCloudinaryImageUrl(barcode) : 'images/logo.png';
 
   // Get company/brand name from appropriate field
   const company = product['קבוצה / מותג'] || product['קבוצה / מותג אוטומטי'] || product['מותג'] || '';
@@ -1377,7 +1377,7 @@ function createProductCard(product) {
   
   card.innerHTML = `
     <div class="product-image">
-      <img src="${imageUrl}" alt="${productName}" onerror="if(this.src.includes('tl/')){ this.src='media/${barcode || ''}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.nextElementSibling.style.display='block'; }">
+      <img src="${imageUrl}" alt="${productName}" onerror="if(this.src.includes('cloudinary')){ this.src='tl/${barcode || ''}.jpg'; } else if(this.src.includes('tl/')){ this.src='media/${barcode || ''}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.nextElementSibling.style.display='block'; }">
       <div class="image-not-found">image not found</div>
       ${product['IsNew'] && product['IsNew'].toLowerCase() === 'true' ? '<span class="new-notification-badge">חדש!</span>' : ''}
       ${showClientButtons ? 
@@ -1634,9 +1634,9 @@ function openProductModal(product) {
   modalCompany.textContent = company;
   modalDescription.textContent = product['תאור'] || '';
 
-  // Set image - use tl folder for modal (same as the cards)
+  // Set image - use high-quality Cloudinary URL for modal
   const barcode = product['ברקוד'];
-  const imageUrl = barcode ? `tl/${barcode}.jpg` : 'placeholder.jpg';
+  const imageUrl = barcode ? getCloudinaryImageUrlHQ(barcode) : 'images/logo.png';
   modalImage.src = imageUrl;
   modalImage.alt = product['שם פריט אוטומטי'] || 'Product';
 
@@ -1645,12 +1645,15 @@ function openProductModal(product) {
 
   // Handle image error - try alternative folders before showing error
   modalImage.onerror = function() {
-    if (this.src.includes('tl/')) {
+    if (this.src.includes('cloudinary')) {
+      // If Cloudinary failed, try local tl/ folder
+      this.src = `tl/${barcode}.jpg`;
+    } else if (this.src.includes('tl/')) {
       // If tl/ folder failed, try media/ folder
       this.src = `media/${barcode}.jpg`;
     } else if (this.src.includes('media/')) {
       // If media/ folder also failed, use placeholder and show error
-      this.src = 'placeholder.jpg';
+      this.src = 'images/logo.png';
       document.querySelector('.modal-image-not-found').style.display = 'block';
     }
   };
