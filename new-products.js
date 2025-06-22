@@ -575,88 +575,252 @@ function displayProducts() {
   addProductCardEventListeners();
 }
 
-// Create product card HTML
+// Create product card HTML (EXACT COPY from app.js)
 function createProductCard(product, variants = []) {
+  const barcode = product['ברקוד'] || '';
   const productName = getProductName(product);
-  const productCompany = getProductCompany(product);
-  const productCountry = product['ארץ יצור'] || product['מדינה'] || '';
-  const productImage = getProductImage(product);
-  const productDescription = getProductDescription(product);
-  const productPrice = getProductPrice(product);
-  const productVolume = getProductVolume(product);
-  const productWeight = getProductWeight(product);
-  const productKosher = getProductKosher(product);
-  const productBarcode = product['ברקוד'] || product['מספר פריט'] || '';
+  const company = getProductCompany(product);
+  
+  // Check if client is restricted to specific brands
+  let shouldShow = true;
+  if (window.clientAllowedBrands && window.clientAllowedBrands.length > 0) {
+    const productBrand = company.toLowerCase();
+    shouldShow = window.clientAllowedBrands.some(brand => 
+      productBrand.includes(brand.toLowerCase()) || brand.toLowerCase().includes(productBrand)
+    );
+  }
+  
+  if (!shouldShow) {
+    return '';
+  }
 
+  const card = document.createElement('div');
+  card.className = 'product-card';
+  card.dataset.barcode = barcode || '';
+
+  // Get country code for flag
+  const countryToCode = {
+    'ישראל': 'il',
+    'איטליה': 'it',
+    'צרפת': 'fr',
+    'גרמניה': 'de',
+    'ספרד': 'es',
+    'ארה"ב': 'us',
+    'בריטניה': 'gb',
+    'סין': 'cn',
+    'יפן': 'jp',
+    'הודו': 'in',
+    'רוסיה': 'ru',
+    'ברזיל': 'br',
+    'ארגנטינה': 'ar',
+    'צ\'ילה': 'cl',
+    'אוסטרליה': 'au',
+    'דרום אפריקה': 'za',
+    'מקסיקו': 'mx',
+    'קנדה': 'ca',
+    'יוון': 'gr',
+    'פורטוגל': 'pt',
+    'אוסטריה': 'at',
+    'שוויץ': 'ch',
+    'בלגיה': 'be',
+    'הולנד': 'nl',
+    'דנמרק': 'dk',
+    'שבדיה': 'se',
+    'נורבגיה': 'no',
+    'פינלנד': 'fi',
+    'איסלנד': 'is',
+    'מלטה': 'mt',
+    'קניה': 'ke',
+    'סלובניה': 'si'
+  };
+
+  const countryCode = product['מדינה'] && countryToCode[product['מדינה']] ? countryToCode[product['מדינה']] : '';
+  
+  // Get price if available - prioritize מחירון field if available
+  let priceHtml = '';
+  if (product['מחירון']) {
+    // Use the מחירון field which already includes the ₪ symbol
+    priceHtml = `<span class="price pricelist">${product['מחירון']}</span>`;
+  } else if (product['מחיר']) {
+    // Fallback to the existing מחיר field
+    priceHtml = `<span class="price">${product['מחיר']} ₪</span>`;
+  } else if (currentFilters.brand && product[currentFilters.brand] === 'TRUE') {
+    // Show availability for selected client
+    priceHtml = `<span class="availability available">זמין</span>`;
+  }
+
+  const imageUrl = barcode ? getCloudinaryImageUrl(barcode) : 'images/logo.png';
+  
   // Check if user has liked this product
-  const isLiked = window.userLikes && window.userLikes.includes(productBarcode);
-  const likeClass = isLiked ? 'liked' : '';
-
-  // Show like and cart buttons only for logged-in users
-  const showLikeButton = window.userId;
-  const showCartButton = window.userId && window.userRole === USER_ROLES.CLIENT;
-
-  return `
-    <div class="product-card" data-barcode="${productBarcode}">
-      <div class="product-image">
-        <img src="${productImage}" alt="${productName}" onerror="if(this.src.includes('tl/')){ this.src='media/${productBarcode}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.nextElementSibling.style.display='block'; }">
-        <div class="image-not-found" style="display: none;">image not found</div>
-        <span class="new-badge">חדש</span>
-        ${(showLikeButton || showCartButton) ? `<div class="product-buttons">
-          ${showLikeButton ? `<button class="like-button ${likeClass}" data-barcode="${productBarcode}" onclick="toggleLike('${productBarcode}')">♥</button>` : ''}
-          ${showCartButton ? `<button class="cart-button" data-barcode="${productBarcode}" onclick="openCartModal('${productBarcode}')"><i class="cart-icon">🛒</i></button>` : ''}
-        </div>` : ''}
+  const isLiked = window.userLikes && window.userLikes.includes(barcode);
+  
+  // Show client buttons only for clients
+  const showClientButtons = window.userRole === USER_ROLES.CLIENT;
+  
+  card.innerHTML = `
+    <div class="product-image">
+      <img src="${imageUrl}" alt="${productName}" onerror="if(this.src.includes('cloudinary')){ this.src='tl/${barcode || ''}.jpg'; } else if(this.src.includes('tl/')){ this.src='media/${barcode || ''}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.nextElementSibling.style.display='block'; }">
+      <div class="image-not-found">image not found</div>
+      ${product['IsNew'] && product['IsNew'].toLowerCase() === 'true' ? '<span class="new-notification-badge">חדש!</span>' : ''}
+      ${showClientButtons ? 
+        `<div class="product-buttons">
+          <button class="heart-button ${isLiked ? 'liked' : ''}" data-barcode="${barcode || ''}"><i class="${isLiked ? 'fas' : 'far'} fa-heart"></i></button>
+          <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="fas fa-shopping-cart"></i></button>
+        </div>` 
+        : ''}
+    </div>
+    <div class="product-info">
+      <h3>${productName}</h3>
+      <div class="product-company">${company}</div>
+      <div class="product-country">
+        ${countryCode ? `<img class="country-flag" src="https://flagcdn.com/24x18/${countryCode}.png" alt="${product['מדינה']} flag">` : ''}
+        <span class="country-name">${product['מדינה'] || ''}</span>
       </div>
-      <div class="product-info">
-        <h3>${productName}</h3>
-        ${productCompany ? `<p class="product-company">${productCompany}</p>` : ''}
-        ${productCountry ? `<p class="product-country"><span class="flag-icon">${getFlagIcon(productCountry)}</span> ${productCountry}</p>` : ''}
-        ${productKosher ? `<p class="product-kosher">${productKosher}</p>` : ''}
-        ${productVolume ? `<p class="product-volume">${productVolume}</p>` : ''}
-        ${productWeight ? `<p class="product-weight">${productWeight}</p>` : ''}
-        ${productDescription ? `<p class="product-description">${productDescription}</p>` : ''}
-        <div class="product-details">
-          ${productPrice ? `<span class="price">${productPrice}</span>` : ''}
-          ${variants.length > 1 ? `<span class="product-variants">${variants.length} variants</span>` : ''}
-        </div>
+      <div class="kosher-tags">
+        ${(product['כשרות'] === 'כשר' || product['כשר'] === 'כשר') ? '<div class="kosher-status kosher-yes">כשר</div>' : ''}
+        ${(product['כשרות'] === 'לא כשר' || product['כשר'] === 'לא כשר') ? '<div class="kosher-status kosher-no">לא כשר</div>' : ''}
+      </div>
+      
+      ${getProductVolume(product) ? `<div class="product-volume"><strong>נפח</strong>: ${getProductVolume(product)}</div>` : ''}
+      ${getProductWeight(product) ? `<div class="product-weight"><strong>נפח</strong>: ${getProductWeight(product)}</div>` : ''}
+      
+      <div class="product-details">
+        <span class="barcode">${barcode}</span>
+        ${priceHtml}
       </div>
     </div>
   `;
+
+  return card.outerHTML;
 }
 
 // Add event listeners to product cards
 function addProductCardEventListeners() {
   const productCards = document.querySelectorAll('.product-card');
+  
+  // Handle card click to open modal (same logic as main catalog)
+  const handleCardClick = (e) => {
+    // Don't open modal if heart button or cart button was clicked
+    if (
+      e.target.closest('.heart-button') ||
+      e.target.classList.contains('fa-heart') ||
+      e.target.closest('.cart-button') ||
+      e.target.classList.contains('cart-icon')
+    ) {
+      e.stopPropagation();
+      return;
+    }
+    
+    const barcode = e.currentTarget.dataset.barcode;
+    openProductModal(barcode);
+  };
+  
   productCards.forEach(card => {
-    card.addEventListener('click', (e) => {
-      // Don't open modal if clicking on like or cart button
-      if (e.target.classList.contains('like-button') || 
-          e.target.classList.contains('cart-button') ||
-          e.target.closest('.like-button') || 
-          e.target.closest('.cart-button')) {
-        return;
-      }
+    card.removeEventListener('click', handleCardClick);
+    card.addEventListener('click', handleCardClick);
+  });
+  
+  // Add heart button event listeners
+  const heartButtons = document.querySelectorAll('.heart-button');
+  heartButtons.forEach(button => {
+    button.addEventListener('click', async function(e) {
+      e.stopPropagation();
+      e.preventDefault();
       
-      const barcode = card.dataset.barcode;
-      openProductModal(barcode);
+      const barcode = this.dataset.barcode;
+      if (!barcode) return;
+      
+      try {
+        // Toggle like in Firebase
+        const isLiked = await toggleProductLike(barcode);
+        
+        const heartIcon = this.querySelector('.fa-heart');
+        
+        // Update UI
+        if (isLiked) {
+          this.classList.add('liked');
+          heartIcon.className = 'fas fa-heart'; // Filled heart
+          
+          // Update modal heart button if open
+          const modalHeartButton = document.querySelector('.modal-heart-button');
+          if (modalHeartButton && modalHeartButton.dataset.barcode === barcode) {
+            modalHeartButton.classList.add('liked');
+            const heartIcon = modalHeartButton.querySelector('.fa-heart');
+            if (heartIcon) heartIcon.className = 'fas fa-heart';
+          }
+        } else {
+          this.classList.remove('liked');
+          heartIcon.className = 'far fa-heart'; // Empty heart
+          
+          // Update modal heart button if open
+          const modalHeartButton = document.querySelector('.modal-heart-button');
+          if (modalHeartButton && modalHeartButton.dataset.barcode === barcode) {
+            modalHeartButton.classList.remove('liked');
+            const heartIcon = modalHeartButton.querySelector('.fa-heart');
+            if (heartIcon) heartIcon.className = 'far fa-heart';
+          }
+        }
+      } catch (error) {
+        console.error('Error toggling like:', error);
+      }
+    });
+  });
+  
+  // Add cart button event listeners
+  const cartButtons = document.querySelectorAll('.cart-button');
+  cartButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      
+      const barcode = this.dataset.barcode;
+      const productName = this.dataset.productName;
+      const price = this.dataset.price;
+      const pricelist = this.dataset.pricelist;
+      
+      if (!barcode) return;
+      
+      openCartModal(barcode, productName, price, pricelist);
     });
   });
 }
 
-// Open product modal
+// Open product modal (same logic as main catalog)
 function openProductModal(barcode) {
   const product = allProducts.find(p => (p['ברקוד'] || p['מספר פריט']) === barcode);
   if (!product) return;
 
   const productName = getProductName(product);
-  const productCompany = getProductCompany(product);
-  const productImage = getProductImage(product);
-  const productDescription = getProductDescription(product);
-
+  const company = getProductCompany(product);
+  
   modalTitle.textContent = productName;
-  modalCompany.textContent = productCompany;
-  modalImage.src = productImage;
-  modalDescription.textContent = productDescription;
+  if (company) {
+    modalCompany.textContent = company;
+  }
+  modalDescription.textContent = getProductDescription(product);
+
+  // Set image - use high-quality Cloudinary URL for modal
+  const imageUrl = barcode ? getCloudinaryImageUrlHQ(barcode) : 'images/logo.png';
+  modalImage.src = imageUrl;
+  modalImage.alt = productName || 'Product';
+
+  // Reset the image not found message
+  document.querySelector('.modal-image-not-found').style.display = 'none';
+
+  // Handle image error - try alternative folders before showing error
+  modalImage.onerror = function() {
+    if (this.src.includes('cloudinary')) {
+      // If Cloudinary failed, try local tl/ folder
+      this.src = `tl/${barcode}.jpg`;
+    } else if (this.src.includes('tl/')) {
+      // If tl/ folder failed, try media/ folder
+      this.src = `media/${barcode}.jpg`;
+    } else if (this.src.includes('media/')) {
+      // If media/ folder also failed, use placeholder and show error
+      this.src = 'images/logo.png';
+      document.querySelector('.modal-image-not-found').style.display = 'block';
+    }
+  };
 
   // Clear previous modal content
   modalSpecs.innerHTML = '';
@@ -980,4 +1144,92 @@ function getFlagIcon(country) {
     'גיאורגיה': '🇬🇪'
   };
   return flagMap[country] || '🏳️';
+}
+
+// Get country code for flag
+function getCountryCode(country) {
+  const countryToCode = {
+    'ישראל': 'il',
+    'איטליה': 'it',
+    'צרפת': 'fr',
+    'גרמניה': 'de',
+    'ספרד': 'es',
+    'ארה"ב': 'us',
+    'בריטניה': 'gb',
+    'סין': 'cn',
+    'יפן': 'jp',
+    'הודו': 'in',
+    'רוסיה': 'ru',
+    'ברזיל': 'br',
+    'ארגנטינה': 'ar',
+    'צ\'ילה': 'cl',
+    'אוסטרליה': 'au',
+    'דרום אפריקה': 'za',
+    'מקסיקו': 'mx',
+    'קנדה': 'ca',
+    'יוון': 'gr',
+    'פורטוגל': 'pt',
+    'אוסטריה': 'at',
+    'שוויץ': 'ch',
+    'בלגיה': 'be',
+    'הולנד': 'nl',
+    'דנמרק': 'dk',
+    'שבדיה': 'se',
+    'נורבגיה': 'no',
+    'פינלנד': 'fi',
+    'איסלנד': 'is',
+    'מלטה': 'mt',
+    'קניה': 'ke',
+    'סלובניה': 'si'
+  };
+  return countryToCode[country] || '';
+}
+
+// Get product price list (מחירון field)
+function getProductPriceList(product) {
+  return product['מחירון'] || '';
+}
+
+// Get availability status for current client
+function getAvailabilityStatus(product) {
+  if (currentFilters.brand && product[currentFilters.brand]) {
+    return product[currentFilters.brand] === 'TRUE' ? 'זמין' : 'לא זמין';
+  }
+  return '';
+}
+
+// Cloudinary image URL function (same as in cloudinary-config.js)
+function getCloudinaryImageUrl(barcode, options = {}) {
+  if (!barcode) return 'images/logo.png';
+  
+  // Default transformations for optimization
+  const defaultOptions = {
+    f_auto: true,      // Auto format (WebP when supported)
+    q_auto: true,      // Auto quality
+    c_fill: true,      // Fill mode
+    w_300: true,       // Max width 300px for cards
+    h_300: true        // Max height 300px for cards
+  };
+  
+  const allOptions = { ...defaultOptions, ...options };
+  
+  // Build transformation string
+  const transformations = Object.entries(allOptions)
+    .filter(([key, value]) => value === true)
+    .map(([key]) => key)
+    .join(',');
+  
+  const CLOUDINARY_BASE_URL = 'https://res.cloudinary.com/desbdkdi9/image/upload';
+  return `${CLOUDINARY_BASE_URL}/${transformations ? transformations + '/' : ''}${barcode}.jpg`;
+}
+
+// Get high-quality image URL for modal view
+function getCloudinaryImageUrlHQ(barcode) {
+  return getCloudinaryImageUrl(barcode, {
+    f_auto: true,
+    q_auto: true,
+    c_fit: true,
+    w_800: true,
+    h_600: true
+  });
 }
