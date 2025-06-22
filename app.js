@@ -1382,8 +1382,8 @@ function createProductCard(product) {
       ${product['IsNew'] && product['IsNew'].toLowerCase() === 'true' ? '<span class="new-notification-badge">חדש!</span>' : ''}
       ${showClientButtons ? 
         `<div class="product-buttons">
-          <button class="heart-button" data-barcode="${barcode || ''}"><i class="heart-icon">♡</i></button>
-          <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="cart-icon">🛒</i></button>
+          <button class="heart-button" data-barcode="${barcode || ''}"><i class="far fa-heart"></i></button>
+          <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="fas fa-shopping-cart"></i></button>
         </div>` 
         : ''}
     </div>
@@ -1418,7 +1418,7 @@ function createProductCard(product) {
     // Don't open modal if heart button or cart button was clicked
     if (
       e.target.closest('.heart-button') ||
-      e.target.classList.contains('heart-icon') ||
+      e.target.classList.contains('fa-heart') ||
       e.target.closest('.cart-button') ||
       e.target.classList.contains('cart-icon')
     ) {
@@ -1474,7 +1474,7 @@ function createProductCard(product) {
         return;
       }
       
-      const heartIcon = heartButton.querySelector('.heart-icon');
+      const heartIcon = heartButton.querySelector('.fa-heart');
       const barcode = heartButton.dataset.barcode;
       
       if (!barcode) {
@@ -1489,7 +1489,7 @@ function createProductCard(product) {
         // Update UI
         if (isLiked) {
           heartButton.classList.add('liked');
-          heartIcon.textContent = '♥'; // Filled heart
+          heartIcon.className = 'fas fa-heart'; // Filled heart
           
           // Add to local likes array
           if (!window.userLikes) window.userLikes = [];
@@ -1498,7 +1498,7 @@ function createProductCard(product) {
           }
         } else {
           heartButton.classList.remove('liked');
-          heartIcon.textContent = '♡'; // Empty heart
+          heartIcon.className = 'far fa-heart'; // Empty heart
           
           // Remove from local likes array
           if (window.userLikes) {
@@ -1511,11 +1511,11 @@ function createProductCard(product) {
         if (modalHeartButton && modalHeartButton.dataset.barcode === barcode) {
           if (isLiked) {
             modalHeartButton.classList.add('liked');
-            const heartIcon = modalHeartButton.querySelector('.heart-icon');
-            if (heartIcon) heartIcon.textContent = '♥';
+            const heartIcon = modalHeartButton.querySelector('.fa-heart');
+            if (heartIcon) heartIcon.className = 'fas fa-heart';
           } else {
             modalHeartButton.classList.remove('liked');
-            const heartIcon = modalHeartButton.querySelector('.heart-icon');
+            const heartIcon = modalHeartButton.querySelector('.fa-heart');
             if (heartIcon) heartIcon.textContent = '♡';
           }
         }
@@ -1863,7 +1863,7 @@ function openProductModal(product) {
   if (showHeartButton && !modalHeartButton) {
     modalHeartButton = document.createElement('button');
     modalHeartButton.className = 'modal-heart-button';
-    modalHeartButton.innerHTML = `<i class="heart-icon">${isLiked ? '♥' : '♡'}</i>`;
+    modalHeartButton.innerHTML = `<i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>`;
     modalHeartButton.dataset.barcode = barcode || '';
     if (isLiked) modalHeartButton.classList.add('liked');
     
@@ -1889,12 +1889,12 @@ function openProductModal(product) {
         // Toggle like in Firebase
         const isLiked = await toggleProductLike(barcode);
         
-        const heartIcon = this.querySelector('.heart-icon');
+        const heartIcon = this.querySelector('.fa-heart');
         
         // Update UI
         if (isLiked) {
           this.classList.add('liked');
-          heartIcon.textContent = '♥'; // Filled heart
+          heartIcon.className = 'fas fa-heart'; // Filled heart
           
           // Add to local likes array
           if (!window.userLikes) window.userLikes = [];
@@ -1906,12 +1906,12 @@ function openProductModal(product) {
           const gridHeartButton = document.querySelector(`.heart-button[data-barcode="${barcode}"]`);
           if (gridHeartButton) {
             gridHeartButton.classList.add('liked');
-            const heartIcon = gridHeartButton.querySelector('.heart-icon');
-            if (heartIcon) heartIcon.textContent = '♥';
+            const heartIcon = gridHeartButton.querySelector('.fa-heart');
+            if (heartIcon) heartIcon.className = 'fas fa-heart';
           }
         } else {
           this.classList.remove('liked');
-          heartIcon.textContent = '♡'; // Empty heart
+          heartIcon.className = 'far fa-heart'; // Empty heart
           
           // Remove from local likes array
           if (window.userLikes) {
@@ -1922,7 +1922,7 @@ function openProductModal(product) {
           const gridHeartButton = document.querySelector(`.heart-button[data-barcode="${barcode}"]`);
           if (gridHeartButton) {
             gridHeartButton.classList.remove('liked');
-            const heartIcon = gridHeartButton.querySelector('.heart-icon');
+            const heartIcon = gridHeartButton.querySelector('.fa-heart');
             if (heartIcon) heartIcon.textContent = '♡';
           }
         }
@@ -1934,14 +1934,14 @@ function openProductModal(product) {
   } else if (modalHeartButton) {
     // Update existing heart button if it exists
     modalHeartButton.dataset.barcode = barcode || '';
-    const heartIcon = modalHeartButton.querySelector('.heart-icon');
+    const heartIcon = modalHeartButton.querySelector('.fa-heart');
     if (heartIcon) {
       if (isLiked) {
         modalHeartButton.classList.add('liked');
-        heartIcon.textContent = '♥';
+        heartIcon.className = 'fas fa-heart';
       } else {
         modalHeartButton.classList.remove('liked');
-        heartIcon.textContent = '♡';
+        heartIcon.className = 'far fa-heart';
       }
     }
   }
@@ -1952,7 +1952,7 @@ function openProductModal(product) {
     if (!modalCartButton) {
       modalCartButton = document.createElement('button');
       modalCartButton.className = 'modal-cart-button';
-      modalCartButton.innerHTML = `<i class="cart-icon">🛒</i>`;
+      modalCartButton.innerHTML = `<i class="fas fa-shopping-cart"></i>`;
       modalCartButton.dataset.barcode = barcode || '';
       modalCartButton.dataset.productName = modalTitle.textContent;
       modalCartButton.dataset.price = product['מחירון'] || '0';
@@ -2319,7 +2319,7 @@ async function updateCartCount() {
       cartButton = document.createElement('button');
       cartButton.id = 'cart-button-header';
       cartButton.className = 'cart-button-header';
-      cartButton.innerHTML = '🛒 עגלת קניות';
+      cartButton.innerHTML = '<i class="fas fa-shopping-cart"></i> עגלת קניות';
       cartButton.addEventListener('click', () => {
         window.location.href = 'shopping-cart.html';
       });

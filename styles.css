@@ -270,9 +270,10 @@ select.has-value {
 }
 
 .clear-filter::after {
-  content: '×';
-  font-size: 18px;
-  font-weight: 300;
+  content: '\f00d';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  font-size: 14px;
 }
 
 select.has-value ~ .clear-filter {
@@ -299,9 +300,10 @@ select.has-value ~ .clear-filter {
 }
 
 .clear-all-filters::before {
-  content: '×';
-  font-size: 18px;
-  font-weight: 300;
+  content: '\f00d';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  font-size: 14px;
 }
 
 .clear-all-filters:hover {

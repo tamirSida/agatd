@@ -346,6 +346,9 @@
       background-color: #f1c40f;
     }
   </style>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
   <header>
@@ -494,7 +497,7 @@
                   const cartButton = document.createElement('button');
                   cartButton.id = 'cart-button-header';
                   cartButton.className = 'cart-button-header';
-                  cartButton.innerHTML = '🛒 עגלת קניות';
+                  cartButton.innerHTML = '<i class="fas fa-shopping-cart"></i> עגלת קניות';
                   cartButton.style.backgroundColor = '#27ae60';
                   cartButton.style.color = 'white';
                   cartButton.style.border = 'none';
@@ -873,8 +876,8 @@
           <img src="${imageUrl}" alt="${productName}" onerror="if(this.src.includes('tl/')){ this.src='media/${barcode || ''}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.nextElementSibling.style.display='block'; }">
           <div class="image-not-found">image not found</div>
           <div class="product-buttons">
-            <button class="heart-button liked" data-barcode="${barcode || ''}"><i class="heart-icon">♥</i></button>
-            <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="cart-icon">🛒</i></button>
+            <button class="heart-button liked" data-barcode="${barcode || ''}"><i class="fas fa-heart"></i></button>
+            <button class="cart-button" data-barcode="${barcode || ''}" data-product-name="${productName.replace(/"/g, '&quot;')}" data-price="${product['מחיר'] || '0'}" data-pricelist="${product['מחירון'] || ''}"><i class="fas fa-shopping-cart"></i></button>
           </div>
         </div>
         <div class="product-info">
@@ -1157,7 +1160,7 @@
       if (!modalHeartButton) {
         modalHeartButton = document.createElement('button');
         modalHeartButton.className = 'modal-heart-button liked';
-        modalHeartButton.innerHTML = `<i class="heart-icon">♥</i>`;
+        modalHeartButton.innerHTML = `<i class="fas fa-heart"></i>`;
         modalHeartButton.dataset.barcode = barcode || '';
         
         document.querySelector('.modal-header').appendChild(modalHeartButton);
@@ -1190,7 +1193,7 @@
         // Update existing heart button
         modalHeartButton.dataset.barcode = barcode || '';
         modalHeartButton.classList.add('liked');
-        modalHeartButton.querySelector('.heart-icon').textContent = '♥';
+        modalHeartButton.querySelector('.fa-heart').className = 'fas fa-heart';
       }
       
       // Add cart button to modal
@@ -1198,7 +1201,7 @@
       if (!modalCartButton) {
         modalCartButton = document.createElement('button');
         modalCartButton.className = 'modal-cart-button';
-        modalCartButton.innerHTML = `<i class="cart-icon">🛒</i>`;
+        modalCartButton.innerHTML = `<i class="fas fa-shopping-cart"></i>`;
         modalCartButton.dataset.barcode = barcode || '';
         modalCartButton.dataset.productName = modalTitle.textContent;
         modalCartButton.dataset.price = product['מחיר'] || '0';
