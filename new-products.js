@@ -599,10 +599,13 @@ function createProductCard(product, variants = []) {
   return `
     <div class="product-card" data-barcode="${productBarcode}">
       <div class="product-image">
-        <img src="${productImage}" alt="${productName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <img src="${productImage}" alt="${productName}" onerror="if(this.src.includes('tl/')){ this.src='media/${productBarcode}.jpg'; } else if(this.src.includes('media/')){ this.src='images/logo.png'; this.nextElementSibling.style.display='block'; }">
         <div class="image-not-found" style="display: none;">image not found</div>
         <span class="new-badge">חדש</span>
-        ${showLikeButton ? `<button class="like-button ${likeClass}" data-barcode="${productBarcode}" onclick="toggleLike('${productBarcode}')">♥</button>` : ''}
+        ${(showLikeButton || showCartButton) ? `<div class="product-buttons">
+          ${showLikeButton ? `<button class="like-button ${likeClass}" data-barcode="${productBarcode}" onclick="toggleLike('${productBarcode}')">♥</button>` : ''}
+          ${showCartButton ? `<button class="cart-button" data-barcode="${productBarcode}" onclick="openCartModal('${productBarcode}')"><i class="cart-icon">🛒</i></button>` : ''}
+        </div>` : ''}
       </div>
       <div class="product-info">
         <h3>${productName}</h3>
@@ -616,7 +619,6 @@ function createProductCard(product, variants = []) {
           ${productPrice ? `<span class="price">${productPrice}</span>` : ''}
           ${variants.length > 1 ? `<span class="product-variants">${variants.length} variants</span>` : ''}
         </div>
-        ${showCartButton ? `<button class="cart-button" data-barcode="${productBarcode}" onclick="openCartModal('${productBarcode}')">🛒 הוסף לעגלה</button>` : ''}
       </div>
     </div>
   `;

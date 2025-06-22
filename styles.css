@@ -751,7 +751,8 @@ select.has-value ~ .clear-filter {
   color: #219955;
 }
 
-.cart-button {
+/* Cart button in product info (for standalone buttons) */
+.product-info .cart-button {
   background: #27ae60;
   color: white;
   font-size: 14px;
@@ -762,7 +763,7 @@ select.has-value ~ .clear-filter {
   margin-top: 10px;
 }
 
-.cart-button:hover {
+.product-info .cart-button:hover {
   background: #219955;
 }
 
