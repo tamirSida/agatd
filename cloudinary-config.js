@@ -87,27 +87,21 @@ function initCloudinaryWidget() {
     if (!error && result && result.event === 'success') {
       console.log('Upload successful:', result.info);
       
-      // Track uploaded barcode
+      // Get uploaded barcode
       const uploadedBarcode = result.info.public_id;
-      if (!window.recentlyUploadedBarcodes) {
-        window.recentlyUploadedBarcodes = [];
-      }
-      window.recentlyUploadedBarcodes.unshift(uploadedBarcode);
       
-      // Keep only last 10 uploaded barcodes
-      window.recentlyUploadedBarcodes = window.recentlyUploadedBarcodes.slice(0, 10);
-      
-      // Show success message
-      alert(`✅ תמונה הועלתה בהצלחה: ${uploadedBarcode}`);
-      
-      // Refresh the image management interface
-      if (typeof refreshImageGrid === 'function') {
-        setTimeout(refreshImageGrid, 1000); // Small delay to ensure Cloudinary processing
+      // Call success callback
+      if (typeof window.onImageUploadSuccess === 'function') {
+        window.onImageUploadSuccess(uploadedBarcode);
       }
     }
     if (error) {
       console.error('Upload error:', error);
-      alert('Upload failed: ' + (error.message || 'Unknown error'));
+      
+      // Call error callback
+      if (typeof window.onImageUploadError === 'function') {
+        window.onImageUploadError(error.message || 'Unknown error');
+      }
     }
   });
 }
